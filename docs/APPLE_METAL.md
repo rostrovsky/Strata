@@ -25,7 +25,8 @@ keep about two thirds of it resident on the GPU (21.3 of 32 GiB on the Air). So 
 
 IQ3_S has 46.8 GiB of routed experts (48 layers x 512, 1.95 MiB each on average). With every other program closed the
 plan had room for a 13.4 GiB cache on the day of the measurements (29% of them; 2.2 GiB were still in swap from earlier
-and count as owed); the rest is read from the SSD while the model answers.
+and count as owed, so the free memory was the limit and not Metal's 15.8 GiB); the rest is read from the SSD while the
+model answers.
 
 ### The SSD works while the GPU works
 
@@ -114,19 +115,21 @@ day, interleaved (before, now, now, before), with the same expert cache, each ru
 
 - **as found:** a browser, an editor, a VM and the Claude app open. What the cache got moved between 3.0 and 9.4 GiB
   over the afternoon, so the runs cap it at one size for both engines (6.3 GiB = 3,320 experts, 13.5%).
-- **closed:** only the Claude app open, 13.4 GiB of room, cache capped at 12.2 GiB (6,395 experts, 26%).
+- **closed:** only the Claude app open, 13.4 GiB of room, cache capped at 12.2 GiB (6,395 experts, 26%). The prefill
+  rows are one run each. For the 32,000-token prompt the context is 40,960 and the caches differ: 11.2 GiB before
+  (given as a number), 10.4 GiB now (what the plan had room for).
 
 | | as found: before | now | closed: before | now |
 | --- | ---: | ---: | ---: | ---: |
-| Writes an answer, cool (2 requests of 120 tokens) | 5.50 tok/s | **6.60** (+20%) | CLOSED_DEC_BASE tok/s | **CLOSED_DEC_NEW** (CLOSED_DEC_PCT) |
-| Writes for 5 minutes (7 requests of 200 tokens in turn) | 5.29 tok/s | **5.73** (+8%) | CLOSED_SUS_BASE tok/s | **CLOSED_SUS_NEW** (CLOSED_SUS_PCT) |
-| ... its requests after the first 200 s | 4.81-4.96 | 4.93-5.31 | CLOSED_SUS_LATE_BASE | CLOSED_SUS_LATE_NEW |
-| Reads a prompt of 32 tokens | 5.3 tok/s | 5.6 | CLOSED_P32_BASE | CLOSED_P32_NEW |
-| ... of 256 tokens | 22.9 tok/s | 26.3 (+15%) | CLOSED_P256_BASE | CLOSED_P256_NEW |
-| ... of 1,600 tokens | 48.0 tok/s | **64.4** (+34%) | CLOSED_P1600_BASE | **CLOSED_P1600_NEW** |
-| ... of 8,000 tokens (as found: a 5.0 GiB cache) | 47.9 tok/s | **62.0** (+29%) | CLOSED_P8000_BASE | **CLOSED_P8000_NEW** |
-| ... of 32,000 tokens (context 40,960) | not run | not run | CLOSED_P32K_BASE | CLOSED_P32K_NEW |
-| Expert cache hits while writing (experts read ahead count as hits) | 71.5% | 85.6% | CLOSED_HIT_BASE | CLOSED_HIT_NEW |
+| Writes an answer, cool (2 requests of 120 tokens) | 5.50 tok/s | **6.60** (+20%) | 7.19 tok/s | **8.46** (+18%) |
+| Writes for 5 minutes (7 requests of 200 tokens in turn) | 5.29 tok/s | **5.73** (+8%) | 6.88 tok/s | **7.32** (+6%) |
+| ... its requests after the first 200 s | 4.81-4.96 | 4.93-5.31 | 6.31-6.54 | 6.23-6.76 |
+| Reads a prompt of 32 tokens | 5.3 tok/s | 5.6 | 7.7 tok/s | 6.8 (-12%, one run each) |
+| ... of 256 tokens | 22.9 tok/s | 26.3 (+15%) | 24.8 tok/s | 33.1 (+33%) |
+| ... of 1,600 tokens | 48.0 tok/s | **64.4** (+34%) | 48.7 tok/s | **66.7** (+37%) |
+| ... of 8,000 tokens (as found: a 5.0 GiB cache) | 47.9 tok/s | **62.0** (+29%) | 47.1 tok/s | **65.5** (+39%) |
+| ... of 32,000 tokens (context 40,960) | not run | not run | 41.7 tok/s (768 s) | 54.5 (587 s, +31%) |
+| Expert cache hits while writing (experts read ahead count as hits) | 71.5% | 85.6% | 85.4% | 92.2% |
 
 - **The output is the same.** `bench.py --gate check`: nine requests (a chat, code, a calculation, Polish, Japanese,
   four turns of a chat, a code review, a 1,600-token and a 7,900-token document), 200 tokens each, greedy: all 1,800
@@ -134,8 +137,12 @@ day, interleaved (before, now, now, before), with the same expert cache, each ru
   ids for one of the nine when the cache, and with it the pass size it reads a short prompt in, was a different size.)
   With `STRATA_VERIFY_CACHE=1` every expert a layer computed from was compared with the model file for 60 tokens of
   two requests: no difference.
-- **Swap:** 0 pages swapped out in every run of the engine as it is now. The engine before swapped 80 to 964 pages in
-  three of its long-prompt runs (it read 512 bytes per run of experts through the mapped file; see below).
+- **Swap:** 0 pages swapped out in every run of the engine as it is now, in both states. The engine before swapped 4
+  to 964 pages in seven of its runs, 1,876 in all, nearly all of them while reading long prompts (it read 512 bytes per
+  run of experts through the mapped file; see below).
+- **A 32-token prompt was read slower in the closed state** (6.8 against 7.7 tok/s, one run each; as found it was
+  5.6 against 5.3, two runs each). It was seen in the last measurement and not followed up. Such a prompt is read in
+  passes of a few tokens through the cache, and each token of a pass names experts to read ahead.
 - **Start:** ready in 3.5-12 s; the cache fill reads 5-12 GiB at 3.1-3.5 GiB/s.
 
 ### Where a token's time goes, and how close that is to the hardware
@@ -224,10 +231,13 @@ followed them.
 - **What it takes:** 2.04 GiB for the head on the GPU and 0.6 GiB more for the context (the head's own, and three
   snapshots of the recurrent state), all of it out of the expert cache.
 - **What it gives:** as found, with the cache capped at the same 6.3 GiB: 6.45 tok/s against 6.60 without it, 88% of
-  the drafts right. Closed: CLOSED_MTP_LINE
+  the drafts right. Closed, where the head left the cache 9.3-9.6 GiB of the 12.2: 8.74 against 8.46 tok/s cool (+3%), and
+  8.17 against 7.32 over five minutes (+12%; its requests after the first 200 s 7.2-8.2 against 6.2-6.8 tok/s, 90% of
+  1,327 drafts right, 0.389 against 0.348 tokens per joule). Once the Air is warm the GPU is what a token waits for,
+  and a pass that yields 1.6 tokens is worth more. One of its four closed runs swapped 340 pages out.
 - **It is not token-identical.** A pass of two to four tokens runs other Metal kernels than a pass of one, and the
   logits differ by a few hundredths. In the gate, four of six requests left the reference, each at one token where the
-  two candidates were 0.03 to 0.07 logits apart (with the reference's tokens fed in, every other token was the same).
+  two candidates were at most 0.074 logits apart (with the reference's tokens fed in, every other token was the same).
   Three of the four are within the 0.05 the gate calls a near-tie and one is not (0.057 and 0.074), so the gate fails
   and the head is off by default.
 
@@ -265,7 +275,8 @@ names each one.
   (`idle_unload_s`, or stop the server) to give the memory back.
 - **Bits differ from the CUDA engine.** The kernels are ggml's, not Strata's; the output was not compared token by
   token with the CUDA engine or with the BF16 model.
-- **`--lookup` was built and not measured**; the MTP head was measured on short requests only.
+- **`--lookup` was built and not measured** (the protocol test does not cover it either); the MTP head was measured
+  on short requests only, and its gate was run on six of the nine requests.
 
 ## How it is built
 
@@ -279,7 +290,7 @@ names each one.
   off and llama.cpp's own upload takes over.
 - `metal/src/router_predict.hpp`: the prediction of the next layer's experts. `metal/src/mtp_head.hpp`: the MTP head.
 - `metal/src/gpu_keepalive.mm`: the kernel that keeps the GPU at its working clock.
-- `metal/patches/0001-moe-cache-fetch-stats-preload.patch`, on llama.cpp `23b0202a1` (2026-10-10), PATCH_LINES lines
+- `metal/patches/0001-moe-cache-fetch-stats-preload.patch`, on llama.cpp `23b0202a1` (2026-10-10), 810 lines
   added in 8 files. The MoE cache offers its misses to a callback before uploading them (and the large-batch path its
   uploads and its padding); it can be filled with a list of (layer, expert) pairs, asks a callback which experts to
   bring in ahead and tracks their slots until their layer has routed; it reads the routed ids and writes its slot map
