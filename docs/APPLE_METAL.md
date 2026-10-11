@@ -241,13 +241,65 @@ followed them.
   Three of the four are within the 0.05 the gate calls a near-tie and one is not (0.057 and 0.074), so the gate fails
   and the head is off by default.
 
+## Context size
+
+`--max-context` has no upper limit in the engine; the model's own is 262,144 tokens. What limits it on this Mac is
+memory: the context takes about 31 KB per token (the KV cache and the work buffers), and all of it comes out of the
+expert cache. Measured with `--load-only` (nothing is read or written by such a start; 0 swap-outs):
+
+| `--max-context` | Context on the GPU | |
+| ---: | ---: | --- |
+| 8,192 | 1.38 GiB | run (every figure under "Measured") |
+| 32,768 | 2.15 GiB | loaded; what `setup-mac.sh` writes |
+| 40,960 | 2.40 GiB | run: a 32,000-token prompt, read in 587 s |
+| 65,536 | 3.18 GiB | loaded, no prompt run |
+| 131,072 | 5.21 GiB | loaded, no prompt run |
+| 262,144 | about 9.4 GiB | not loaded: 31.4 KB per token carried on from 131,072 |
+
+- **The largest context a prompt was run in is 40,960.** Nothing is known about speed or output above it.
+- **Filling a context takes long.** A long prompt is read at 55-65 tok/s (closed), so 32,000 tokens took 9.8 minutes.
+  At that rate 65,000 tokens would take 17-20 minutes and 131,000 tokens 35-40; neither was run, and the Air is warm
+  for most of it.
+- **At large contexts the plan gives the expert cache less than there is room for** (see "Left open"). At 131,072,
+  with 20.8 GiB free, it gave 1.6 GiB. A cache that small serves one token per pass, so a prompt of up to 32 tokens
+  is read a token at a time. Until that is looked at, 65,536 is the largest size that leaves a cache worth having
+  with programs open (5.7 GiB with 21.1 GiB free).
+
+## Left open
+
+Where the work of 2026-10-11 stopped (the owner asked for no further optimisation once the closed-state runs were
+done). None of this is fixed or decided; the numbers are under "Measured" unless they stand here.
+
+- **The memory plan seems to count the context twice at large sizes.** `Engine::load` in `metal/src/main.cpp` makes
+  a context without a cache to see what it takes, frees it, and reads the free memory right after
+  (`host_memory()`), then takes the context off that figure again (`by_ram`). What the log said against what free
+  memory minus swap, dense weights (3.9 GiB), context and reserve (3 GiB) comes to: at 40,960 7.2 GiB against 9.6,
+  at 65,536 5.7 against 8.8, at 131,072 1.6 against 6.5. The differences are close to the context's own size, as if
+  the freed context's memory were not back yet when the free memory is read. At 8,192 one start gave 6.75 against
+  6.5, so it may only show with large buffers. It errs towards a smaller cache and never towards swap. Not
+  investigated further: for the 40,960 and 65,536 figures the free memory was read by a separate `--plan` start
+  seconds before.
+- **A 32-token prompt, closed state:** 6.8 tok/s against 7.7 before (one run each). Not followed up. Short prompts go
+  through the cache in passes of a few tokens, and every token of such a pass names up to ten experts to read ahead;
+  whether that is the cause was not tested.
+- **The MTP head (`--mtp`) is off.** Whether to turn it on is the owner's decision: it is not token-identical, it
+  takes 2.6 GiB of the cache, and one closed run with it swapped 340 pages. A guess at the last point, not tested:
+  with drafting the recurrent state has a snapshot per draft (`n_rs_seq`), so each of the up to six conversation
+  checkpoints the engine keeps in host memory is that many times larger.
+- **`--prefill 2048`** (long prompts a quarter faster, 1.1 GiB less cache) and **`--prefill-from 9`** (first token
+  of a short prompt sooner, pass sizes change) are off for the reasons given with their numbers.
+- **`--lookup` was never run on the real model.**
+- **Not measured as found:** a 32,000-token prompt. **One run only:** every closed-state prefill row.
+- **The goal's own stopping rule was not reached** (three attempts in a row that each gain under 3%): the last kept
+  change before the stop, the prediction's correction, gained 6%.
+
 ## Options
 
 `build-metal/bin/strata --help` lists them. The config's `args` take:
 
 | Option | |
 | --- | --- |
-| `--max-context N` | context in tokens (default 8,192; `setup-mac.sh` writes 32,768). The KV cache is F16: 2.2 GiB with the work buffers at 32K. |
+| `--max-context N` | context in tokens (default 8,192; `setup-mac.sh` writes 32,768). The KV cache is F16: 2.2 GiB with the work buffers at 32K; see "Context size". |
 | `--expert-cache auto\|N\|Nmib` | all that fits (default), N experts, or N MiB. A number larger than the plan is kept as asked and may make macOS swap. |
 | `--expert-cache-cap N` | with `auto`: at most N MiB (benchmarks: the same cache in every run, still never more than is free) |
 | `--reserve-gib G` | of the memory free at start, leave G GiB free (default 3) |
