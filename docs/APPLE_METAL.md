@@ -6,9 +6,9 @@ built and measured on one machine: a MacBook Air M4 (10-core GPU, 32 GB, fanless
 
 The CUDA / HIP engine (`src/`) cannot be compiled for a Mac: its kernels are CUDA C++. This engine takes the model graph
 and the Metal kernels from [llama.cpp](https://github.com/ggml-org/llama.cpp) (the `qwen4exp` architecture, `ggml-metal`,
-at a pinned commit with a small patch) and puts Strata around them: the memory plan, the expert cache's start-up fill from
-Strata's expert profile, a read-only SSD tier, and the `--serve` protocol. The server, the web app and the APIs
-(`serve/`) are the same ones the other backends use.
+at a pinned commit with a patch) and puts Strata around them: the memory plan, the expert cache's start-up fill from
+Strata's expert profile, a read-only SSD tier that reads ahead of the GPU, and the `--serve` protocol. The server, the
+web app and the APIs (`serve/`) are the same ones the other backends use.
 
 ## What a Mac changes
 
@@ -24,7 +24,24 @@ keep about two thirds of it resident on the GPU (21.3 of 32 GiB on the Air). So 
 - **The 26.8 GiB n-gram table** stays on the SSD, a few rows read per token (llama.cpp's lazy rows).
 
 IQ3_S has 46.8 GiB of routed experts (48 layers x 512, 1.95 MiB each on average). With every other program closed the
-plan has room for a 15-16 GiB cache, a third of them; the rest is read from the SSD while the model answers.
+plan had room for a 13.4 GiB cache on the day of the measurements (29% of them; 2.2 GiB were still in swap from earlier
+and count as owed); the rest is read from the SSD while the model answers.
+
+### The SSD works while the GPU works
+
+The model is 48 layers, and each layer's ten experts are only known once the layer before has been computed. An
+engine that waits for that has the GPU idle while the SSD reads and the SSD idle while the GPU computes. This one
+reads ahead in both of its paths:
+
+- **Writing an answer (one token per pass):** when a layer has routed, the engine applies the *next* layer's router to
+  this layer's input and reads the experts it names while the GPU computes on (`metal/src/router_predict.hpp`). The
+  two inputs are close because the layers add to one residual stream. A wrong guess costs a read and never changes
+  what is computed: the layer still routes for itself, a guessed expert that it did not pick is the next to leave the
+  cache, and a read that has not started by then is dropped. See "Measured" for what the guess is worth.
+- **Reading a long prompt (passes of 1,024 tokens):** such a pass uses most of a layer's 512 experts, and llama.cpp
+  asks for them one tensor at a time. The engine reads the next tensors into a staging buffer while the GPU computes
+  with the current one (`metal/src/expert_io.hpp`): the same layer's other two tensors need the same experts, and the
+  next layer's are guessed from what the last pass used there (before there was one: from Strata's expert profile).
 
 ### Nothing is written
 
@@ -33,9 +50,11 @@ things that would otherwise put model data into swap are switched off or checked
 
 - **The cache is sized from free memory, not from the RAM size.** The engine counts what is free or file cache, takes
   off what macOS already holds in swap (memory other programs will want back) and 3 GiB more (`--reserve-gib`), and
-  gives the expert cache what is left. A Mac with a browser, an editor and a VM open gave it 7.5 GiB where an empty one
-  would give 15.8. The log says how much closing programs would add. Wired memory is never swapped, so a cache that is
-  too large pushes *other programs* into swap; that is what this rule avoids.
+  gives the expert cache what is left. A Mac with a browser, an editor and a VM open gave it 3.0 to 9.4 GiB over one
+  afternoon; with them closed, 13.4. The log says how much closing programs would add. Wired memory is never swapped,
+  so a cache that is too large pushes *other programs* into swap; that is what this rule avoids. (A cache size given as
+  a number, `--expert-cache 7000mib`, is kept as asked: one benchmark run that did so while other programs had grown
+  made macOS swap 1,772 pages. `--expert-cache-cap` keeps the rule and only limits what it may take.)
 - **No repacked copies.** ggml's ARM kernels would copy 17.5 GiB of this model's experts (the Q2_0, Q4_K and IQ4_NL
   ones) into a repacked buffer. That is anonymous memory and went straight into swap on the 32 GB Air (18 GB of
   swap-outs in one start, before this was found). The engine loads with `use_extra_bufts = false`, and stops if its
@@ -48,7 +67,8 @@ things that would otherwise put model data into swap are switched off or checked
 Missed experts are read past the OS file cache (`--expert-io direct`, F_NOCACHE), so reading 40 GB during an answer does
 not fill the memory with file pages. `--expert-io cached` reads through it instead: experts that were read recently then
 come from RAM, but with little free memory it made macOS swap (17,700 pages during three 120-token answers), so it is not the
-default.
+default. The staging buffer for long prompts (1.1 GiB, or 0.45 GiB if that is all there is room for) is taken only for
+the time of the prompt and only if that much memory is free beyond 1.5 GiB.
 
 ## What you need
 
@@ -87,41 +107,129 @@ checkout it comes from is not edited.
 
 ## Measured
 
-MacBook Air M4, 32 GB, IQ3_S, context 8,192, the defaults. Other programs were open and held 7.5 GiB, and 4.5 GiB were
-in swap from earlier, so the expert cache got **7.5 GiB: 3,911 of the 24,576 experts (16%)**. `metal/tools/bench.py`
-runs these three requests; one run, greedy.
+MacBook Air M4, 32 GB, IQ3_S, context 8,192, greedy, 2026-10-11. **Before** is the engine as it was first written
+(one token per pass, the SSD read after each layer has routed); **now** is the defaults. Every pair was run on the same
+day, interleaved (before, now, now, before), with the same expert cache, each run started when the SoC had cooled to
+42 C (`metal/tools/bench.py --ab ... --cool 42`); the figures are medians. Two states of the Mac:
 
-| Request | Reads the prompt | Writes the answer | Cache hits | Read from the SSD |
+- **as found:** a browser, an editor, a VM and the Claude app open. What the cache got moved between 3.0 and 9.4 GiB
+  over the afternoon, so the runs cap it at one size for both engines (6.3 GiB = 3,320 experts, 13.5%).
+- **closed:** only the Claude app open, 13.4 GiB of room, cache capped at 12.2 GiB (6,395 experts, 26%).
+
+| | as found: before | now | closed: before | now |
 | --- | ---: | ---: | ---: | ---: |
-| A one-line question, 200 tokens out | 20 tokens in 3.3 s | **6.0 tokens/s** | 76.5% | 46 GB |
-| The next turn of that chat (219 of 240 prompt tokens reused), 41 tokens out | 21 tokens in 3.5 s | 6.0 tokens/s | 70.5% | 15 GB |
-| A 1,610-token document to summarize, 200 tokens out | **48 tokens/s** | 6.3 tokens/s | 77.6% | 84 GB |
+| Writes an answer, cool (2 requests of 120 tokens) | 5.50 tok/s | **6.60** (+20%) | CLOSED_DEC_BASE tok/s | **CLOSED_DEC_NEW** (CLOSED_DEC_PCT) |
+| Writes for 5 minutes (7 requests of 200 tokens in turn) | 5.29 tok/s | **5.73** (+8%) | CLOSED_SUS_BASE tok/s | **CLOSED_SUS_NEW** (CLOSED_SUS_PCT) |
+| ... its requests after the first 200 s | 4.81-4.96 | 4.93-5.31 | CLOSED_SUS_LATE_BASE | CLOSED_SUS_LATE_NEW |
+| Reads a prompt of 32 tokens | 5.3 tok/s | 5.6 | CLOSED_P32_BASE | CLOSED_P32_NEW |
+| ... of 256 tokens | 22.9 tok/s | 26.3 (+15%) | CLOSED_P256_BASE | CLOSED_P256_NEW |
+| ... of 1,600 tokens | 48.0 tok/s | **64.4** (+34%) | CLOSED_P1600_BASE | **CLOSED_P1600_NEW** |
+| ... of 8,000 tokens (as found: a 5.0 GiB cache) | 47.9 tok/s | **62.0** (+29%) | CLOSED_P8000_BASE | **CLOSED_P8000_NEW** |
+| ... of 32,000 tokens (context 40,960) | not run | not run | CLOSED_P32K_BASE | CLOSED_P32K_NEW |
+| Expert cache hits while writing (experts read ahead count as hits) | 71.5% | 85.6% | CLOSED_HIT_BASE | CLOSED_HIT_NEW |
 
-- **With every routed expert in the cache** a token takes 104 ms (9.6 tokens/s; a 16-token answer repeated, 99.8% hits).
-  That is the ceiling of this engine on this GPU: a token reads 3.9 GiB of dense weights and about 0.9 GiB of experts.
-- **A missed expert** costs its read: 0.6-0.8 ms each (2.8 GB/s when two experts are read at a time, 3.3-3.5 GB/s at
-  eight; `strata --native MODEL --io-bench 1200` measures it on your SSD). At 76% hits a token misses about 113.
-- **Hit rate by cache size** (short chats, different amounts of free memory): 6.5 GiB (14% of the experts) 69%,
-  7.5 GiB 76.5%, 8.0 GiB 78%, 9.9 GiB 82%, 10.9 GiB (23%) 81-85%. The 15.8 GiB cache of an otherwise empty 32 GB Mac
-  was not measured: it would have needed the open programs closed.
-- **Start:** ready in 3.5-5.7 s once the model file's dense parts are in the OS file cache; the cache fill reads
-  7.5-11 GiB in 2.2-3.6 s (3.0-3.5 GiB/s).
-- **Swap:** 0 to 120 pages swapped out during these runs.
+- **The output is the same.** `bench.py --gate check`: nine requests (a chat, code, a calculation, Polish, Japanese,
+  four turns of a chat, a code review, a 1,600-token and a 7,900-token document), 200 tokens each, greedy: all 1,800
+  token ids equal those of the engine before. (The reference fixes `--chunk 7`: the engine before already gave other
+  ids for one of the nine when the cache, and with it the pass size it reads a short prompt in, was a different size.)
+  With `STRATA_VERIFY_CACHE=1` every expert a layer computed from was compared with the model file for 60 tokens of
+  two requests: no difference.
+- **Swap:** 0 pages swapped out in every run of the engine as it is now. The engine before swapped 80 to 964 pages in
+  three of its long-prompt runs (it read 512 bytes per run of experts through the mapped file; see below).
+- **Start:** ready in 3.5-12 s; the cache fill reads 5-12 GiB at 3.1-3.5 GiB/s.
+
+### Where a token's time goes, and how close that is to the hardware
+
+One written token, as found (6.3 GiB cache, cool), from the engine's own counters (`bench.py --decode`). The engine
+before has no counters (a token took it 182 ms); the middle column is the engine as it is now with the read-ahead off
+(`--prefetch 0`):
+
+| | read-ahead off | now | what bounds it |
+| --- | ---: | ---: | --- |
+| The GPU computes (the CPU waits for it) | 80 ms | 89 ms | It reads 3.9 GiB of dense weights and 0.94 GiB of experts per token. This GPU reads memory at 88.7 GiB/s (`metal/tools/membench.mm`): 54 ms. The matrix kernels run at 53-93 GiB/s; about 2,000 small operations per token take 15-20 ms more (`GGML_METAL_PROFILE=1`). |
+| The GPU waits for the SSD | 93 ms (127 missed experts) | 53 ms (60) | The SSD reads 3.4-3.7 GB/s with 8 reads at a time, 3.0 GB/s in the small groups a layer asks for: 0.6-0.7 ms per missed expert (2.04 MB). 67 experts per token are now read ahead, while the GPU computes; the GPU's own part is 9 ms longer for it. |
+| The CPU (graphs, the cache's bookkeeping, the prediction) | 5 ms | 9 ms | The prediction is 4 ms of it (48 products of 512 x 2,560 per token). |
+| **A token** | **178 ms** | **152 ms** | |
+
+- **Heat bounds a long session.** The Air has no fan. For about 200 s it holds the cool speed; then the GPU's part of a
+  token goes from 89 to 130-140 ms and stays there (the SoC at 62 C). The whole Mac draws 16-24 W while writing; over
+  five minutes the engine wrote 0.261 tokens per joule before and 0.309 now.
+- **Reading a long prompt** is bound by the SSD at 1,024 tokens per pass: a pass used 68-94% of a layer's experts (56 GB
+  read for 1,600 tokens), which the SSD delivers in 17 s, and the GPU computes those two passes in 12 s. Before, the two
+  took turns (34 s); now they overlap (25 s). With `--prefill 2048` the SSD's share halves and the GPU is the bound:
+  82 tok/s at 1,600 tokens, 81 at 8,000 (as found; the context takes 1.1 GiB more, which comes out of the expert cache).
+- **A short prompt** (up to 32 tokens) is bound by the SSD too: its tokens route to about 5,000 different experts that
+  the cache does not hold (9-11 GB), which is 3 s of reading however the passes are cut.
 
 ### What made the difference
 
-- **The GPU must not see the waits.** At a layer with a missed expert the GPU has nothing to do for about a
-  millisecond, and an Apple GPU that idles that often is clocked down. With every expert cached and a wait put in at
-  each layer: no wait 101 ms per token, 0.5 ms 347 ms, 1.5 ms 409 ms (the waits themselves are 24 and 72 ms). The
-  engine runs a small compute kernel in a loop during a request (`metal/src/gpu_keepalive.mm`): the chat above went
-  from 2.93 to 5.94 tokens/s (4.19 with the kernel only during the reads). `STRATA_KEEPALIVE=off|fetch|always`.
-- **Long prompts in big passes.** A prompt read in passes the expert cache serves (8-11 tokens here) ran at 5-6
-  tokens/s. More than 32 new tokens are read in passes of `--prefill` tokens instead (default 1,024), without the
-  cache: by then a layer routes to most of its 512 experts, and they are read from the SSD into a work buffer. 512 per
-  pass read the document at 33 tokens/s, 1,024 at 45-48. The cache is left alone, so it stays what the answer needs.
-- **Heat.** The Air has no fan. In one test (the all-cached answer repeated 24 times) the time per token went from 99 to
-  190-240 ms after about 35 s of load and stayed there; the 200-token runs above did not show it. Expect long sessions
-  to be slower than the table.
+Each line is one change, measured against the engine without it (as found, same cache, interleaved, cool start).
+
+- **Experts read ahead of their layer** (`--prefetch`, on): 5.63 -> 6.28 tok/s (+12%), and 6.25 -> 6.60 (+6%) more
+  when the prediction corrects itself. The next layer's router applied to this layer's input names ten experts; of
+  the next layer's real ten it holds 67%, and of those the cache would miss, 60% (100 tokens of a chat). The engine
+  reads the ones whose predicted score is above the predicted tenth score, corrected by how far off each expert's
+  prediction has been so far: about 2 per layer, of which 70% are then routed to. Reads ahead start when the reads a
+  layer is waiting for are done, use half of the read threads, and are dropped if their layer routes elsewhere before
+  they start.
+- **Fewer commands to the GPU per layer:** 5.35 -> 5.63 tok/s (+5%). llama.cpp's expert cache read the routed ids and
+  wrote its slot map through two small GPU copy commands per layer; on shared memory, once the GPU is idle, both are
+  plain memory copies.
+- **Long prompts: the next tensors are read while the GPU computes** (`--prefill-ahead`, on): 49.6 -> 64.4 tok/s at
+  1,600 tokens. One tensor ahead gave 55.7; a layer's three, with the next layer guessed, 59-64. The guess read 47 GB
+  ahead for a 1,600-token prompt and used 40 of them.
+- **512 bytes that blocked on the disk:** 46.5 -> 49.3 tok/s at 1,600 tokens, and no more swap-outs. llama.cpp pads
+  every run of experts with the first 512 bytes of the next expert, read from the mapped file on the main thread: a
+  page fault that waits for the SSD, 22% of the time of a long prompt in a profile. They are now read with the run.
+- **The GPU must not see the waits** (from the first version). At a layer with a missed expert the GPU has nothing to
+  do for about a millisecond, and an Apple GPU that idles that often is clocked down. The engine runs a small compute
+  kernel in a loop during a request (`metal/src/gpu_keepalive.mm`). With the engine as it is now: 6.15 tok/s with it,
+  3.56-3.70 without it or with it only during the reads (`STRATA_KEEPALIVE=off|fetch|always`).
+- **Long prompts in big passes** (from the first version). More than 32 new tokens are read in passes of `--prefill`
+  tokens (default 1,024), without the cache.
+
+### What did not help
+
+Measured, and left out or left off:
+
+- **A different rule for what the cache keeps.** `metal/tools/cache_sim.py` replays a routing trace (1,826 passes of
+  the gate's requests). At 7 GiB: least recently used (the engine's rule) 75.2% hits, the same with the room split
+  between the layer groups by the profile 75.2%, a two-queue rule (S3-FIFO) 75.1%, least frequently used with the
+  profile as a start 63.0%. Evicting the expert whose next use is furthest away, which needs the future, would give
+  85.1%: that gap is what the read-ahead goes after instead.
+- **The keep-busy kernel, tuned.** A smaller kernel (4,096 threads instead of 32,768): 6.22 against 6.15 tok/s. A
+  pause of 60 microseconds between its runs: 5.44 against 5.33 tok/s over five minutes and 18.6 W against 21.5 W, a
+  pause of 120: 5.11 tok/s. Left as it was (`STRATA_KEEPALIVE_SLEEP_US` sets the pause).
+- **The MTP head** (`--mtp`, off): see below. As found, with the same cache cap, 6.45 against 6.60 tok/s.
+- **Reading the next layer's tensor whole** instead of guessing its experts: 16.6 against 22.8 tok/s at 256 tokens
+  (a pass of 256 tokens uses under half of a layer's experts) and 15 GB more read at 1,600.
+- **Short prompts in one GPU pass** (`--prefill-from 9`, off): the first token of a 20-token question after 3.1 s
+  instead of 3.4, of a 32-token one after 3.7 instead of 4.1 s; the answer itself is no faster (6.19 against 6.23
+  tok/s), and a different pass size can change a token where two are nearly tied, so it is not the default.
+
+### The MTP head and lookup: several tokens per pass (opt-in)
+
+`--mtp FILE` loads the model's MTP head (ggml-org's `mtp-Qwen3.8-Flash-Next-Q4_0.gguf`, 2.2 GB): after every token the
+head drafts up to three more, and one pass of the model reads the token and the drafts. That pass gives the model's own
+choice after each of them; the first draft that is not the model's choice ends it there, and the context goes back
+(llama.cpp's snapshots of the recurrent layers, `n_rs_seq`). Every token that is written is the model's own, from its
+own logits. `--lookup N` drafts the same way from the context itself: where its last N tokens stood before, what
+followed them.
+
+- **What the head gets right** (`STRATA_MTP_PROBE=FILE`: the head drafts, the drafts are counted and not used; a chat
+  and a code request, 80 tokens each): its first draft 74-82% of the time, and 96-100% when it gives it a probability
+  of 0.75 or more. A draft of three tokens takes 19 ms; showing the head a token the model read, 11-13 ms.
+- **What a pass of several tokens costs** (every expert cached): 1 token 93 ms, 2 tokens 118 ms, 3 tokens 152-170 ms,
+  4 tokens 170-205 ms. A second token in a pass costs a third of a first one, not nothing: the MoE part is per token.
+- **What it takes:** 2.04 GiB for the head on the GPU and 0.6 GiB more for the context (the head's own, and three
+  snapshots of the recurrent state), all of it out of the expert cache.
+- **What it gives:** as found, with the cache capped at the same 6.3 GiB: 6.45 tok/s against 6.60 without it, 88% of
+  the drafts right. Closed: CLOSED_MTP_LINE
+- **It is not token-identical.** A pass of two to four tokens runs other Metal kernels than a pass of one, and the
+  logits differ by a few hundredths. In the gate, four of six requests left the reference, each at one token where the
+  two candidates were 0.03 to 0.07 logits apart (with the reference's tokens fed in, every other token was the same).
+  Three of the four are within the 0.05 the gate calls a near-tie and one is not (0.057 and 0.074), so the gate fails
+  and the head is off by default.
 
 ## Options
 
@@ -131,21 +239,25 @@ runs these three requests; one run, greedy.
 | --- | --- |
 | `--max-context N` | context in tokens (default 8,192; `setup-mac.sh` writes 32,768). The KV cache is F16: 2.2 GiB with the work buffers at 32K. |
 | `--expert-cache auto\|N\|Nmib` | all that fits (default), N experts, or N MiB. A number larger than the plan is kept as asked and may make macOS swap. |
+| `--expert-cache-cap N` | with `auto`: at most N MiB (benchmarks: the same cache in every run, still never more than is free) |
 | `--reserve-gib G` | of the memory free at start, leave G GiB free (default 3) |
-| `--overcommit-gib G` | let the cache pass Metal's recommended working set by G GiB. Not measured. |
+| `--overcommit-gib G` | let the cache pass Metal's recommended working set by G GiB. Not measured: on this Mac the free memory was the limit in every run, never Metal's. |
 | `--expert-profile FILE` | Strata's expert ranking (`data/expert-profile.bin`): the cache starts filled with its top entries. `--no-preload` starts empty. |
 | `--expert-io direct\|cached` | read missed experts past the OS file cache (default) or through it |
-| `--prefill N` | tokens per pass for long prompts (default 1,024; 0 = off). 2,048 needs 1.1 GiB more for the context. |
+| `--prefetch N` | read up to N experts each layer is predicted to route to before it is computed (default 10, 0 = off). `--prefetch-margin M`: only those predicted M above the tenth score (0); `--prefetch-learn R`: how fast the prediction corrects itself (0.1); `--prefetch-threads T`: read threads that may read ahead at once (4) |
+| `--prefill N` | tokens per pass for long prompts (default 1,024; 0 = off). 2,048 needs 1.1 GiB more for the context and read 8,000 tokens at 81 instead of 62 tok/s. |
+| `--prefill-ahead on\|off` | long prompts: read the next expert tensors while the GPU computes (default on) |
+| `--prefill-from N` | stretches of N or more new tokens go in one such pass (default 33) |
+| `--mtp FILE`, `--spec N`, `--spec-min-p P` | the MTP head: up to N drafts per pass (3) while the head gives them probability P (0.75) or more. Off unless `--mtp` is given. |
+| `--lookup N` | draft what followed the last N tokens where they stood before in the context (0 = off) |
 | `--io-threads N` | threads reading experts (default 8; 4 or more read the same on the Air's SSD) |
 | `--plan` / `--load-only` | print the memory plan without loading / load, print it as it came out, exit |
 
-Flags of the CUDA engine that a config may carry (`--pack`, `--mtp`, `--spec`, `--kv-resident`, ...) are accepted and
-not used; the log names each one.
+Flags of the CUDA engine that a config may carry (`--pack`, `--kv-resident`, ...) are accepted and not used; the log
+names each one.
 
 ## What is not there
 
-- **No speculation.** The CUDA engine drafts with the model's MTP layer and checks several tokens per pass (1.6-1.8x
-  there). This engine writes one token per pass. llama.cpp has an MTP context for this model; it is not wired in.
 - **No images, no `logit_bias`, no parallel requests** (`"parallel"`), no `SAVE` / `RESTORE` of conversations, no
   `VRAM` command. The server answers such requests with the engine's error.
 - **One KV format** (F16; `--kv q8_0` is passed to llama.cpp, not measured).
@@ -153,23 +265,29 @@ not used; the log names each one.
   (`idle_unload_s`, or stop the server) to give the memory back.
 - **Bits differ from the CUDA engine.** The kernels are ggml's, not Strata's; the output was not compared token by
   token with the CUDA engine or with the BF16 model.
+- **`--lookup` was built and not measured**; the MTP head was measured on short requests only.
 
 ## How it is built
 
 - `metal/src/main.cpp`: the engine. The memory plan, the load (experts stay mapped from the GGUF, everything else of
   the layers goes into GPU buffers of its own), the cache fill from the profile, the conversation checkpoints (the
   recurrent layers' state at the last message boundary and before the last prompt token, so the next turn and a
-  repeated prompt reuse the context), and the serve loop.
-- `metal/src/expert_io.hpp`: where each tensor sits in the shards, and the thread pool that reads experts into their
-  slots. The first read of each tensor is compared with the mapped file; a mismatch turns the fetch off and
-  llama.cpp's own upload takes over.
+  repeated prompt reuse the context), drafting and checking (`--mtp`, `--lookup`), and the serve loop.
+- `metal/src/expert_io.hpp`: where each tensor sits in the shards; the threads that read experts into their slots
+  (reads a layer waits for go before reads ahead, and a read that has not started can be dropped); the read-ahead of a
+  long prompt's tensors. The first read of each tensor is compared with the mapped file; a mismatch turns the fetch
+  off and llama.cpp's own upload takes over.
+- `metal/src/router_predict.hpp`: the prediction of the next layer's experts. `metal/src/mtp_head.hpp`: the MTP head.
 - `metal/src/gpu_keepalive.mm`: the kernel that keeps the GPU at its working clock.
-- `metal/patches/0001-moe-cache-fetch-stats-preload.patch`, on llama.cpp `23b0202a1` (2026-10-10): the MoE cache
-  offers its misses to a callback before uploading them (and the large-batch path its uploads), reports its hits and
-  slots, and can be filled with a list of (layer, expert) pairs; `LLAMA_MMAP_NO_PREFETCH` stops the read-ahead of a
-  model file larger than the RAM. 249 lines added in 6 files.
+- `metal/patches/0001-moe-cache-fetch-stats-preload.patch`, on llama.cpp `23b0202a1` (2026-10-10), PATCH_LINES lines
+  added in 8 files. The MoE cache offers its misses to a callback before uploading them (and the large-batch path its
+  uploads and its padding); it can be filled with a list of (layer, expert) pairs, asks a callback which experts to
+  bring in ahead and tracks their slots until their layer has routed; it reads the routed ids and writes its slot map
+  in place when the buffers are host memory; it reports its hits, slots and times. ggml-metal counts the time the host
+  waits for the GPU and can time every kernel (`GGML_METAL_PROFILE=1`). `LLAMA_MMAP_NO_PREFETCH` stops the read-ahead
+  of a model file larger than the RAM.
 
-## Tests
+## Tests and tools
 
 ```sh
 # a tiny random qwen4exp from llama.cpp's own test tool
@@ -178,6 +296,26 @@ cmake -S ../llama.cpp -B ../llama.cpp/build -DLLAMA_BUILD_TESTS=ON && cmake --bu
 .venv/bin/python metal/tests/serve_protocol_test.py --model /tmp/tiny/qwen4exp-moe.gguf
 ```
 
-20 checks: the protocol's lines, the same ids with the cache on, off, with direct and cached reads and every chunk
-size, context reuse against a fresh engine, STOP, and the error answers. `serve/` is not changed apart from the
-Monitor's CPU name and a note about GPU readings on macOS (`serve/telemetry.py`).
+26 checks: the protocol's lines, the same ids with the cache on, off, with direct and cached reads, every chunk
+size, prefetch and (a long prompt) read-ahead, context reuse against a fresh engine, STOP, and the error answers.
+The tiny model has 4 experts, so it cannot miss: what the read-ahead does is checked on the real model, by the gate
+and by `STRATA_VERIFY_CACHE=1`. `serve/` is not changed apart from the Monitor's CPU name and a note about GPU
+readings on macOS (`serve/telemetry.py`).
+
+On the real model (the server must not be running):
+
+```sh
+.venv/bin/python metal/tools/bench.py --config strata-iq3_s.json --context 8192 --gate record     # the reference ids (build-metal/gate-ref.json)
+.venv/bin/python metal/tools/bench.py --config strata-iq3_s.json --context 8192 --gate check -- --chunk 7
+.venv/bin/python metal/tools/bench.py --config strata-iq3_s.json --context 8192 --decode --sustained 300 --cool 42
+.venv/bin/python metal/tools/bench.py --config strata-iq3_s.json --context 8192 --prefill 32,256,1600,8000 --decode \
+    --cool 42 --runs 3 --ab build-metal/baseline/strata "build-metal/bin/strata --prefetch 0"
+```
+
+`bench.py` reports tokens/s for reading and writing, the time to the first token, the cache's hits, the GB read from
+the SSD, where a token's time went, the Mac's watts (from the battery's telemetry, no sudo) and the swap-outs of every
+request. `--gate check` compares ids with a reference; where one differs it runs the request again with the
+reference's tokens fed in and accepts the difference only if both engines had the two tokens within 0.05 logits.
+`--cool` waits for the SoC to cool first (it needs `metal/tools/temps.m` compiled to `build-metal/bench/temps`; the
+command is in the file). `metal/tools/cache_sim.py` replays a routing trace (`STRATA_ROUTE_TRACE=FILE`) under other
+cache rules; `metal/tools/membench.mm` measures how fast the GPU and the CPU read memory.

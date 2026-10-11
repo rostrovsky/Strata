@@ -5,6 +5,7 @@
 #include "gpu_keepalive.hpp"
 
 #include <atomic>
+#include <chrono>
 #include <condition_variable>
 #include <cstdlib>
 #include <mutex>
@@ -36,6 +37,7 @@ struct GpuKeepalive::Impl {
     std::condition_variable cv;
     std::atomic<bool> active{false};
     bool quit = false;
+    int sleep_us = 0;
 
     void loop() {
         for (;;) {
@@ -56,6 +58,8 @@ struct GpuKeepalive::Impl {
                     [cb commit];
                     [cb waitUntilCompleted];
                 }
+                // STRATA_KEEPALIVE_SLEEP_US: a pause between two runs of the kernel (0, the default: none)
+                if (sleep_us > 0) std::this_thread::sleep_for(std::chrono::microseconds(sleep_us));
             }
         }
     }
@@ -75,6 +79,7 @@ GpuKeepalive::GpuKeepalive() : p_(new Impl) {
         // STRATA_KEEPALIVE_THREADS: the kernel's grid (its length; grids of 16K-64K were the fastest of 16K-4M on an M4)
         const char* env = std::getenv("STRATA_KEEPALIVE_THREADS");
         p_->n = env ? (NSUInteger) std::max(1024, std::atoi(env)) : (NSUInteger) (1 << 15);
+        if (const char* sl = std::getenv("STRATA_KEEPALIVE_SLEEP_US")) p_->sleep_us = std::max(0, std::atoi(sl));
         p_->buf = [p_->dev newBufferWithLength:p_->n * sizeof(float) options:MTLResourceStorageModePrivate];
         p_->queue = [p_->dev newCommandQueue];
         if (p_->buf == nil || p_->queue == nil) {

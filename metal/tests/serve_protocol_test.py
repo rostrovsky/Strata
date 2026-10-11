@@ -10,7 +10,8 @@ fine: every check here compares the engine with itself):
     llama.cpp/build/bin/test-llama-archs --arch '^qwen4exp$' --out tiny
 
 What is checked: READY and INFO; the same prompt gives the same ids with the expert cache on, off (llama.cpp's own
-path over the mapped file), with direct reads, and with every prompt chunk size; a prompt asked again and a prompt
+path over the mapped file), with direct reads, with every prompt chunk size, with prefetch and (a long prompt) with
+read-ahead; a prompt asked again and a prompt
 that continues the last one reuse the context (RESUME) and give the ids a fresh engine gives; STOP ends a request;
 bad requests are answered with ERR and the engine goes on.
 """
@@ -99,7 +100,8 @@ def main():
     fresh.close()
     check("a prompt that continues the last one: reused, same ids as a fresh engine", ext == want and resume and resume >= 9,
           f"{ext} vs {want}, resume {resume}")
-    other, resume, _, _ = e.gen(10, "1,2,3,99,5,6,7,8,9,10")
+    # (a prompt this far from the first one: a random tiny model answers near-identical prompts identically)
+    other, resume, _, _ = e.gen(10, "11,12,13,14,15,16,17,18,19,20,21,22")
     back, resume2, _, _ = e.gen(10, PROMPT)
     check("a different prompt, then the first again: same ids", back == ref and other != ref, f"{back} resume {resume2}")
 
@@ -122,12 +124,26 @@ def main():
     check("still right after all of it", last == ref, str(last))
     e.close()
 
+    # a prompt long enough for the long-prompt path (more than 32 new tokens), in passes of 48
+    long_prompt = ",".join(str(1 + (i * 7) % 120) for i in range(150))
+    x = Engine(a.engine, a.model, "--prefill", "48")
+    long_ref, _, _, err = x.gen(10, long_prompt)
+    x.close()
+    check("a long prompt answers", err is None and len(long_ref) == 10, f"{long_ref} {err}")
+
     for extra in (["--expert-cache", "0"], ["--expert-io", "direct"], ["--chunk", "1"], ["--chunk", "7"],
-                  ["--io-threads", "1"], ["--no-preload"]):
+                  ["--io-threads", "1"], ["--no-preload"], ["--prefetch", "2"], ["--prefetch", "4", "--prefetch-depth", "2"]):
         x = Engine(a.engine, a.model, *extra)
         got, _, _, err = x.gen(10, PROMPT)
         x.close()
         check(f"{' '.join(extra)}: same ids", got == ref, f"{got} {err}")
+    for extra in (["--prefill-ahead", "on"], ["--prefill-ahead", "on", "--io-threads", "2"], ["--prefetch", "2"]):
+        x = Engine(a.engine, a.model, "--prefill", "48", *extra)
+        got, _, _, err = x.gen(10, long_prompt)
+        again, _, _, _ = x.gen(10, long_prompt.replace("1,", "2,", 1))
+        back, _, _, _ = x.gen(10, long_prompt)
+        x.close()
+        check(f"long prompt, {' '.join(extra)}: same ids", got == long_ref and back == long_ref, f"{got} {back} {err}")
 
     print(f"\n{'all passed' if not failed else str(len(failed)) + ' failed'}")
     sys.exit(1 if failed else 0)
