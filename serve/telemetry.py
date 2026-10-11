@@ -275,6 +275,15 @@ def _cpu_name():
         for line in open("/proc/cpuinfo", encoding="utf-8", errors="replace"):
             if line.startswith("model name"):
                 return line.split(":", 1)[1].strip()
+    elif sys.platform == "darwin":                      # the Metal engine (docs/APPLE_METAL.md)
+        try:
+            import subprocess
+            name = subprocess.run(["sysctl", "-n", "machdep.cpu.brand_string"], capture_output=True, text=True,
+                                  timeout=5).stdout.strip()
+            if name:
+                return name
+        except (OSError, subprocess.SubprocessError):
+            pass
     return platform.processor() or None
 
 
@@ -354,7 +363,10 @@ class Telemetry:
             # #1380: the AMD readings are the amdgpu driver's Linux sysfs files; a Windows AMD card has none yet, and the
             # dashboard said "not readable (NVML)" or showed empty tiles with no word why
             "gpu_note": ("no GPU load or VRAM readings for AMD cards on Windows yet (Linux reads them from the amdgpu "
-                         "driver); the engine's own VRAM figures are in its log" if amd and not self.gpu.ok() else None),
+                         "driver); the engine's own VRAM figures are in its log" if amd and not self.gpu.ok() else
+                         "Apple silicon: the GPU shares the Mac's memory, so RAM is the reading here (no separate GPU "
+                         "load or VRAM readings); the engine's memory plan is in its log"
+                         if sys.platform == "darwin" and not self.gpu.ok() else None),
             "cpu_name": _cpu_name(),
             "cores": (self.ps.cpu_count(logical=False) if self.ps else None) or None,
             "threads": os.cpu_count(),

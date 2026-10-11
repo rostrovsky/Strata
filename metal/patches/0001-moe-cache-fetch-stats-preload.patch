@@ -1,0 +1,396 @@
+diff --git a/include/llama.h b/include/llama.h
+index 0d476a299..66877c3e0 100644
+--- a/include/llama.h
++++ b/include/llama.h
+@@ -1131,6 +1131,45 @@ extern "C" {
+     // and is not necessary to call it explicitly in most cases
+     LLAMA_API void llama_synchronize(struct llama_context * ctx);
+ 
++    //
++    // MoE cache hooks [EXPERIMENTAL]
++    //
++
++    // a run of consecutive experts of a host expert tensor that the MoE cache is about to upload
++    struct llama_moe_cache_fill {
++        const struct ggml_tensor * tensor; // host expert tensor, named as in the GGUF
++        int32_t il;       // layer
++        int32_t expert;   // first expert of the run
++        int32_t n;        // number of experts
++        const void * src; // host data of the run
++        void * dst;       // slots of the run in the device bank, only usable if the device buffers are host-addressable
++        size_t size;      // bytes of the run
++    };
++
++    // called with the misses before they are uploaded, the device is idle during the call
++    // return true if dst was filled for all fills, the upload from src is then skipped
++    typedef bool (*llama_moe_cache_fetch_callback)(const struct llama_moe_cache_fill * fills, size_t n_fills, void * user_data);
++
++    LLAMA_API void llama_moe_cache_set_fetch_callback(struct llama_context * ctx, llama_moe_cache_fetch_callback cb, void * user_data);
++
++    struct llama_moe_cache_stats {
++        uint64_t n_slots;        // experts the cache can hold
++        uint64_t n_cached;       // experts it holds
++        uint64_t n_layers;       // layers it serves
++        uint64_t n_slots_min;    // slots of the smallest group of layers: a pass that may route to more distinct experts of a layer than this bypasses the cache
++        uint64_t size;           // bytes of the device banks
++        uint64_t hits;
++        uint64_t misses;
++        uint64_t bytes_uploaded;
++    };
++
++    // returns false if the context has no MoE cache
++    LLAMA_API bool llama_moe_cache_get_stats(const struct llama_context * ctx, struct llama_moe_cache_stats * stats);
++
++    // load (layer, expert) pairs into the cache, most wanted first, each group of layers takes as many as it has slots
++    // returns the number of experts loaded
++    LLAMA_API int64_t llama_moe_cache_preload(struct llama_context * ctx, const int32_t * layers, const int32_t * experts, size_t n);
++
+     // Token logits obtained from the last call to llama_decode()
+     // The logits for which llama_batch.logits[i] != 0 are stored contiguously
+     // in the order they have appeared in the batch.
+diff --git a/src/llama-context.cpp b/src/llama-context.cpp
+index 7e6974431..8c0d14c92 100644
+--- a/src/llama-context.cpp
++++ b/src/llama-context.cpp
+@@ -2682,6 +2682,13 @@ bool llama_context::sched_copy_experts(ggml_backend_t backend, const ggml_tensor
+         st.ids = ids;
+     }
+ 
++    // the experts that are not in the MoE cache are uploaded: its fetch callback may fill them in place, see llama_moe_cache_set_fetch_callback
++    std::vector<llama_moe_cache_fill> fills;
++    auto upload = [&](int64_t e, int64_t n) {
++        fills.push_back({ src, -1, (int32_t) e, (int32_t) n,
++            (const uint8_t *) src->data + e*expert_size, (uint8_t *) dst->data + e*expert_size, n*expert_size });
++    };
++
+     // group consecutive experts and copy them together
+     for (int64_t first = 0; first < n_expert; ) {
+         if (!st.used[first]) {
+@@ -2702,23 +2709,38 @@ bool llama_context::sched_copy_experts(ggml_backend_t backend, const ggml_tensor
+                 continue;
+             }
+             if (next < e) {
+-                ggml_backend_tensor_set_async(backend, dst, (const uint8_t *) src->data + next*expert_size, next*expert_size, (e - next)*expert_size);
++                upload(next, e - next);
+             }
+             e   += n;
+             next = e;
+         }
++        if (next <= last) {
++            upload(next, last + 1 - next);
++        }
+ 
+         // copy a bit extra to ensure there are no NaNs in the padding of the last expert, this is necessary for MMQ in the CUDA backend
+-        const size_t offset  = next*expert_size;
+-        const size_t padding = last < n_expert - 1 ? std::min<size_t>(expert_size, 512) : 0;
+-        const size_t size    = (last + 1 - next)*expert_size + padding;
+-        if (size > 0) {
+-            ggml_backend_tensor_set_async(backend, dst, (const uint8_t *) src->data + offset, offset, size);
++        if (last < n_expert - 1) {
++            const size_t offset = (last + 1)*expert_size;
++            ggml_backend_tensor_set_async(backend, dst, (const uint8_t *) src->data + offset, offset, std::min<size_t>(expert_size, 512));
+         }
+ 
+         first = last + 1;
+     }
+ 
++    if (!fills.empty()) {
++        bool done = false;
++        if (lctx->moe_cache && lctx->moe_cache->has_fetch_callback()) {
++            // the callback writes the device memory directly
++            ggml_backend_synchronize(backend);
++            done = lctx->moe_cache->fetch(fills.data(), fills.size());
++        }
++        if (!done) {
++            for (const auto & f : fills) {
++                ggml_backend_tensor_set_async(backend, dst, f.src, (size_t) f.expert*expert_size, f.size);
++            }
++        }
++    }
++
+     return true;
+ }
+ 
+@@ -4089,6 +4111,28 @@ void llama_synchronize(llama_context * ctx) {
+     ctx->synchronize();
+ }
+ 
++void llama_moe_cache_set_fetch_callback(llama_context * ctx, llama_moe_cache_fetch_callback cb, void * user_data) {
++    if (ctx->get_moe_cache()) {
++        ctx->get_moe_cache()->set_fetch_callback(cb, user_data);
++    }
++}
++
++bool llama_moe_cache_get_stats(const llama_context * ctx, llama_moe_cache_stats * stats) {
++    if (!ctx->get_moe_cache()) {
++        return false;
++    }
++    *stats = ctx->get_moe_cache()->get_stats();
++    return true;
++}
++
++int64_t llama_moe_cache_preload(llama_context * ctx, const int32_t * layers, const int32_t * experts, size_t n) {
++    if (!ctx->get_moe_cache()) {
++        return 0;
++    }
++    ctx->synchronize();
++    return ctx->get_moe_cache()->preload(layers, experts, n);
++}
++
+ float * llama_get_logits(llama_context * ctx) {
+     ctx->synchronize();
+ 
+diff --git a/src/llama-context.h b/src/llama-context.h
+index 69bc01c19..8846c39f5 100644
+--- a/src/llama-context.h
++++ b/src/llama-context.h
+@@ -262,6 +262,8 @@ public:
+ 
+     bool set_sampler(llama_seq_id seq_id, llama_sampler * sampler);
+ 
++    llama_moe_cache * get_moe_cache() const { return moe_cache.get(); }
++
+ private:
+     llm_graph_result * get_gf_res_prev();
+ 
+diff --git a/src/llama-model.cpp b/src/llama-model.cpp
+index 6fece1019..448b6c537 100644
+--- a/src/llama-model.cpp
++++ b/src/llama-model.cpp
+@@ -1867,7 +1867,8 @@ bool llama_model_base::load_tensors(llama_model_loader & ml) {
+     // per-tensor activation precision policy
+     prec_policy.load(ml, *this);
+ 
+-    ml.init_mappings(true, use_mlock ? &pimpl->mlock_mmaps : nullptr);
++    // prefetching a file larger than the memory only evicts what is in use
++    ml.init_mappings(getenv("LLAMA_MMAP_NO_PREFETCH") == nullptr, use_mlock ? &pimpl->mlock_mmaps : nullptr);
+     pimpl->mappings.reserve(ml.mappings.size());
+ 
+     // create the backend buffers
+diff --git a/src/llama-moe-cache.cpp b/src/llama-moe-cache.cpp
+index f22d986dc..03f7c624c 100644
+--- a/src/llama-moe-cache.cpp
++++ b/src/llama-moe-cache.cpp
+@@ -200,6 +200,7 @@ struct llama_moe_cache::impl {
+     stats stats_small; // up to 8 tokens per ubatch
+     stats stats_large;
+     stats stats_copy;  // experts copied from the cache for large batches
++    stats stats_preload;
+ 
+     std::vector<device> devices;
+     std::vector<group> groups;
+@@ -210,6 +211,17 @@ struct llama_moe_cache::impl {
+     std::vector<int32_t> ids;
+     std::vector<moe_cache_lru::fill> fills;
+ 
++    // the misses waiting for their upload, and where the fetch callback or the upload puts them
++    struct pending {
++        ggml_tensor * bank;
++        size_t offset;
++    };
++    std::vector<llama_moe_cache_fill> fills_cb;
++    std::vector<pending> fills_dst;
++
++    llama_moe_cache_fetch_callback fetch_cb = nullptr;
++    void * fetch_cb_user_data = nullptr;
++
+     // slot maps in host memory
+     ggml_context_ptr ctx_host;
+     ggml_backend_buffer_ptr buf_host;
+@@ -512,6 +524,112 @@ struct llama_moe_cache::impl {
+         return n;
+     }
+ 
++    // queue the upload of `fills` of layer il, returns the bytes queued
++    size_t queue_fills(int32_t il) {
++        const layer & l = layers[il];
++        const group & g = groups[l.ig];
++
++        size_t bytes = 0;
++        for (size_t ip = 0; ip < l.experts.size(); ++ip) {
++            const ggml_tensor * w    = l.experts[ip];
++            ggml_tensor       * bank = g.banks[ip];
++            const size_t expert_size = w->nb[2];
++            for (size_t i = 0; i < fills.size();) {
++                size_t n = 1;
++                while (i + n < fills.size() && fills[i + n].expert == fills[i].expert + (int32_t) n && fills[i + n].slot == fills[i].slot + (int32_t) n) {
++                    n++;
++                }
++                const size_t offset = fills[i].slot*expert_size;
++                fills_cb.push_back({ w, il, fills[i].expert, (int32_t) n,
++                    (const uint8_t *) w->data + fills[i].expert*expert_size, (uint8_t *) bank->data + offset, n*expert_size });
++                fills_dst.push_back({ bank, offset });
++                bytes += n*expert_size;
++                i += n;
++            }
++        }
++        return bytes;
++    }
++
++    // the backend must be idle: the fetch callback may write the slots directly
++    void flush_fills(ggml_backend_t backend) {
++        if (fills_cb.empty()) {
++            return;
++        }
++        if (fetch_cb == nullptr || !fetch_cb(fills_cb.data(), fills_cb.size(), fetch_cb_user_data)) {
++            for (size_t i = 0; i < fills_cb.size(); ++i) {
++                ggml_backend_tensor_set_async(backend, fills_dst[i].bank, fills_cb[i].src, fills_dst[i].offset, fills_cb[i].size);
++            }
++        }
++        fills_cb.clear();
++        fills_dst.clear();
++    }
++
++    int64_t preload(const int32_t * il_in, const int32_t * e_in, size_t n) {
++        int64_t n_loaded = 0;
++        std::vector<std::pair<int32_t, int32_t>> want;
++        for (size_t ig = 0; ig < groups.size(); ++ig) {
++            group & g = groups[ig];
++            if (g.n_slots == 0) {
++                continue;
++            }
++            ggml_backend_t backend = devices[g.id].backend;
++
++            want.clear();
++            for (size_t i = 0; i < n && want.size() < (size_t) g.n_slots; ++i) {
++                const int32_t il = il_in[i];
++                const int32_t e  = e_in[i];
++                if (il < 0 || il >= (int32_t) layers.size() || layers[il].ig != (int32_t) ig || e < 0 || e >= g.lru.n_expert) {
++                    continue;
++                }
++                if (g.lru.slot_map[il] == nullptr || g.lru.slot_map[il][e] >= 0) {
++                    continue;
++                }
++                want.emplace_back(il, e);
++            }
++
++            // least wanted first, so the most wanted are the most recently used
++            ggml_backend_synchronize(backend);
++            size_t n_queued = 0;
++            for (auto it = want.rbegin(); it != want.rend(); ++it) {
++                size_t n_hit = 0;
++                if (g.lru.slot_map[it->first][it->second] >= 0 || !g.lru.plan(it->first, &it->second, 1, fills, n_hit)) {
++                    continue;
++                }
++                stats_preload.bytes += queue_fills(it->first);
++                n_loaded += fills.size();
++                if (++n_queued % 64 == 0) {
++                    flush_fills(backend);
++                    ggml_backend_synchronize(backend);
++                }
++            }
++            flush_fills(backend);
++            ggml_backend_synchronize(backend);
++        }
++        stats_preload.misses += n_loaded;
++        return n_loaded;
++    }
++
++    llama_moe_cache_stats get_stats() const {
++        llama_moe_cache_stats res = {};
++        for (const group & g : groups) {
++            if (g.n_slots > 0) {
++                res.n_layers   += g.layers.size();
++                res.n_slots_min = res.n_slots_min == 0 ? (uint64_t) g.n_slots : std::min<uint64_t>(res.n_slots_min, g.n_slots);
++            }
++            res.n_slots += g.n_slots;
++            for (int32_t key : g.lru.key_of) {
++                res.n_cached += key >= 0;
++            }
++        }
++        for (const device & d : devices) {
++            res.size += d.buf_size;
++        }
++        res.hits           = stats_small.hits   + stats_large.hits;
++        res.misses         = stats_small.misses + stats_large.misses;
++        res.bytes_uploaded = stats_small.bytes  + stats_large.bytes;
++        return res;
++    }
++
+     bool copy(ggml_backend_t backend, const ggml_tensor * src, ggml_tensor * dst, ggml_cgraph * graph) {
+         const auto it = layer_of.find(src);
+         if (it == layer_of.end()) {
+@@ -555,21 +673,8 @@ struct llama_moe_cache::impl {
+         }
+ 
+         // upload the missing experts, consecutive experts going to consecutive slots are uploaded together
+-        size_t bytes = 0;
+-        for (size_t ip = 0; ip < l.experts.size(); ++ip) {
+-            const ggml_tensor * w    = l.experts[ip];
+-            ggml_tensor       * bank = g.banks[ip];
+-            const size_t expert_size = w->nb[2];
+-            for (size_t i = 0; i < fills.size();) {
+-                size_t n = 1;
+-                while (i + n < fills.size() && fills[i + n].expert == fills[i].expert + (int32_t) n && fills[i + n].slot == fills[i].slot + (int32_t) n) {
+-                    n++;
+-                }
+-                ggml_backend_tensor_set_async(backend, bank, (const uint8_t *) w->data + fills[i].expert*expert_size, fills[i].slot*expert_size, n*expert_size);
+-                bytes += n*expert_size;
+-                i += n;
+-            }
+-        }
++        const size_t bytes = queue_fills(il);
++        flush_fills(backend);
+ 
+         stats & st = ids.size() <= (size_t) 8*n_expert_used ? stats_small : stats_large;
+         st.hits   += n_hit;
+@@ -625,6 +730,27 @@ int64_t llama_moe_cache::copy_experts(ggml_backend_t backend, const ggml_tensor
+     return pimpl->copy_experts(backend, w, dst, e, last);
+ }
+ 
++void llama_moe_cache::set_fetch_callback(llama_moe_cache_fetch_callback cb, void * user_data) {
++    pimpl->fetch_cb           = cb;
++    pimpl->fetch_cb_user_data = user_data;
++}
++
++bool llama_moe_cache::has_fetch_callback() const {
++    return pimpl->fetch_cb != nullptr;
++}
++
++bool llama_moe_cache::fetch(const llama_moe_cache_fill * fills, size_t n) const {
++    return pimpl->fetch_cb != nullptr && pimpl->fetch_cb(fills, n, pimpl->fetch_cb_user_data);
++}
++
++llama_moe_cache_stats llama_moe_cache::get_stats() const {
++    return pimpl->get_stats();
++}
++
++int64_t llama_moe_cache::preload(const int32_t * layers, const int32_t * experts, size_t n) {
++    return pimpl->preload(layers, experts, n);
++}
++
+ std::map<ggml_backend_buffer_type_t, size_t> llama_moe_cache::memory_breakdown() const {
+     std::map<ggml_backend_buffer_type_t, size_t> res;
+     for (const auto & d : pimpl->devices) {
+diff --git a/src/llama-moe-cache.h b/src/llama-moe-cache.h
+index 3b6726b86..e7652e707 100644
+--- a/src/llama-moe-cache.h
++++ b/src/llama-moe-cache.h
+@@ -1,5 +1,7 @@
+ #pragma once
+ 
++#include "llama.h"
++
+ #include "ggml-backend.h"
+ 
+ #include <map>
+@@ -34,6 +36,19 @@ public:
+ 
+     std::map<ggml_backend_buffer_type_t, size_t> memory_breakdown() const;
+ 
++    // the misses are offered to the callback before they are uploaded, see llama_moe_cache_set_fetch_callback
++    void set_fetch_callback(llama_moe_cache_fetch_callback cb, void * user_data);
++
++    bool has_fetch_callback() const;
++
++    // offer uploads that are not for the cache to the fetch callback, returns true if it filled them
++    bool fetch(const llama_moe_cache_fill * fills, size_t n) const;
++
++    llama_moe_cache_stats get_stats() const;
++
++    // see llama_moe_cache_preload
++    int64_t preload(const int32_t * layers, const int32_t * experts, size_t n);
++
+ private:
+     struct impl;
+     std::unique_ptr<impl> pimpl;

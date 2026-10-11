@@ -20,6 +20,17 @@ if(STRATA_ENABLE_SYCL)
   add_subdirectory(sycl)
   return()
 endif()
+# EXPERIMENTAL: the Apple silicon engine, metal/ (docs/APPLE_METAL.md): llama.cpp's Metal kernels and model graph
+# under Strata's memory plan, expert cache fill and serve protocol. Its own project; nothing below is configured.
+option(STRATA_ENABLE_METAL "EXPERIMENTAL: build the Apple silicon (Metal) engine from metal/ - docs/APPLE_METAL.md" OFF)
+if(STRATA_ENABLE_METAL)
+  if(STRATA_ENABLE_CUDA OR STRATA_ENABLE_HIP)
+    message(FATAL_ERROR "STRATA_ENABLE_METAL is a separate backend; leave STRATA_ENABLE_CUDA and STRATA_ENABLE_HIP off")
+  endif()
+  message(WARNING "STRATA_ENABLE_METAL: the Apple silicon engine is experimental (docs/APPLE_METAL.md)")
+  add_subdirectory(metal)
+  return()
+endif()
 add_compile_definitions(STRATA_VERSION="${PROJECT_VERSION}")
 # issue #31: release builds keep a PDB beside the exe (not shipped in it), so a minidump from a stalled engine can
 # be read back to the exact source line
