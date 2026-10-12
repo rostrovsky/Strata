@@ -1,0 +1,109 @@
+{
+ "when": "2026-10-12 06:57",
+ "args": [
+  "--native",
+  "/Users/rafal/Projects/strata-air/Strata-data/models/IQ3_S/Qwen3.8-Flash-Next-GSQ-RCO-IQ3_S-00001-of-00002.gguf",
+  "--expert-profile",
+  "/Users/rafal/Projects/strata-air/Strata/data/expert-profile.bin",
+  "--expert-cache",
+  "auto",
+  "--max-context",
+  "131072",
+  "--kv",
+  "f16",
+  "--prefill",
+  "8192",
+  "--reserve-gib",
+  "4"
+ ],
+ "memory_before": {
+  "free_gib": 13.32,
+  "file_cache_gib": 7.84,
+  "apps_gib": 7.62,
+  "wired_gib": 2.43,
+  "swap_used_gib": 1.44
+ },
+ "info": {
+  "context": "131072",
+  "kv": "f16",
+  "kv_resident": "0",
+  "expert_slots": "1320",
+  "expert_cache_mib": "2589",
+  "expert_slots_primary": "1320",
+  "expert_cache_primary_mib": "2589",
+  "spec": "0",
+  "mtp_max": "0",
+  "lookup": "0",
+  "prefetch": "10",
+  "vram_free_mib": "5988",
+  "arena_mib": "0",
+  "pool_workers": "8",
+  "backend": "metal",
+  "expert_io": "direct",
+  "engine": "0.1.42-metal"
+ },
+ "prefill": {
+  "8192": {
+   "tokens": 8192,
+   "tps": 103.73112972215962,
+   "ttft_s": 78.97423005104065,
+   "ssd_gb": 89.85260000000001,
+   "swapouts": 5870,
+   "gpu_wait_s": 66.2308,
+   "ssd_s": 3.6090999999999998,
+   "gpu_busy_s": 66.5929,
+   "wall_s": 78.9734,
+   "passes": 3.0,
+   "read_ahead_gb": 37.775,
+   "read_ahead_used_gb": 34.601,
+   "watts": 23.18036974789916,
+   "decode_tps": 4.137555385630637,
+   "generated": 80,
+   "output": "<think>\nThe user wants me to summarize a technical document about \"Strata\" - which appears to be a local LLM inference engine. Let me analyze the document and provide a comprehensive summary.\n\nThe document covers:\n1. Speed benchmarks (prompt processing and output tokens/s)\n2. Various optimization features and settings\n3. Memory management (KV cache, low-RAM modes, expert",
+   "progress": [
+    {
+     "tokens": 8189,
+     "total": 8192,
+     "elapsed_s": 78.206,
+     "memory": {
+      "free_gib": 0.01,
+      "file_cache_gib": 4.91,
+      "apps_gib": 8.52,
+      "wired_gib": 17.77,
+      "swap_used_gib": 1.44
+     },
+     "swapouts": 0
+    },
+    {
+     "tokens": 8191,
+     "total": 8192,
+     "elapsed_s": 78.759
+    }
+   ],
+   "decode_per_token": {
+    "total_ms": 241.68860759493674,
+    "gpu_wait_ms": 139.75696202531645,
+    "ssd_ms": 89.8632911392405,
+    "cpu_ms": 12.068354430379777,
+    "encode_ms": 4.443037974683544,
+    "gpu_busy_ms": 134.95569620253164,
+    "sample_ms": 0.15063291139240506,
+    "misses": 99.0632911392405,
+    "ssd_mb": 553.9987341772152,
+    "waits": 49.0,
+    "ahead": 172.77215189873417,
+    "ahead_used": 123.74683544303798,
+    "ahead_waits": 20.20253164556962,
+    "predict_ms": 4.402531645569621
+   }
+  }
+ },
+ "swapouts": 5870,
+ "memory_after": {
+  "free_gib": 16.65,
+  "file_cache_gib": 5.05,
+  "apps_gib": 7.28,
+  "wired_gib": 2.22,
+  "swap_used_gib": 1.06
+ }
+}

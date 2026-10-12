@@ -70,13 +70,16 @@ def swapouts():
 def memory_state():
     page, v = vm_stat()
     gib = page / 2**30
-    sw = subprocess.run(["sysctl", "-n", "vm.swapusage"], capture_output=True, text=True).stdout
+    sw = subprocess.run(["sysctl", "-n", "vm.swapusage", "kern.memorystatus_vm_pressure_level"],
+                        capture_output=True, text=True).stdout
     m = re.search(r"used = ([\d.]+)M", sw)
+    pressure = re.search(r"(?m)^(\d+)\s*$", sw)
     return {"free_gib": round(v.get("Pages free", 0) * gib, 2),
             "file_cache_gib": round(v.get("File-backed pages", 0) * gib, 2),
             "apps_gib": round((v.get("Anonymous pages", 0) + v.get("Pages occupied by compressor", 0)) * gib, 2),
             "wired_gib": round(v.get("Pages wired down", 0) * gib, 2),
-            "swap_used_gib": round(float(m.group(1)) / 1024, 2) if m else None}
+            "swap_used_gib": round(float(m.group(1)) / 1024, 2) if m else None,
+            "pressure_level": int(pressure.group(1)) if pressure else None}
 
 
 def temps():
@@ -284,7 +287,10 @@ def sha(ids):
 def gate_record(e, tok, a):
     s = suite(tok)
     ref = {"engine": e.exe, "info": e.info, "new": a.new, "recorded": time.strftime("%Y-%m-%d %H:%M"), "prompts": {}}
+    only = set(a.only or [])
     for name, (kind, ids) in s.items():
+        if only and name not in only:
+            continue
         r = e.gen(ids, a.new, " probe=1")
         ref["prompts"][name] = {"kind": kind, "prompt": ids, "prompt_sha": sha(ids), "ids": r["ids"], "probes": r["probes"]}
         margins = sorted(p[4] - p[6] for p in r["probes"])
@@ -305,9 +311,22 @@ def gate_check(e, a):
         want = p["ids"]
         r = e.gen(p["prompt"], ref["new"], " probe=1")
         if r["ids"] == want:
-            verdicts[name] = {"verdict": "identical"}
+            same_probes = r["probes"] == p["probes"]
+            ok = same_probes or not a.exact
+            deltas = [abs(x[j] - y[j]) for x, y in zip(r["probes"], p["probes"]) for j in (2, 4, 6, 8)]
+            max_delta = max(deltas, default=0.0)
+            verdicts[name] = {"verdict": "identical" if ok else "logit mismatch", "probes_identical": same_probes,
+                              "max_logit_delta": max_delta}
+            ok_all &= ok
             print(f"{name:9s} identical ({len(want)} ids), {r['tps']:.2f} tok/s"
+                  + f", reported logits {'identical' if same_probes else 'differ'}"
+                  + (f" (max delta {max_delta:.6g})" if not same_probes else "")
                   + (f", drafts {r['drafts_accepted']}/{r['drafts_offered']} right" if r["drafts_offered"] else ""), flush=True)
+            continue
+        if a.exact:
+            verdicts[name] = {"verdict": "token mismatch"}
+            ok_all = False
+            print(f"{name:9s} token mismatch (exact gate)", flush=True)
             continue
         # teacher forcing: the reference's tokens are fed in, so every place is compared on the same context
         f = e.gen(p["prompt"], len(want), " probe=1 force=" + ".".join(map(str, want)))
@@ -461,6 +480,7 @@ def main():
     ap.add_argument("--gate", choices=("record", "check"))
     ap.add_argument("--ref", default=str(ROOT / "build-metal" / "gate-ref.json"))
     ap.add_argument("--tie", type=float, default=0.05, help="gate: two tokens this close in logits are a near-tie")
+    ap.add_argument("--exact", action="store_true", help="gate: require identical token IDs and all reported logits")
     ap.add_argument("--prefill", help="prompt sizes in tokens, e.g. 32,256,1600,8000,32000")
     ap.add_argument("--prefill-new", type=int, default=1, help="tokens to generate at each prefill depth (default 1)")
     ap.add_argument("--prefill-repeat", action="store_true", help="repeat each prefill request to check prefix reuse")
@@ -494,7 +514,8 @@ def main():
     def start(spec):
         # "[NAME=value ...] EXE [engine options]"
         words = spec.split()
-        env = {}
+        # Match the server's engine environment; inline A/B settings override the config.
+        env = {str(k): str(v) for k, v in (cfg.get("env") or {}).items()}
         while words and "=" in words[0] and not words[0].startswith(("/", ".")):
             k, v = words.pop(0).split("=", 1)
             env[k] = v

@@ -1,0 +1,222 @@
+--- a/ggml/src/ggml-cpu/ggml-cpu.cpp
++++ b/ggml/src/ggml-cpu/ggml-cpu.cpp
+@@ -440,6 +440,9 @@
+     }
+ 
+     switch (op->op) {
++        case GGML_OP_FLASH_ATTN_EXT:
++            // Compact QSA indices are an opt-in extension of this Metal-only build.
++            return !op->src[3] || op->src[3]->type == GGML_TYPE_F16;
+         case GGML_OP_CPY:
+         case GGML_OP_SET_ROWS:
+             return
+--- a/ggml/src/ggml-metal/ggml-metal-device.cpp
++++ b/ggml/src/ggml-metal/ggml-metal-device.cpp
+@@ -1955,7 +1955,8 @@
+ 
+     char name[256];
+ 
+-    snprintf(name, 256, "kernel_flash_attn_ext_vec_idx");
++    snprintf(name, 256, "%s", op->src[3]->type == GGML_TYPE_I32
++            ? "kernel_flash_attn_ext_vec_idx_i32" : "kernel_flash_attn_ext_vec_idx");
+ 
+     ggml_metal_pipeline_with_params res = ggml_metal_library_get_pipeline(lib, name);
+     if (!res.pipeline) {
+--- a/ggml/src/ggml-metal/ggml-metal-ops.cpp
++++ b/ggml/src/ggml-metal/ggml-metal-ops.cpp
+@@ -3425,7 +3425,8 @@
+     GGML_ASSERT(ne11 == ne21);
+     GGML_ASSERT(ne12 == ne22);
+ 
+-    GGML_ASSERT(!op->src[3] || op->src[3]->type == GGML_TYPE_F16);
++    const bool indexed_mask = op->src[3] && op->src[3]->type == GGML_TYPE_I32;
++    GGML_ASSERT(!op->src[3] || op->src[3]->type == GGML_TYPE_F16 || indexed_mask);
+     GGML_ASSERT(!op->src[3] || op->src[3]->ne[1] >= op->src[0]->ne[1] &&
+             "the Flash-Attention Metal kernel requires the mask to be at least n_queries big");
+ 
+@@ -3441,7 +3442,7 @@
+         scale /= logit_softcap;
+     }
+ 
+-    const bool has_mask  = op->src[3] != NULL;
++    const bool has_mask  = op->src[3] != NULL && !indexed_mask;
+     const bool has_sinks = op->src[4] != NULL;
+     const bool has_bias  = max_bias != 0.0f;
+     const bool has_scap  = logit_softcap != 0.0f;
+@@ -3457,7 +3458,7 @@
+     ggml_metal_buffer_id bid_src0 = ggml_metal_get_buffer_id(op->src[0]);
+     ggml_metal_buffer_id bid_src1 = ggml_metal_get_buffer_id(op->src[1]);
+     ggml_metal_buffer_id bid_src2 = ggml_metal_get_buffer_id(op->src[2]);
+-    ggml_metal_buffer_id bid_src3 = has_mask  ? ggml_metal_get_buffer_id(op->src[3]) : bid_src0;
++    ggml_metal_buffer_id bid_src3 = op->src[3] ? ggml_metal_get_buffer_id(op->src[3]) : bid_src0;
+     ggml_metal_buffer_id bid_src4 = has_sinks ? ggml_metal_get_buffer_id(op->src[4]) : bid_src0;
+ 
+     ggml_metal_buffer_id bid_dst = ggml_metal_get_buffer_id(op);
+@@ -3477,6 +3478,7 @@
+     // sparse path: gather the finite mask entries into index lists and run the vec kernels over them
+     const int n_kv_max_sparse = ggml_metal_op_flash_attn_ext_n_kv_max_sparse(op);
+     const bool use_sparse = n_kv_max_sparse > 0;
++    GGML_ASSERT(!indexed_mask || (use_sparse && ne30 == n_kv_max_sparse && max_bias == 0.0f));
+     const int n_kv_max_padded = use_sparse ? GGML_PAD(n_kv_max_sparse, OP_FLASH_ATTN_EXT_VEC_NCPSG) : 0;
+ 
+     // the vec kernels dequantize the KV inline; no need for the F16 dequant pass in the sparse path
+@@ -3863,10 +3865,10 @@
+         if (use_sparse) {
+             assert(ggml_metal_op_flash_attn_ext_extra_idx(op) != 0);
+ 
+-            GGML_ASSERT(ne30 == ne11);
++            GGML_ASSERT(indexed_mask || ne30 == ne11);
+ 
+             ggml_metal_kargs_flash_attn_ext_vec_idx args0 = {
+-                /*.ne30              =*/ ne30,
++                /*.ne30              =*/ ne11,
+                 /*.ne31              =*/ ne31,
+                 /*.ne32              =*/ ne32,
+                 /*.ne33              =*/ ne33,
+--- a/ggml/src/ggml-metal/kernels/fa_aux.metal
++++ b/ggml/src/ggml-metal/kernels/fa_aux.metal
+@@ -179,6 +179,48 @@
+         dst[((i3*args.ne32 + i2)*nblk1 + i1)*nblk0 + i0] = res;
+     }
+ }
++// Sort the compact QSA cell list into the exact order produced by the dense-mask scan.
++// Invalid cells move to the end and become -1 padding. Integer comparisons only: the
++// attention kernel receives the same ordered cells and uses the same FP arithmetic.
++kernel void kernel_flash_attn_ext_vec_idx_i32(
++        constant ggml_metal_kargs_flash_attn_ext_vec_idx & args,
++        device const int * selected,
++        device       int * idx,
++        uint3   tgpig[[threadgroup_position_in_grid]],
++        ushort  tiitg[[thread_index_in_threadgroup]],
++        ushort3 ntg[[threads_per_threadgroup]]) {
++    threadgroup int cells[4096];
++    const int i1 = tgpig.x, i2 = tgpig.y, i3 = tgpig.z;
++    device const int * row = (device const int *) ((device const char *) selected +
++            i1*args.nb31 + i2*args.nb32 + i3*args.nb33);
++    device int * out = idx + (((int64_t)i3*args.ne32 + i2)*args.ne31 + i1)*args.n_kv_max_padded;
++    int nsort = 1;
++    while (nsort < args.n_kv_max) nsort *= 2;
++    for (int i = tiitg; i < nsort; i += ntg.x) {
++        const int cell = i < args.n_kv_max ? row[i] : -1;
++        cells[i] = cell >= 0 && cell < args.ne30 ? cell : INT_MAX;
++    }
++    threadgroup_barrier(mem_flags::mem_threadgroup);
++    for (int k = 2; k <= nsort; k *= 2) {
++        for (int j = k/2; j > 0; j /= 2) {
++            for (int i = tiitg; i < nsort; i += ntg.x) {
++                const int other = i ^ j;
++                if (other > i) {
++                    const int a = cells[i], b = cells[other];
++                    const bool asc = (i & k) == 0;
++                    cells[i] = asc ? min(a, b) : max(a, b);
++                    cells[other] = asc ? max(a, b) : min(a, b);
++                }
++            }
++            threadgroup_barrier(mem_flags::mem_threadgroup);
++        }
++    }
++    for (int i = tiitg; i < args.n_kv_max_padded; i += ntg.x) {
++        const int cell = i < nsort ? cells[i] : INT_MAX;
++        out[i] = cell == INT_MAX ? -1 : cell;
++    }
++}
++
+ // compress the finite entries of each KQ mask row into a list of KV indices (ascending order),
+ // padded with -1 up to n_kv_max_padded (a multiple of OP_FLASH_ATTN_EXT_VEC_NCPSG)
+ // one threadgroup per mask row; the mask remains the single source of truth for the values
+--- a/ggml/src/ggml-metal/kernels/fa_vec_common.metal
++++ b/ggml/src/ggml-metal/kernels/fa_vec_common.metal
+@@ -253,7 +253,10 @@
+                 }
+             } else {
+                 FOR_UNROLL (short qq = 0; qq < Q; ++qq) {
+-                    if ((iq1*Q + qq) >= args.ne01) {
++                    if (FC_flash_attn_ext_vec_has_sparse) {
++                        sm[qq*C + tiisg] = (iq1*Q + qq) < args.ne01 && spidx[tiisg] >= 0
++                                ? 0.0h : -MAXHALF;
++                    } else if ((iq1*Q + qq) >= args.ne01) {
+                         sm[qq*C + tiisg] = -MAXHALF;
+                     }
+                 }
+--- a/ggml/src/ggml.c
++++ b/ggml/src/ggml.c
+@@ -5520,8 +5520,11 @@
+     GGML_ASSERT(q->ne[3] == v->ne[3]);
+ 
+     if (mask) {
+-        GGML_ASSERT(mask->type == GGML_TYPE_F16);
+-        GGML_ASSERT(ggml_is_contiguous(mask));
++        // The local Metal extension also accepts an I32 list of selected KV cells.
++        // Negative and out-of-range cells are padding; valid cells must be unique.
++        GGML_ASSERT(mask->type == GGML_TYPE_F16 || mask->type == GGML_TYPE_I32);
++        GGML_ASSERT(mask->type != GGML_TYPE_I32 || (max_bias == 0.0f && mask->ne[0] <= 4096));
++        GGML_ASSERT(mask->type == GGML_TYPE_I32 ? ggml_is_contiguous_rows(mask) : ggml_is_contiguous(mask));
+         //GGML_ASSERT(ggml_can_repeat_rows(mask, qk));
+ 
+         GGML_ASSERT(q->ne[2] % mask->ne[2] == 0);
+--- a/src/llama-graph.cpp
++++ b/src/llama-graph.cpp
+@@ -1150,7 +1150,10 @@
+     mctx->get_attn()->set_input_k_idxs(inp_attn->self_k_idxs, ubatch);
+     mctx->get_attn()->set_input_v_idxs(inp_attn->self_v_idxs, ubatch);
+ 
+-    mctx->get_attn()->set_input_kq_mask(inp_attn->self_kq_mask, ubatch, cparams.causal_attn);
++    // Direct QSA indices leave the dense attention mask outside the graph.
++    if (inp_attn->self_kq_mask && inp_attn->self_kq_mask->buffer) {
++        mctx->get_attn()->set_input_kq_mask(inp_attn->self_kq_mask, ubatch, cparams.causal_attn);
++    }
+ 
+     if (inp_attn->self_k_rot) {
+         mctx->get_attn()->set_input_k_rot(inp_attn->self_k_rot);
+--- a/src/models/qwen4exp.cpp
++++ b/src/models/qwen4exp.cpp
+@@ -5,6 +5,7 @@
+ 
+ #include <algorithm>
+ #include <cinttypes>
++#include <cstdlib>
+ 
+ // bad metadata must be catchable: GGML_ASSERT aborts the whole process
+ static void qwen4exp_require_nonzero(const llama_model_loader & ml, llm_kv kid, uint32_t value) {
+@@ -824,8 +825,6 @@
+ 
+     ggml_build_forward_expand(gf, sel_idx);
+ 
+-    // TODO: figure out to reduce the large copmute buffer that this creates
+-
+     // scatter zeros for the selected cells into an all -inf row, each dead slot into its own dump row n_kv + slot
+     // seeding from sel_idx ties the scatter storage lifetime to this layer
+     const int64_t n_kv = inp_kpool->n_kv;
+@@ -857,6 +856,21 @@
+     ggml_tensor * idx_f = ggml_cast(ctx0, sel_idx, GGML_TYPE_F32);
+     idx_f   = ggml_add(ctx0, ggml_mul(ctx0, ggml_sub(ctx0, idx_f, dump), live), dump);
+     sel_idx = ggml_cast(ctx0, idx_f, GGML_TYPE_I32);
++
++    // Single-sequence causal QSA already filters pools and tail by position in set_input_kpool.
++    // Pass its selected cells to Metal directly. Dead slots are >= n_kv; the Metal index
++    // kernel removes them and restores the same ascending order as the dense-mask scan.
++    const char * indexed_env = std::getenv("STRATA_METAL_INDEXED_QSA");
++    const bool indexed = indexed_env && std::atoi(indexed_env) != 0 &&
++        cparams.flash_attn && cparams.causal_attn && cparams.n_seq_max == 1 &&
++        mctx_hyb->get_attn()->get_k(ctx0, il)->type == GGML_TYPE_F16 &&
++        mctx_hyb->get_attn()->get_v(ctx0, il)->type == GGML_TYPE_F16 &&
++        hparams.f_max_alibi_bias == 0.0f && n_sel <= 4096 &&
++        (hparams.n_embd_head_k() == 128 || hparams.n_embd_head_k() == 256);
++    if (indexed) {
++        cb(sel_idx, "indexer_sel_direct", il);
++        return sel_idx;
++    }
+ 
+     ggml_tensor * sel = ggml_set_rows(ctx0, mask_all, zeros, ggml_reshape_3d(ctx0, sel_idx, n_sel, n_tokens, 1));
+ 
+@@ -911,7 +925,9 @@
+ 
+     // the selection mask already carries the causal mask
+     ggml_tensor * kq_mask = inp->get_kq_mask();
+-    ggml_tensor * mask    = ggml_reshape_4d(ctx0, sel, kq_mask->ne[0], kq_mask->ne[1], kq_mask->ne[2], kq_mask->ne[3]);
++    GGML_ASSERT(sel->type == GGML_TYPE_I32 || ggml_are_same_shape(sel, kq_mask));
++    ggml_tensor * mask = sel->type == GGML_TYPE_I32 ? sel
++        : ggml_reshape_4d(ctx0, sel, kq_mask->ne[0], kq_mask->ne[1], kq_mask->ne[2], kq_mask->ne[3]);
+     cb(mask, "kq_mask_qsa", il);
+ 
+     ggml_tensor * q = q_cur;

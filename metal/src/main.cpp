@@ -479,6 +479,9 @@ struct Engine {
         cp.n_ctx = (uint32_t) o.max_context;
         cp.n_batch = (uint32_t) std::max(32, o.prefill);   // the expert cache serves passes of up to 32 tokens
         cp.n_ubatch = cp.n_batch;
+        // Normal passes return only the last token's logits. Speculative verification needs every draft's logits.
+        // The llama default reserves vocabulary-sized output for every prefill token, even though we never ask for it.
+        cp.n_outputs_max = drafting() ? (uint32_t) o.spec + 1 : 1;
         cp.n_seq_max = 1;
         cp.n_threads = o.threads;
         cp.n_threads_batch = o.threads;

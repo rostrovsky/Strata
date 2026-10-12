@@ -98,6 +98,20 @@ target_compile_definitions(strata PRIVATE STRATA_VERSION="${PROJECT_VERSION}-met
 target_compile_options(strata PRIVATE -Wall -Wextra)
 target_link_libraries(strata PRIVATE llama ggml "-framework Metal" "-framework Foundation")
 set_target_properties(strata PROPERTIES RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
+
+option(STRATA_METAL_BUILD_TESTS "Build Metal kernel regression tests" OFF)
+if(STRATA_METAL_BUILD_TESTS)
+  enable_testing()
+  add_executable(strata-test-indexed-qsa tests/indexed_qsa_test.cpp)
+  target_link_libraries(strata-test-indexed-qsa PRIVATE ggml)
+  add_test(NAME metal-indexed-qsa COMMAND strata-test-indexed-qsa)
+
+  add_executable(strata-test-backend-ops ${_llama}/tests/test-backend-ops.cpp)
+  target_include_directories(strata-test-backend-ops PRIVATE ${_llama}/ggml/src)
+  target_link_libraries(strata-test-backend-ops PRIVATE ggml)
+  add_test(NAME metal-top-k COMMAND strata-test-backend-ops -b MTL0 -o TOP_K)
+endif()
+
 # serve/server.py reads the engine's version from the BUILD.json beside it
 file(WRITE ${CMAKE_BINARY_DIR}/bin/BUILD.json
      "{\"version\": \"${PROJECT_VERSION}\", \"backend\": \"metal\", \"llama_cpp\": \"${STRATA_METAL_LLAMA_COMMIT}\"}\n")

@@ -1,0 +1,77 @@
+--- a/ggml/src/ggml-metal/kernels/fa_aux.metal
++++ b/ggml/src/ggml-metal/kernels/fa_aux.metal
+@@ -214,6 +214,59 @@
+             }
+             threadgroup_barrier(mem_flags::mem_threadgroup);
+         }
++    }
++    for (int i = tiitg; i < args.n_kv_max_padded; i += ntg.x) {
++        const int cell = i < nsort ? cells[i] : INT_MAX;
++        out[i] = cell == INT_MAX ? -1 : cell;
++    }
++}
++
++kernel void kernel_flash_attn_ext_vec_idx_i32_simd(
++        constant ggml_metal_kargs_flash_attn_ext_vec_idx & args,
++        device const int * selected,
++        device       int * idx,
++        uint3   tgpig[[threadgroup_position_in_grid]],
++        ushort  tiitg[[thread_index_in_threadgroup]],
++        ushort3 ntg[[threads_per_threadgroup]]) {
++    threadgroup int cells[4096];
++    const int i1 = tgpig.x, i2 = tgpig.y, i3 = tgpig.z;
++    device const int * row = (device const int *) ((device const char *) selected +
++            i1*args.nb31 + i2*args.nb32 + i3*args.nb33);
++    device int * out = idx + (((int64_t)i3*args.ne32 + i2)*args.ne31 + i1)*args.n_kv_max_padded;
++    int nsort = 1;
++    while (nsort < args.n_kv_max) nsort *= 2;
++    for (int i = tiitg; i < nsort; i += ntg.x) {
++        const int cell = i < args.n_kv_max ? row[i] : -1;
++        cells[i] = cell >= 0 && cell < args.ne30 ? cell : INT_MAX;
++    }
++    threadgroup_barrier(mem_flags::mem_threadgroup);
++    for (int k = 2; k <= nsort; k *= 2) {
++        int j = k/2;
++        // Cross-SIMD exchanges still use shared memory and a threadgroup barrier.
++        for (; j >= 32; j /= 2) {
++            for (int i = tiitg; i < nsort; i += ntg.x) {
++                const int other = i ^ j;
++                if (other > i) {
++                    const int a = cells[i], b = cells[other];
++                    const bool asc = (i & k) == 0;
++                    cells[i] = asc ? min(a, b) : max(a, b);
++                    cells[other] = asc ? max(a, b) : min(a, b);
++                }
++            }
++            threadgroup_barrier(mem_flags::mem_threadgroup);
++        }
++        // The remaining stages exchange registers inside each 32-lane SIMD group.
++        // nsort is a power of two, so every live lane has a live XOR partner.
++        for (int i = tiitg; i < nsort; i += ntg.x) {
++            int value = cells[i];
++            for (int shift = j; shift > 0; shift /= 2) {
++                const int other = simd_shuffle_xor(value, (ushort) shift);
++                const bool take_min = ((i & shift) == 0) == ((i & k) == 0);
++                value = take_min ? min(value, other) : max(value, other);
++            }
++            cells[i] = value;
++        }
++        threadgroup_barrier(mem_flags::mem_threadgroup);
+     }
+     for (int i = tiitg; i < args.n_kv_max_padded; i += ntg.x) {
+         const int cell = i < nsort ? cells[i] : INT_MAX;
+--- a/ggml/src/ggml-metal/ggml-metal-device.cpp
++++ b/ggml/src/ggml-metal/ggml-metal-device.cpp
+@@ -1955,8 +1955,11 @@
+ 
+     char name[256];
+ 
++    const char * simd_env = getenv("STRATA_METAL_QSA_SIMD_SORT");
++    const bool simd_sort = simd_env && atoi(simd_env) != 0;
+     snprintf(name, 256, "%s", op->src[3]->type == GGML_TYPE_I32
+-            ? "kernel_flash_attn_ext_vec_idx_i32" : "kernel_flash_attn_ext_vec_idx");
++            ? (simd_sort ? "kernel_flash_attn_ext_vec_idx_i32_simd" : "kernel_flash_attn_ext_vec_idx_i32")
++            : "kernel_flash_attn_ext_vec_idx");
+ 
+     ggml_metal_pipeline_with_params res = ggml_metal_library_get_pipeline(lib, name);
+     if (!res.pipeline) {

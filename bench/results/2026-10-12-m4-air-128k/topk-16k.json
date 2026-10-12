@@ -1,0 +1,170 @@
+{
+ "when": "2026-10-12 07:02",
+ "args": [
+  "--native",
+  "/Users/rafal/Projects/strata-air/Strata-data/models/IQ3_S/Qwen3.8-Flash-Next-GSQ-RCO-IQ3_S-00001-of-00002.gguf",
+  "--expert-profile",
+  "/Users/rafal/Projects/strata-air/Strata/data/expert-profile.bin",
+  "--expert-cache",
+  "auto",
+  "--max-context",
+  "131072",
+  "--kv",
+  "f16",
+  "--prefill",
+  "4096",
+  "--reserve-gib",
+  "4"
+ ],
+ "memory_before": {
+  "free_gib": 13.53,
+  "file_cache_gib": 6.24,
+  "apps_gib": 9.11,
+  "wired_gib": 2.31,
+  "swap_used_gib": 1.06
+ },
+ "info": {
+  "context": "131072",
+  "kv": "f16",
+  "kv_resident": "0",
+  "expert_slots": "2932",
+  "expert_cache_mib": "5735",
+  "expert_slots_primary": "2932",
+  "expert_cache_primary_mib": "5735",
+  "spec": "0",
+  "mtp_max": "0",
+  "lookup": "0",
+  "prefetch": "10",
+  "vram_free_mib": "6413",
+  "arena_mib": "0",
+  "pool_workers": "8",
+  "backend": "metal",
+  "expert_io": "direct",
+  "engine": "0.1.42-metal"
+ },
+ "prefill": {
+  "16384": {
+   "tokens": 16384,
+   "tps": 77.34730469380683,
+   "ttft_s": 211.84173607826233,
+   "ssd_gb": 193.43220000000002,
+   "swapouts": 0,
+   "gpu_wait_s": 173.66060000000002,
+   "ssd_s": 11.2932,
+   "gpu_busy_s": 173.051,
+   "wall_s": 211.82379999999998,
+   "passes": 6.0,
+   "read_ahead_gb": 144.3654,
+   "read_ahead_used_gb": 134.46,
+   "watts": 22.198957983193278,
+   "decode_tps": 4.852735648843107,
+   "generated": 76,
+   "output": "STRATA_TEST_RECORD ALPHA = cedar-58317\nSTRATA_TEST_RECORD BRAVO = quartz-92406\nSTRATA_TEST_RECORD CHARLIE = lilac-76183\nSTRATA_TEST_RECORD DELTA = maple-40952\nSTRATA_TEST_RECORD ECHO = coral-63821<|im_end|>",
+   "progress": [
+    {
+     "tokens": 4096,
+     "total": 16384,
+     "elapsed_s": 39.529,
+     "memory": {
+      "free_gib": 0.06,
+      "file_cache_gib": 5.61,
+      "apps_gib": 8.12,
+      "wired_gib": 17.41,
+      "swap_used_gib": 1.06
+     },
+     "swapouts": 0
+    },
+    {
+     "tokens": 8192,
+     "total": 16384,
+     "elapsed_s": 85.386,
+     "memory": {
+      "free_gib": 0.1,
+      "file_cache_gib": 4.5,
+      "apps_gib": 9.11,
+      "wired_gib": 17.49,
+      "swap_used_gib": 1.06
+     },
+     "swapouts": 0
+    },
+    {
+     "tokens": 12288,
+     "total": 16384,
+     "elapsed_s": 147.672,
+     "memory": {
+      "free_gib": 0.06,
+      "file_cache_gib": 5.05,
+      "apps_gib": 8.66,
+      "wired_gib": 17.43,
+      "swap_used_gib": 1.05
+     },
+     "swapouts": 0
+    },
+    {
+     "tokens": 16377,
+     "total": 16384,
+     "elapsed_s": 210.956,
+     "memory": {
+      "free_gib": 0.01,
+      "file_cache_gib": 5.4,
+      "apps_gib": 8.42,
+      "wired_gib": 17.37,
+      "swap_used_gib": 1.05
+     },
+     "swapouts": 0
+    },
+    {
+     "tokens": 16383,
+     "total": 16384,
+     "elapsed_s": 211.655
+    }
+   ],
+   "decode_per_token": {
+    "total_ms": 206.06933333333333,
+    "gpu_wait_ms": 122.91466666666668,
+    "ssd_ms": 71.19333333333333,
+    "cpu_ms": 11.961333333333338,
+    "encode_ms": 4.510666666666666,
+    "gpu_busy_ms": 117.50800000000001,
+    "sample_ms": 0.14133333333333334,
+    "misses": 87.76,
+    "ssd_mb": 403.512,
+    "waits": 49.0,
+    "ahead": 111.10666666666667,
+    "ahead_used": 59.53333333333333,
+    "ahead_waits": 8.053333333333333,
+    "predict_ms": 4.676
+   },
+   "needle_positions": {
+    "ALPHA": 832,
+    "BRAVO": 4096,
+    "CHARLIE": 8177,
+    "DELTA": 12257,
+    "ECHO": 15521
+   },
+   "needle_found": {
+    "ALPHA": true,
+    "BRAVO": true,
+    "CHARLIE": true,
+    "DELTA": true,
+    "ECHO": true
+   },
+   "repeat": {
+    "read": 1,
+    "resume": 16383,
+    "ttft_s": 0.3786890506744385,
+    "decode_tps": 5.181597728387556,
+    "same_ids": true,
+    "swapouts": 0
+   }
+  }
+ },
+ "swapouts": 0,
+ "memory_after": {
+  "free_gib": 16.1,
+  "file_cache_gib": 5.4,
+  "apps_gib": 7.33,
+  "wired_gib": 2.38,
+  "swap_used_gib": 1.05
+ }
+}

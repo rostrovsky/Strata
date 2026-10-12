@@ -1,0 +1,203 @@
+{
+ "when": "2026-10-12 04:12",
+ "args": [
+  "--native",
+  "/Users/rafal/Projects/strata-air/Strata-data/models/IQ3_S/Qwen3.8-Flash-Next-GSQ-RCO-IQ3_S-00001-of-00002.gguf",
+  "--expert-profile",
+  "/Users/rafal/Projects/strata-air/Strata/data/expert-profile.bin",
+  "--expert-cache",
+  "auto",
+  "--max-context",
+  "131072",
+  "--kv",
+  "f16",
+  "--prefill",
+  "2048",
+  "--reserve-gib",
+  "4"
+ ],
+ "memory_before": {
+  "free_gib": 11.16,
+  "file_cache_gib": 9.01,
+  "apps_gib": 8.52,
+  "wired_gib": 2.52,
+  "swap_used_gib": 1.46
+ },
+ "ab": {
+  "build-metal/bin/strata": [
+   {
+    "info": {
+     "context": "131072",
+     "kv": "f16",
+     "kv_resident": "0",
+     "expert_slots": "2714",
+     "expert_cache_mib": "5310",
+     "expert_slots_primary": "2714",
+     "expert_cache_primary_mib": "5310",
+     "spec": "0",
+     "mtp_max": "0",
+     "lookup": "0",
+     "prefetch": "10",
+     "vram_free_mib": "6150",
+     "arena_mib": "0",
+     "pool_workers": "8",
+     "backend": "metal",
+     "expert_io": "direct",
+     "engine": "0.1.42-metal"
+    },
+    "therm": null,
+    "temps_before": [
+     38.8,
+     26.1
+    ],
+    "memory_before": {
+     "free_gib": 11.16,
+     "file_cache_gib": 9.01,
+     "apps_gib": 8.52,
+     "wired_gib": 2.52,
+     "swap_used_gib": 1.46
+    },
+    "ready_s": 8.80261778831482,
+    "prefill": {
+     "2048": {
+      "tokens": 2048,
+      "tps": 88.37909799809259,
+      "ttft_s": 23.17662000656128,
+      "ssd_gb": 52.2245,
+      "swapouts": 0,
+      "gpu_wait_s": 14.9924,
+      "ssd_s": 5.0066999999999995,
+      "gpu_busy_s": 16.2275,
+      "wall_s": 23.172900000000002,
+      "passes": 3.0,
+      "read_ahead_gb": 30.364099999999997,
+      "read_ahead_used_gb": 26.354,
+      "watts": 12.029933333333332,
+      "decode_tps": 5.70177858706248,
+      "generated": 32,
+      "output": "<think>\nThe user wants me to summarize a technical document about \"Strata\" - which appears to be a local LLM inference engine. Let me identify the",
+      "progress": [
+       {
+        "tokens": 2045,
+        "total": 2048,
+        "elapsed_s": 22.511
+       }
+      ],
+      "decode_per_token": {
+       "total_ms": 175.38387096774193,
+       "gpu_wait_ms": 95.63870967741936,
+       "ssd_ms": 67.94193548387096,
+       "cpu_ms": 11.803225806451602,
+       "encode_ms": 4.32258064516129,
+       "gpu_busy_ms": 92.33225806451614,
+       "sample_ms": 0.13870967741935483,
+       "misses": 66.29032258064517,
+       "ssd_mb": 423.5193548387097,
+       "waits": 49.0,
+       "ahead": 141.09677419354838,
+       "ahead_used": 93.48387096774194,
+       "ahead_waits": 22.387096774193548,
+       "predict_ms": 4.258064516129032
+      }
+     }
+    },
+    "swapouts": 0,
+    "temps_after": [
+     54.2,
+     26.2
+    ]
+   }
+  ],
+  "STRATA_METAL_CHUNKED_GDN=1 build-metal/bin/strata": [
+   {
+    "info": {
+     "context": "131072",
+     "kv": "f16",
+     "kv_resident": "0",
+     "expert_slots": "3327",
+     "expert_cache_mib": "6506",
+     "expert_slots_primary": "3327",
+     "expert_cache_primary_mib": "6506",
+     "spec": "0",
+     "mtp_max": "0",
+     "lookup": "0",
+     "prefetch": "10",
+     "vram_free_mib": "4934",
+     "arena_mib": "0",
+     "pool_workers": "8",
+     "backend": "metal",
+     "expert_io": "direct",
+     "engine": "0.1.42-metal"
+    },
+    "therm": null,
+    "temps_before": [
+     49.7,
+     26.2
+    ],
+    "memory_before": {
+     "free_gib": 16.96,
+     "file_cache_gib": 4.96,
+     "apps_gib": 6.75,
+     "wired_gib": 2.53,
+     "swap_used_gib": 1.46
+    },
+    "ready_s": 9.23447299003601,
+    "prefill": {
+     "2048": {
+      "tokens": 2048,
+      "tps": 85.36748032546352,
+      "ttft_s": 23.99138903617859,
+      "ssd_gb": 49.557900000000004,
+      "swapouts": 0,
+      "gpu_wait_s": 15.895100000000001,
+      "ssd_s": 4.506600000000001,
+      "gpu_busy_s": 17.420900000000003,
+      "wall_s": 23.9904,
+      "passes": 3.0,
+      "read_ahead_gb": 29.1033,
+      "read_ahead_used_gb": 25.1444,
+      "watts": null,
+      "decode_tps": 6.066180067706396,
+      "generated": 32,
+      "output": "<think>\nThe user wants me to summarize a technical document about \"Strata\" - which appears to be a local LLM inference engine. Let me identify the",
+      "progress": [
+       {
+        "tokens": 2045,
+        "total": 2048,
+        "elapsed_s": 23.279
+       }
+      ],
+      "decode_per_token": {
+       "total_ms": 164.8483870967742,
+       "gpu_wait_ms": 95.02258064516128,
+       "ssd_ms": 58.11612903225806,
+       "cpu_ms": 11.709677419354854,
+       "encode_ms": 4.493548387096775,
+       "gpu_busy_ms": 93.43225806451613,
+       "sample_ms": 0.14193548387096774,
+       "misses": 56.774193548387096,
+       "ssd_mb": 366.741935483871,
+       "waits": 49.0,
+       "ahead": 122.93548387096774,
+       "ahead_used": 80.83870967741936,
+       "ahead_waits": 18.548387096774192,
+       "predict_ms": 4.258064516129032
+      }
+     }
+    },
+    "swapouts": 0,
+    "temps_after": [
+     64.0,
+     26.4
+    ]
+   }
+  ]
+ },
+ "memory_after": {
+  "free_gib": 17.45,
+  "file_cache_gib": 4.05,
+  "apps_gib": 7.2,
+  "wired_gib": 2.5,
+  "swap_used_gib": 1.46
+ }
+}
