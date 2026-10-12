@@ -1,0 +1,218 @@
+{
+ "when": "2026-10-12 21:14",
+ "args": [
+  "--native",
+  "/Users/rafal/Projects/strata-air/Strata-data/models/IQ3_S/Qwen3.8-Flash-Next-GSQ-RCO-IQ3_S-00001-of-00002.gguf",
+  "--expert-profile",
+  "/Users/rafal/Projects/strata-air/Strata/data/expert-profile.bin",
+  "--expert-cache",
+  "auto",
+  "--max-context",
+  "131072",
+  "--kv",
+  "f16",
+  "--prefill",
+  "8192",
+  "--reserve-gib",
+  "4",
+  "--elastic",
+  "on",
+  "--reserve-gib",
+  "2",
+  "--verbose"
+ ],
+ "memory_before": {
+  "free_gib": 17.93,
+  "file_cache_gib": 2.19,
+  "apps_gib": 8.56,
+  "wired_gib": 2.52,
+  "swap_used_gib": 1.9,
+  "pressure_level": 1
+ },
+ "info": {
+  "context": "131072",
+  "kv": "f16",
+  "kv_resident": "0",
+  "expert_slots": "4411",
+  "expert_cache_mib": "8622",
+  "expert_slots_primary": "4411",
+  "expert_cache_primary_mib": "8622",
+  "spec": "0",
+  "mtp_max": "0",
+  "lookup": "0",
+  "prefetch": "10",
+  "vram_free_mib": "5011",
+  "arena_mib": "0",
+  "pool_workers": "8",
+  "backend": "metal",
+  "expert_io": "direct",
+  "engine": "0.1.42-metal"
+ },
+ "prefill": {
+  "500": {
+   "tokens": 500,
+   "tps": 37.3594351253409,
+   "ttft_s": 13.383988857269287,
+   "ssd_gb": 31.9898,
+   "swapouts": 0,
+   "gpu_wait_s": 4.295,
+   "ssd_s": 7.419899999999999,
+   "gpu_busy_s": 4.6197,
+   "wall_s": 13.3835,
+   "passes": 3.0,
+   "read_ahead_gb": 0.0,
+   "read_ahead_used_gb": 0.0,
+   "watts": null,
+   "decode_tps": 6.893657834791991,
+   "generated": 24,
+   "output": "<think>\nThe user wants me to summarize a document about \"Strata\" - which appears to be a technical documentation page",
+   "progress": [
+    {
+     "tokens": 497,
+     "total": 500,
+     "elapsed_s": 12.77
+    }
+   ],
+   "decode_per_token": {
+    "total_ms": 146.50434782608696,
+    "gpu_wait_ms": 83.26521739130435,
+    "ssd_ms": 53.0,
+    "cpu_ms": 10.23913043478261,
+    "encode_ms": 3.1999999999999997,
+    "gpu_busy_ms": 78.34782608695652,
+    "sample_ms": 0.14347826086956522,
+    "misses": 50.34782608695652,
+    "ssd_mb": 320.7913043478261,
+    "waits": 49.0,
+    "ahead": 106.95652173913044,
+    "ahead_used": 66.47826086956522,
+    "ahead_waits": 16.347826086956523,
+    "predict_ms": 4.078260869565217
+   }
+  },
+  "2000": {
+   "tokens": 2000,
+   "tps": 79.01453077220901,
+   "ttft_s": 25.31234097480774,
+   "ssd_gb": 56.3501,
+   "swapouts": 0,
+   "gpu_wait_s": 15.2287,
+   "ssd_s": 8.5631,
+   "gpu_busy_s": 15.994399999999999,
+   "wall_s": 25.311799999999998,
+   "passes": 3.0,
+   "read_ahead_gb": 35.323800000000006,
+   "read_ahead_used_gb": 31.3182,
+   "watts": null,
+   "decode_tps": 8.226919912723112,
+   "generated": 24,
+   "output": "<think>\nThe user wants me to summarize a document that appears to be a benchmark/performance report for a software called \"",
+   "progress": [
+    {
+     "tokens": 1997,
+     "total": 2000,
+     "elapsed_s": 21.779
+    },
+    {
+     "tokens": 1999,
+     "total": 2000,
+     "elapsed_s": 25.174
+    }
+   ],
+   "decode_per_token": {
+    "total_ms": 122.94347826086955,
+    "gpu_wait_ms": 85.36086956521739,
+    "ssd_ms": 27.900000000000002,
+    "cpu_ms": 9.682608695652165,
+    "encode_ms": 3.1999999999999997,
+    "gpu_busy_ms": 79.52608695652174,
+    "sample_ms": 0.13478260869565217,
+    "misses": 29.73913043478261,
+    "ssd_mb": 175.08695652173913,
+    "waits": 49.0,
+    "ahead": 55.47826086956522,
+    "ahead_used": 35.34782608695652,
+    "ahead_waits": 5.217391304347826,
+    "predict_ms": 4.01304347826087
+   }
+  },
+  "10000": {
+   "tokens": 10000,
+   "tps": 75.58196221355381,
+   "ttft_s": 132.30848717689514,
+   "ssd_gb": 105.4709,
+   "swapouts": 0,
+   "gpu_wait_s": 115.2283,
+   "ssd_s": 7.199199999999999,
+   "gpu_busy_s": 116.4418,
+   "wall_s": 132.3067,
+   "passes": 4.0,
+   "read_ahead_gb": 82.2393,
+   "read_ahead_used_gb": 75.5566,
+   "watts": 22.392511235955055,
+   "decode_tps": 5.134501618484206,
+   "generated": 24,
+   "output": "<think>\nThe user wants me to summarize a lengthy technical document about what appears to be a software system called \"Strata",
+   "progress": [
+    {
+     "tokens": 8192,
+     "total": 10000,
+     "elapsed_s": 93.971,
+     "memory": {
+      "free_gib": 1.38,
+      "file_cache_gib": 2.29,
+      "apps_gib": 9.77,
+      "wired_gib": 17.77,
+      "swap_used_gib": 1.9,
+      "pressure_level": 1
+     },
+     "swapouts": 0
+    },
+    {
+     "tokens": 9997,
+     "total": 10000,
+     "elapsed_s": 128.961,
+     "memory": {
+      "free_gib": 0.37,
+      "file_cache_gib": 2.74,
+      "apps_gib": 10.32,
+      "wired_gib": 17.77,
+      "swap_used_gib": 1.9,
+      "pressure_level": 1
+     },
+     "swapouts": 0
+    },
+    {
+     "tokens": 9999,
+     "total": 10000,
+     "elapsed_s": 132.183
+    }
+   ],
+   "decode_per_token": {
+    "total_ms": 196.69565217391303,
+    "gpu_wait_ms": 153.3695652173913,
+    "ssd_ms": 32.55217391304348,
+    "cpu_ms": 10.77391304347826,
+    "encode_ms": 3.3130434782608695,
+    "gpu_busy_ms": 145.98260869565217,
+    "sample_ms": 0.17391304347826086,
+    "misses": 35.52173913043478,
+    "ssd_mb": 199.06956521739133,
+    "waits": 49.0,
+    "ahead": 60.73913043478261,
+    "ahead_used": 43.69565217391305,
+    "ahead_waits": 4.782608695652174,
+    "predict_ms": 4.3826086956521735
+   }
+  }
+ },
+ "swapouts": 0,
+ "memory_after": {
+  "free_gib": 17.34,
+  "file_cache_gib": 2.97,
+  "apps_gib": 8.34,
+  "wired_gib": 2.56,
+  "swap_used_gib": 1.9,
+  "pressure_level": 1
+ }
+}

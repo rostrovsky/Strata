@@ -1,0 +1,46 @@
+Console output of the test programs in this folder, 2026-10-12 20:35-21:25, M4 MacBook Air, macOS 15.7.9.
+Page size 16 KiB.  Shard 1 = dense weights + routed experts (51.1 GiB), shard 2 = n-gram table (26.8 GiB).
+
+== resident (mincore on a fresh mapping), no engine running, before anything was changed
+Shard 1: 4.03 GiB in the file cache: 587.6 MiB in the first GiB, then 56-98 MiB in every GiB of the file
+         (the layers' dense weights lie between their experts)
+Shard 2: 4.00 GiB in the file cache: 121-184 MiB in every GiB
+all files: 8.03 GiB in the file cache          (vm_stat: 708,921 file-backed pages = 10.8 GiB in all)
+
+== evict FILE GIB METHOD (one GiB of shard 1, 73.8 MiB of it cached)
+dontneed    madvise(MADV_DONTNEED)             rc 0, 3.6 ms   73.8 MiB after
+deact       msync(MS_DEACTIVATE)               rc 0, 0.7 ms   73.8 MiB after
+kill        msync(MS_KILLPAGES)                rc 0, 0.0 ms   73.8 MiB after
+pageout     madvise(MADV_PAGEOUT)              Operation not supported
+inval       msync(MS_INVALIDATE)               rc 0, 0.8 ms    0.0 MiB after
+inval-async msync(MS_INVALIDATE | MS_ASYNC)    rc 0, 0.9 ms    0.0 MiB after   (GiB 11, 74.5 MiB before)
+inval-sync  msync(MS_INVALIDATE | MS_SYNC)     rc 0, 0.7 ms    0.0 MiB after   (GiB 12, 59.2 MiB before)
+
+== resident --evict on shard 1
+0.000 GiB after evicting; vm_stat free pages 455,702 -> 705,108 (+3.8 GiB), file-backed 697,796 -> 447,341
+
+== after one run of the engine as it was (inst-elastic1: prompts of 64, 500, 2,000 and 10,000 tokens)
+Shard 1: 3.403 GiB in the file cache (546 MiB in the first GiB, ~70 MiB in every other: the dense weights again)
+Shard 2: 1.892 GiB (macOS had dropped 2.1 GiB of the 4.0 during the run; it compressed 6.6 GiB of other
+         programs' memory in the same 177 s)
+
+== dropcost (mincore and msync(MS_INVALIDATE) over a whole shard)
+shard 2, 1.80 GiB cached: mincore 495.5 ms, msync 41.7 ms;  nothing cached: mincore 399.0 ms, msync 0.0 ms
+shard 1, 3.40 GiB cached: mincore 829.8 ms, msync 85.9 ms;  nothing cached: mincore 790.8 ms, msync 0.0 ms
+
+== faults FILE N MODE (N random pages of shard 2, dropped from the file cache first, MADV_RANDOM on the mapping)
+serial:      14000 pages in 1.357 s, 96.9 us a page, 161 MiB/s
+willneed:    14000 pages in 0.084 s,  6.0 us a page, 2591 MiB/s   (the madvise calls themselves: 0.077 s)
+threads x8:  14000 pages in 0.198 s, 14.2 us a page, 1103 MiB/s
+threads x16: 14000 pages in 0.127 s,  9.1 us a page, 1722 MiB/s
+threads x32: 14000 pages in 0.199 s, 14.2 us a page, 1098 MiB/s
+serial:      14000 pages in 1.339 s, 95.6 us a page, 163 MiB/s
+serial:      7 pages, 121.7 us a page;  threads x7: 7 pages, 34.2 us a page
+
+== kvlazy 512 0|1 (a 512 MiB Metal buffer over untouched vm_allocate memory; run beside a benchmark, so the
+   system-wide wired count is not shown here)
+without a residency set: buffer resident 0.0 MiB after newBufferWithBytesNoCopy; 512.0 MiB after the GPU wrote
+                         its first 16 MiB
+with a residency set:    buffer resident 512.0 MiB after requestResidency (system wired +512.5 MiB in a first,
+                         quiet run)
+=> a Metal buffer is resident as a whole from its first use; only separate buffers can stay untouched.

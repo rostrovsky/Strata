@@ -1,0 +1,3 @@
+short chat: 12.91 s, {'prompt_tokens': 65, 'completion_tokens': 43, 'total_tokens': 108, 'prompt_tokens_details': {'cached_tokens': 0}}, finish stop: 'The capital of France is Paris.'
+long document: 66.3 s, {'prompt_tokens': 5077, 'completion_tokens': 96, 'total_tokens': 5173, 'prompt_tokens_details': {'cached_tokens': 0}}, finish length: ''
+second turn: 11.2 s, {'prompt_tokens': 5088, 'completion_tokens': 64, 'total_tokens': 5152, 'prompt_tokens_details': {'cached_tokens': 5072}}, finish length: ''

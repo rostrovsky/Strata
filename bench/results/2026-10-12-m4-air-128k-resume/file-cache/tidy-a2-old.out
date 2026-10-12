@@ -1,0 +1,12 @@
+memory: {'free_gib': 18.55, 'file_cache_gib': 1.96, 'apps_gib': 8.3, 'wired_gib': 2.4, 'swap_used_gib': 1.9, 'pressure_level': 1}
+temperature before the run: SoC 44.9 C, battery 34.7 C
+resume-128k/strata-before-tidy: ready in 9.3 s; context 131072, expert cache 3458 experts (6762 MiB), direct reads
+prefill    500 tokens:    42.4 tok/s, first token after 11.79 s, 39.3 GB from the SSD, 3 passes; 11.8 s = SSD 5.4 + GPU wait 4.1 + CPU 2.2 (GPU busy 4.4; 21.9 GB read ahead, 17.8 used); swap-outs 0
+  decode at 500 tokens: 6.27 tok/s, 24 tokens; '<think>\nThe user wants me to summarize a document about "Strata" - which appears to be a technical documentation page'
+prefill   2000 tokens:    75.3 tok/s, first token after 26.54 s, 55.3 GB from the SSD, 3 passes; 26.5 s = SSD 9.4 + GPU wait 14.3 + CPU 2.9 (GPU busy 14.9; 25.4 GB read ahead, 23.3 used); swap-outs 0, 12.5 W
+  decode at 2000 tokens: 7.37 tok/s, 24 tokens; '<think>\nThe user wants me to summarize a document that appears to be a benchmark/performance report for a software called "'
+  read 8192/10000 tokens in 84.2 s; swap-outs 0
+  read 9997/10000 tokens in 116.8 s; swap-outs 0
+prefill  10000 tokens:    83.4 tok/s, first token after 119.91 s, 104.9 GB from the SSD, 4 passes; 119.9 s = SSD 7.7 + GPU wait 102.3 + CPU 10.0 (GPU busy 103.1; 82.3 GB read ahead, 75.5 used); swap-outs 0, 24.9 W
+  decode at 10000 tokens: 4.95 tok/s, 24 tokens; '<think>\nThe user wants me to summarize a lengthy technical document about what appears to be a software system called "Strata'
+swap-outs over the whole run: 0

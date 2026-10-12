@@ -1,0 +1,7 @@
+21:48:55 BASELINE swapouts 1586587, swap used 1941.88 MiB, pressure 1, free 13.3 + file cache 7.29 GiB, compressor 11.77 in 4.17 GiB, SoC 49.2 C, battery 34.9 C
+21:48:55 STARTED pid 65706: build-metal/resume-128k/det3.sh
+21:49:00 ok +5 s: swap-outs new 0, pressure 1, free 3.19 + file 2.4 GiB, compressor 11.76 in 4.17 GiB, SoC 50.4 C | a: ready in 4.1 s; context 131072, expert cache 3065 experts (5995 MiB), direct reads
+21:51:01 ok +126 s: swap-outs new 0, pressure 1, free 2.16 + file 3.84 GiB, compressor 11.65 in 4.11 GiB, SoC 73.6 C | b: ready in 5.3 s; context 131072, expert cache 3065 experts (5995 MiB), direct reads
+21:53:01 ok +247 s: swap-outs new 0, pressure 1, free 1.98 + file 3.91 GiB, compressor 11.62 in 4.09 GiB, SoC 65.6 C | a: ready in 5.4 s; context 131072, expert cache 3065 experts (5995 MiB), direct reads
+21:55:02 ok +367 s: swap-outs new 0, pressure 1, free 1.64 + file 4.08 GiB, compressor 11.45 in 4.03 GiB, SoC 65.2 C | b: ready in 4.3 s; context 131072, expert cache 1529 experts (2997 MiB), direct reads
+21:57:51 DONE exit code 0, new swap-outs over the whole run 0 pages, swap used 1941.88 MiB (was 1941.88), peak pressure level 1, engine still running: [], stopped: False

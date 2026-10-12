@@ -1,0 +1,5 @@
+20:42:46 BASELINE swapouts 1586587, swap used 1941.88 MiB, pressure 1, free 10.76 + file cache 6.83 GiB, compressor 9.15 in 3.17 GiB, SoC 39.9 C, battery 31.4 C
+20:42:46 STARTED pid 57276: .venv/bin/python -u metal/tools/bench.py --config strata-iq3_s.json --json build-metal/resume-128k/inst-elastic1.json --log build-metal/resume-128k/inst-elastic1.log --prefill 64,500,2000,10000 --pref
+20:42:51 ok +5 s: swap-outs new 0, pressure 1, free 3.02 + file 9.89 GiB, compressor 9.15 in 3.17 GiB, SoC 41.8 C | temperature before the run: SoC 41.3 C, battery 31.4 C
+20:44:52 ok +126 s: swap-outs new 0, pressure 1, free 1.14 + file 6.41 GiB, compressor 12.25 in 4.58 GiB, SoC 88.4 C | read 4096/10000 tokens in 42.3 s; swap-outs 0
+20:47:05 DONE exit code 0, new swap-outs over the whole run 0 pages, swap used 1941.88 MiB (was 1941.88), peak pressure level 1, engine still running: [], stopped: False

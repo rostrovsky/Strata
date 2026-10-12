@@ -1,0 +1,15 @@
+memory: {'free_gib': 10.55, 'file_cache_gib': 6.84, 'apps_gib': 10.99, 'wired_gib': 2.82, 'swap_used_gib': 1.9, 'pressure_level': 1}
+temperature before the run: SoC 41.3 C, battery 31.4 C
+bin/strata: ready in 8.8 s; context 131072, expert cache 1963 experts (3844 MiB), direct reads
+prefill     64 tokens:     8.7 tok/s, first token after 7.36 s, 27.0 GB from the SSD, 3 passes; 7.4 s = SSD 4.8 + GPU wait 2.1 + CPU 0.5 (GPU busy 2.3; 10.1 GB read ahead, 10.0 used); swap-outs 0, 10.3 W
+  decode at 64 tokens: 5.72 tok/s, 24 tokens; '<think>\nThe user wants me to summarize a document. However, the document provided is extremely brief - it appears to be'
+prefill    500 tokens:    43.2 tok/s, first token after 11.57 s, 40.7 GB from the SSD, 3 passes; 11.6 s = SSD 6.6 + GPU wait 4.3 + CPU 0.7 (GPU busy 4.5; 13.7 GB read ahead, 11.5 used); swap-outs 0
+  decode at 500 tokens: 5.80 tok/s, 24 tokens; '<think>\nThe user wants me to summarize a document that appears to be a benchmark results table for a software called "Str'
+prefill   2000 tokens:    86.1 tok/s, first token after 23.24 s, 55.4 GB from the SSD, 3 passes; 23.2 s = SSD 7.9 + GPU wait 14.3 + CPU 1.0 (GPU busy 15.4; 27.7 GB read ahead, 25.2 used); swap-outs 0
+  decode at 2000 tokens: 5.51 tok/s, 24 tokens; '<think>\nThe user wants me to summarize a technical document about what appears to be a local LLM inference engine (likely'
+  read 4096/10000 tokens in 42.3 s; swap-outs 0
+  read 8192/10000 tokens in 92.2 s; swap-outs 0
+  read 9997/10000 tokens in 122.3 s; swap-outs 0
+prefill  10000 tokens:    80.2 tok/s, first token after 124.70 s, 223.6 GB from the SSD, 7 passes; 124.7 s = SSD 24.9 + GPU wait 93.8 + CPU 6.0 (GPU busy 96.5; 190.4 GB read ahead, 175.6 used); swap-outs 0, 31.2 W
+  decode at 10000 tokens: 4.81 tok/s, 24 tokens; '<think>\nThe user wants me to summarize a lengthy technical document about "Strata," which appears to be a local L'
+swap-outs over the whole run: 0

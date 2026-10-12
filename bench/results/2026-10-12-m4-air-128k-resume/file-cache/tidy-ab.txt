@@ -1,0 +1,24 @@
+20:55:21 DONE exit code 0, new swap-outs over the whole run 0 pages, swap used 1941.88 MiB (was 1941.88), peak pressure level 1, engine still running: [], stopped: False
+watch rc=0
+tidy-a1-old: after the run:
+  00001-of-00002.gguf: 2.762 GiB in the file cache
+  00002-of-00002.gguf: 1.719 GiB in the file cache
+all files: 4.48 GiB in the file cache
+20:59:53 DONE exit code 0, new swap-outs over the whole run 0 pages, swap used 1941.88 MiB (was 1941.88), peak pressure level 1, engine still running: [], stopped: False
+watch rc=0
+tidy-b1-new: after the run:
+  00001-of-00002.gguf: 0.196 GiB in the file cache
+  00002-of-00002.gguf: 0.000 GiB in the file cache
+all files: 0.20 GiB in the file cache
+21:04:35 DONE exit code 0, new swap-outs over the whole run 0 pages, swap used 1941.88 MiB (was 1941.88), peak pressure level 1, engine still running: [], stopped: False
+watch rc=0
+tidy-b2-new: after the run:
+  00001-of-00002.gguf: 0.196 GiB in the file cache
+  00002-of-00002.gguf: 0.000 GiB in the file cache
+all files: 0.20 GiB in the file cache
+21:09:38 DONE exit code 0, new swap-outs over the whole run 0 pages, swap used 1941.88 MiB (was 1941.88), peak pressure level 1, engine still running: [], stopped: False
+watch rc=0
+tidy-a2-old: after the run:
+  00001-of-00002.gguf: 2.749 GiB in the file cache
+  00002-of-00002.gguf: 1.719 GiB in the file cache
+all files: 4.47 GiB in the file cache

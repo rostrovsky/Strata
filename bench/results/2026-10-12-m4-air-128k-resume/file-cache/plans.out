@@ -1,0 +1,20 @@
+== --max-context 16384
+strata metal: memory now: 20.3 GiB free or file cache, 8.7 GiB held by other programs, 2.5 GiB wired, 1.9 GiB in swap
+strata metal: weights loaded in 2.1 s, 3.89 GiB on the GPU
+strata metal: context 3.29 GiB on the GPU (2.71 of it for the passes) and 0.46 GiB of host memory; expert cache 7.51 GiB (auto; Metal has room for 13.9, the free memory for 7.5)
+strata metal: --elastic: answers are written with a 10.57 GiB expert cache (0.05 GiB of work memory). A long prompt is read in passes of 8192 with 3.17 GiB of work memory in the cache's place; up to 1024 new tokens in one pass beside the cache, where 0.70 GiB 
+== --max-context 32768
+strata metal: memory now: 20.3 GiB free or file cache, 8.6 GiB held by other programs, 2.6 GiB wired, 1.9 GiB in swap
+strata metal: weights loaded in 2.1 s, 3.89 GiB on the GPU
+strata metal: context 3.86 GiB on the GPU (2.81 of it for the passes) and 0.52 GiB of host memory; expert cache 6.87 GiB (auto; Metal has room for 13.3, the free memory for 6.9)
+strata metal: --elastic: answers are written with a 10.05 GiB expert cache (0.08 GiB of work memory). A long prompt is read in passes of 8192 with 3.33 GiB of work memory in the cache's place; up to 1024 new tokens in one pass beside the cache, where 0.68 GiB 
+== --max-context 65536
+strata metal: memory now: 20.3 GiB free or file cache, 9.2 GiB held by other programs, 2.2 GiB wired, 1.9 GiB in swap
+strata metal: weights loaded in 2.1 s, 3.89 GiB on the GPU
+strata metal: context 4.73 GiB on the GPU (2.75 of it for the passes) and 0.64 GiB of host memory; expert cache 5.85 GiB (auto; Metal has room for 12.5, the free memory for 5.9)
+strata metal: --elastic: answers are written with a 9.03 GiB expert cache (0.15 GiB of work memory). A long prompt is read in passes of 8192 with 3.39 GiB of work memory in the cache's place; up to 1024 new tokens in one pass beside the cache, where 1.00 GiB a
+== --max-context 131072
+strata metal: memory now: 20.4 GiB free or file cache, 9.1 GiB held by other programs, 2.2 GiB wired, 1.9 GiB in swap
+strata metal: weights loaded in 2.1 s, 3.89 GiB on the GPU
+strata metal: context 7.06 GiB on the GPU (3.20 of it for the passes) and 0.89 GiB of host memory; expert cache 3.33 GiB (auto; Metal has room for 10.1, the free memory for 3.3)
+strata metal: --elastic: answers are written with a 7.09 GiB expert cache (0.27 GiB of work memory). A long prompt is read in passes of 8192 with 4.10 GiB of work memory in the cache's place; up to 1024 new tokens in one pass beside the cache, where 0.94 GiB a

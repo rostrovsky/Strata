@@ -1,0 +1,22 @@
+== one pass of 8,192 tokens
+a: ready in 5.1 s; context 131072, expert cache 2861 experts (5596 MiB), direct reads
+a, prompt read: 8195 tokens, 24 written; this is what the others are compared with
+b: ready in 5.3 s; context 131072, expert cache 2923 experts (5718 MiB), direct reads
+b, prompt read: DIFFERENT from token 0 on (same IDs)
+    here  [248068, 248068, 37.122078, 248068, 37.122078, 248045, 15.305187, 248046, 14.844691]
+    first [248068, 248068, 37.077858, 248068, 37.077858, 248045, 15.35767, 248046, 14.705051]
+DIFFERENCES
+== one pass of 4,096 tokens
+a: ready in 5.4 s; context 131072, expert cache 2942 experts (5755 MiB), direct reads
+a, prompt read: 4099 tokens, 24 written; this is what the others are compared with
+b: ready in 5.1 s; context 131072, expert cache 2599 experts (5085 MiB), direct reads
+b, prompt read: identical IDs and logits
+all identical
+== the binary from before this evening's changes, one pass of 8,192 tokens
+a: ready in 9.3 s; context 131072, expert cache 2669 experts (5222 MiB), direct reads
+a, prompt read: 8195 tokens, 24 written; this is what the others are compared with
+b: ready in 4.4 s; context 131072, expert cache 3065 experts (5995 MiB), direct reads
+b, prompt read: DIFFERENT from token 0 on (same IDs)
+    here  [248068, 248068, 37.073967, 248068, 37.073967, 248045, 15.325418, 248046, 14.668739]
+    first [248068, 248068, 37.138069, 248068, 37.138069, 248045, 15.318983, 248046, 14.722528]
+DIFFERENCES

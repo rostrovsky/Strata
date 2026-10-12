@@ -1,0 +1,18 @@
+a: ready in 5.3 s; context 131072, expert cache 3065 experts (5995 MiB), direct reads
+a, prompt read: 10000 tokens, 24 written; this is what the others are compared with
+a, answer again: identical IDs and logits
+b: ready in 5.4 s; context 131072, expert cache 3065 experts (5995 MiB), direct reads
+b, prompt read: DIFFERENT from token 0 on (same IDs)
+    here  [248068, 248068, 35.644218, 248068, 35.644218, 248045, 15.527875, 248046, 14.159689]
+    first [248068, 248068, 35.715431, 248068, 35.715431, 248045, 15.529122, 248046, 14.085809]
+b, answer again: DIFFERENT from token 0 on (same IDs)
+    here  [248068, 248068, 35.644218, 248068, 35.644218, 248045, 15.527875, 248046, 14.159689]
+    first [248068, 248068, 35.715431, 248068, 35.715431, 248045, 15.529122, 248046, 14.085809]
+c: ready in 4.3 s; context 131072, expert cache 1529 experts (2997 MiB), direct reads
+c, prompt read: DIFFERENT from token 0 on (different IDs)
+    here  [248068, 248068, 35.835686, 248068, 35.835686, 248045, 15.649176, 248046, 14.266249]
+    first [248068, 248068, 35.715431, 248068, 35.715431, 248045, 15.529122, 248046, 14.085809]
+c, answer again: DIFFERENT from token 0 on (different IDs)
+    here  [248068, 248068, 35.835686, 248068, 35.835686, 248045, 15.649176, 248046, 14.266249]
+    first [248068, 248068, 35.715431, 248068, 35.715431, 248045, 15.529122, 248046, 14.085809]
+DIFFERENCES

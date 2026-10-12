@@ -1,6 +1,6 @@
 # Strata optimization handoff — M4 MacBook Air, 32 GiB
 
-Updated **2026-10-12, evening**. The work was stopped in the morning at the user's request, resumed in the
+Updated **2026-10-12, night** (the newest part is the first block of "Read this first"). The work was stopped in the morning at the user's request, resumed in the
 afternoon ("continue the OPTIMIZATION.md work"), and stopped again where every next step either takes the Mac for
 half an hour or risks swap, which is the user's call. In the evening the user asked for the first of those steps:
 a full-context prompt with the corrected plan ran **without a swap-out**, and the 128k configuration was installed.
@@ -12,7 +12,44 @@ afternoon's). Sections below that describe the morning are marked where the afte
 
 ## Read this first
 
-**Late evening, 2026-10-12 — read this before the rest.** The largest finding of the day came last, and it changes
+**Night, 2026-10-12 — the newest state; read this before the rest.** The owner asked to "install the faster
+config and keep optimizing". Section 10 of the
+[report](bench/results/2026-10-12-m4-air-128k-resume/README.md#10-night-the-model-in-the-file-cache-n-gram-rows-and-a-top-k-that-was-not-reproducible)
+has the numbers.
+
+- **Installed:** `--max-context 131072 --kv f16 --prefill 8192 --reserve-gib 3 --elastic on`, indexed QSA
+  (`strata-iq3_s.json`; the plain one is `bench/results/2026-10-12-m4-air-128k-resume/installed/strata-iq3_s.before-elastic.json`).
+- **8 GiB of the Mac's memory was this model, in the OS file cache**: the dense weights a second time (the loader
+  reads them through a mapping) and every n-gram row ever looked up. macOS kept those pages and compressed other
+  programs instead. The engine gives them back now (`msync(MS_INVALIDATE)`; `ModelFiles::map` in
+  `metal/src/expert_io.hpp`; `STRATA_FILE_CACHE=keep` for the old behaviour). Old against new, A B B A: 3.0-4.5 GiB
+  of other programs' memory compressed per run before, **none** after; 1-1.6 GiB free where there were 0.01-0.09.
+- **n-gram rows are read ahead** (`metal/patches/0006`): llama.cpp's call for that was compiled out on macOS, so
+  each row was a page fault, 97 µs against 6. The CPU's part of a 10,000-token prompt went from 9.6-10.0 s to
+  4.2 s; the first token of a 500-token prompt comes 10% sooner.
+- **The same long prompt did not give the same logits twice** (35.72, 35.64, 35.84 in three starts), since long
+  before this evening: llama.cpp's Metal top-k for rows of more than 2,048 candidates handed out its output
+  positions with an atomic counter, so ties at the threshold were broken by thread timing. That is every context
+  deeper than 8,192 tokens. `metal/patches/0007` writes in index order; two starts now give identical IDs and
+  logits (`metal/tools/determinism.py`). **Every earlier result beyond 8,192 tokens was one draw of that
+  lottery**, the full-context runs included.
+- **Passes of 8,192 tokens give the reference's logits bit for bit** on the gate's 7,900-token document (one pass
+  where the reference took two). That question from the evening is closed.
+- **`--reserve-gib 3`** instead of 4: now that the reserve is real memory it was measured again. 3 buys 1.3 GiB of
+  cache (decode +5% and +11% in the two comparisons) for 0.44 GiB of compression in one run and none in the
+  next; 2 buys nothing more and costs (no room for the read-ahead buffer). `--elastic`'s back-off also reacts to
+  compression now, before it comes to swap; both of its signs have only fired on the tiny model.
+- **No run of the night wrote to swap** (the counter is where it was: 1,586,587).
+- **Next, largest first:** the KV cache reserves 3,072 MiB for all 131,072 tokens from the first one. The same
+  plan at `--max-context 16384` has a 10.6 GiB expert cache instead of 7.1. A Metal buffer cannot be left
+  partly untouched (it is resident as a whole from its first use: `file-cache/kvlazy.m`), so this needs one Metal
+  buffer per stretch of cells over the same host memory, in `ggml-metal-device.m` (a set of views per buffer,
+  like the ones `ggml_metal_buffer_map` makes), `llama_kv_cache` (no clear of the whole buffer; map more cells
+  when a slot beyond the mapped ones is taken) and the engine's plan (the cache shrinks before the KV grows).
+  Not started. After that: a full-context prompt on this build (not repeated tonight).
+- The targets (120 and 10 tok/s at full depth) are still not reached; a warm Air reads at about 77 tok/s.
+
+**Late evening, 2026-10-12.** The largest finding of the day came last, and it changes
 how the sections below should be read:
 
 - **The engine's "direct" SSD reads were not direct.** A `F_NOCACHE` read goes past the OS file cache only if its
@@ -46,8 +83,8 @@ how the sections below should be read:
   and kills the engine the moment it moves. **Use it for every real-model run.** Section 9 of the
   [report](bench/results/2026-10-12-m4-air-128k-resume/README.md) has the traces and the test programs.
 
-What is installed did not change by hand: the production config is still the plain 128k one of the evening, but
-it points at `build-metal/bin/strata`, which now reads aligned. `--elastic` and `--prefill 8192` are not in it.
+(At the end of that evening the production config was still the plain 128k one. Since the night it is the
+`--elastic` one: see the block above.)
 
 The original goal was a usable **131,072-token total context** with the highest prefill and decode throughput this
 machine can sustain while a browser, Ghostty, pi, and other normal desktop apps remain open. The later target was
@@ -90,16 +127,16 @@ Mac with the apps open: the GPU alone takes 82-126 ms per written token, and a w
 
 | Item | State at handoff |
 | --- | --- |
-| Production Strata configuration | **131,072** context since the evening of 2026-10-12: `pending/desktop-128k.json` merged in (`--kv f16 --prefill 4096 --reserve-gib 4`, indexed QSA, the alias pi asks for). No `--elastic`. The 32,768 file is kept as `bench/results/2026-10-12-m4-air-128k-resume/installed/strata-iq3_s.before.json` |
+| Production Strata configuration | **131,072** context. Since the night of 2026-10-12: `--kv f16 --prefill 8192 --reserve-gib 3 --elastic on`, indexed QSA, the alias pi asks for (`pending/desktop-128k-elastic.json`). The evening's plain one (`--prefill 4096 --reserve-gib 4`, no `--elastic`) is `installed/strata-iq3_s.before-elastic.json`. The 32,768 file is kept as `bench/results/2026-10-12-m4-air-128k-resume/installed/strata-iq3_s.before.json` |
 | pi local-provider configuration | `contextWindow` **131,072** (backup: `~/.pi/agent/models.json.backup-20261012-165047-32k`). The smoke test against the 128k server passed: a real `read` tool call and the marker. A long pi session was not tested |
 | Completed full-context run | Two: the morning's (`build-metal/lowlevel-128k/strata-indexed-topk`, old plan, 61.7 MiB swapped) and the evening's (`build-metal/bin/strata`, new plan, **0 swap-outs**) |
-| Repository source | Five patches (`0001`-`0005`), engine with `--elastic`; built and tested (kernel tests, tiny-model parity, protocol suite, shape test). Applied once more to a clean checkout of the pin at the end |
-| `build-metal/bin/strata` | Built from the current source |
+| Repository source | Seven patches (`0001`-`0007`), engine with `--elastic`; built and tested (kernel tests, tiny-model parity, protocol suite, shape test). Applied once more to a clean checkout of the pin at the end of the night: 26 files, none differs |
+| `build-metal/bin/strata` | Built from the current source (SHA-256 `42045d8f...` at the end of the night) |
 | Default path | Same arithmetic as before; **not** the same memory plan: 450 MiB more reserved at 131,072 context with 4,096-token passes, host buffer subtracted |
-| Real-model exact gate on the final build | Passed against `strata-reference` at 32,768 context with a 3,000 MiB cache: chat, code, 7,900-token document, identical ids and reported logits on the default, indexed and `--elastic` paths |
-| Swap | The afternoon's `--elastic` tests wrote 1,066 MiB to swap (68,248 pages). macOS had 0.92 GiB in swap before, 1.95 GiB after. The evening's full-context run, server start and pi test wrote none (1,975.69 MiB in use before and after) |
-| Running work | Nothing was left running; the server was stopped again after the pi test |
-| Git | The afternoon is committed as `8bfdb751` (source) and `cb36a298` (documents and results); the evening's result is the commit after them. `main` is ahead of `origin/main`; nothing was pushed |
+| Real-model exact gate on the final build | Passed again at the end of the night against `strata-reference` (re-recorded) at 32,768 context with a 3,000 MiB cache: chat, code, 7,900-token document, identical ids and reported logits on the default, indexed and `--elastic` paths, and with `--elastic --prefill 8192` |
+| Swap | The afternoon's `--elastic` tests wrote 1,066 MiB to swap (68,248 pages). macOS had 0.92 GiB in swap before, 1.95 GiB after. The evening's full-context run, server start and pi test wrote none (1,975.69 MiB in use before and after). The late evening's experiments before the reads were aligned wrote 6.2 MiB; nothing since (1,941.88 MiB in use at the end of the night) |
+| Running work | Nothing was left running; the server was stopped again after each test |
+| Git | The afternoon is committed as `8bfdb751` (source) and `cb36a298` (documents and results); the evening's result is the commit after them. `main` is ahead of `origin/main`; nothing was pushed. The night's work is the last commits on `main`; nothing was pushed by the assistant |
 
 Commit `29c52020` contains the morning's optimization source, `2daacf82` its handoff and results. A commit is not
 evidence that its contents were validated.

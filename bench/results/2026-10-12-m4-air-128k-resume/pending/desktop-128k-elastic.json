@@ -14,7 +14,7 @@
     "--prefill",
     "8192",
     "--reserve-gib",
-    "4",
+    "3",
     "--elastic",
     "on"
   ],

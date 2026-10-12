@@ -15,6 +15,13 @@ full 130,944-token prompt was read with the corrected plan, without `--elastic`,
 After that the 128k configuration was installed and pi tried against it. Sections 1-7 are the afternoon as it was
 written.
 
+**Night** ([section 9](#9-later-that-evening-the-engines-direct-reads-were-not-direct),
+[section 10](#10-night-the-model-in-the-file-cache-n-gram-rows-and-a-top-k-that-was-not-reproducible)): the
+engine's "direct" reads had been going through the file cache, which was what made `--elastic` swap; with that
+fixed the `--elastic` configuration was installed. Then: 8 GiB of the model were sitting in the OS file cache
+(given back now), the n-gram rows were read one page fault at a time (read ahead now), and the same long prompt
+did not give the same logits twice (a top-k kernel of llama.cpp; fixed).
+
 ## In short
 
 - **The memory plan is honest now.** The 442 MiB by which the compute buffer grew during the morning's full-context
@@ -481,3 +488,194 @@ waiting for the GPU. A cool Air reads this model at 114 tok/s; the fanless one s
 - Not done: `--prefill 8192` against a reference for near-ties; a long session through the HTTP server or pi;
   the n-gram table's rows, which are still read through the file cache (113 KiB per distinct token; the 15.7 GiB
   of page-ins above are probably mostly these, 0.9 GiB a pass).
+
+## 10. Night: the model in the file cache, n-gram rows, and a top-k that was not reproducible
+
+Asked to install the faster configuration and go on. `pending/desktop-128k-elastic.json` was installed as
+`strata-iq3_s.json` at 20:35 (the plain one is kept as
+[installed/strata-iq3_s.before-elastic.json](installed/strata-iq3_s.before-elastic.json)). Every run below is
+under `metal/tools/swapwatch.py`; none wrote to swap (the system's counter stayed at 1,586,587 all night).
+
+### 8 GiB of the Mac's memory was this model, in the file cache
+
+With no engine running, `mincore` on a fresh mapping of the two shards
+([resident.c](file-cache/resident.c), [measurements.txt](file-cache/measurements.txt)) found **8.03 GiB of them
+in the OS file cache**, of 10.8 GiB of file cache in all:
+
+- 4.03 GiB of shard 1: the **dense weights**. llama.cpp's loader copies them to the GPU out of its mapping of the
+  file, and the pages it read stay behind: for as long as macOS keeps them, the dense weights are in memory twice.
+- 4.00 GiB of shard 2: **rows of the n-gram table**, which are read through the mapping, 110 KiB per token, and
+  stay as well.
+
+The plan counts file cache as free, and it is: but macOS did not give these pages up first. In the full-context
+run of section 9 it kept 6.1-7.0 GiB of file cache for half an hour with 0.06 GiB free, and compressed other
+programs' memory instead. `msync(MS_INVALIDATE)` on a read-only mapping gives such pages back at once (0.8 ms for
+a GiB of file with 74 MiB cached; `madvise(MADV_DONTNEED)`, `MS_DEACTIVATE` and `MS_KILLPAGES` leave them where
+they are: [evict.c](file-cache/evict.c)). One call over shard 1 moved 3.8 GiB from "file cache" to "free".
+
+The engine does this itself now (`metal/src/expert_io.hpp`, `ModelFiles::map`): after the load, every page of the
+model leaves the file cache; after every long pass and every answer, the n-gram rows do. Because a load from a
+file that is not cached is page faults one after another (5.8 s for the 3.9 GiB), the kernel is asked to read the
+dense weights ahead of the loader (`madvise(MADV_WILLNEED)`, 1 MiB at a time): 2.1 s.
+`STRATA_FILE_CACHE=keep` gives the old behaviour.
+
+### The n-gram rows were read one page fault at a time
+
+llama.cpp asks the OS to read a pass's rows ahead before it gathers them, on Linux and Windows; on macOS that call
+was compiled out, so every row was a page fault of the one thread that copies it. [faults.c](file-cache/faults.c),
+14,000 pages that were not cached:
+
+| How | Time | Per page |
+| --- | ---: | ---: |
+| Page faults, one thread (as it was) | 1.36 s | 97 µs |
+| `madvise(MADV_WILLNEED)` per page, then the same thread | 0.084 s | 6 µs |
+| 16 threads faulting | 0.127 s | 9 µs |
+
+`metal/patches/0006-apple-row-prefetch.patch` turns the read-ahead on for macOS
+(`LLAMA_MMAP_NO_ROW_PREFETCH=1`: off).
+
+### Old against new, A B B A
+
+The binary of section 9 against the new one, each run from a file cache without the model in it, three prompts
+(`--prefill 500,2000,10000 --prefill-new 24`), the installed configuration at `--reserve-gib 4`
+([tidy_ab.sh](file-cache/tidy_ab.sh), [tidy-ab.txt](file-cache/tidy-ab.txt), per-second `vm_stat` beside each,
+summed by [memsum.py](file-cache/memsum.py)):
+
+| | Old (1st) | New | New | Old (4th) |
+| --- | ---: | ---: | ---: | ---: |
+| Ready after | 9.2 s | 5.7 s | 5.6 s | 9.3 s |
+| ... of it loading the dense weights | 5.8 s | 2.2 s | 2.1 s | 5.8 s |
+| Expert cache | 5,650 MiB | 6,900 MiB | 6,787 MiB | 6,762 MiB |
+| 500 tokens: first token | 11.97 s | 10.76 s | 10.62 s | 11.79 s |
+| 2,000 tokens: first token | 25.62 s | 24.74 s | 24.64 s | 26.54 s |
+| 10,000 tokens: first token | 104.95 s | 110.37 s | 111.20 s | 119.91 s |
+| CPU seconds in the three prompts | 2.1 / 2.7 / 9.6 | 1.3 / 1.3 / 4.2 | 1.3 / 1.3 / 4.2 | 2.2 / 2.9 / 10.0 |
+| GPU wait, 10,000 tokens | 86.2 s | 98.3 s | 99.3 s | 102.3 s |
+| Free memory while loaded, min / median | 0.01 / 0.09 GiB | 1.11 / 1.64 GiB | 0.98 / 1.54 GiB | 0.05 / 0.22 GiB |
+| File cache, median | 6.40 GiB | 2.40 GiB | 2.47 GiB | 5.93 GiB |
+| Other programs' memory compressed during the run | 4.53 GiB | 0.00 GiB | 0.00 GiB | 2.99 GiB |
+| ... left in RAM, median | 4.83 GiB | 5.71 GiB | 5.96 GiB | 3.86 GiB |
+| Model in the file cache after the run | 4.48 GiB | 0.20 GiB | 0.20 GiB | 4.47 GiB |
+| Swap-outs | 0 | 0 | 0 | 0 |
+
+- The CPU's share of a prompt is less than half of what it was (the rows), which is the whole of the gain in the
+  first token of the 500- and 2,000-token prompts (10% and 5%). On the 10,000-token prompt the 5.6 s are there
+  too, under a GPU wait that rose from run to run with the heat of four runs back to back.
+- **macOS compressed nothing while the new engine ran**, where it compressed 3.0-4.5 GiB of other programs'
+  memory in two and a half minutes of the old one, and 1-1.6 GiB stayed free where there had been 0.01-0.09.
+- With the old binary the files are not cached only at the first start after a restart of the Mac; the 9.2 s are
+  that case. Its usual start (dense weights cached) is 5-7 s, as before.
+- The old runs' caches came back from long prompts at full size and the new runs' did not ("less memory is free
+  than at the start": 6.06 of 6.75 GiB). The old engine saw the memory macOS had just made by compressing other
+  programs as free; the new one sees what is there.
+
+### `--reserve-gib`: 4, 3 or 2
+
+With the model out of the file cache the reserve is real memory, so it was measured again, same three prompts
+([reserve_runs.sh](file-cache/reserve_runs.sh)):
+
+| `--reserve-gib` | 4 (the two runs above) | 3 | 2 |
+| --- | ---: | ---: | ---: |
+| Expert cache at the start | 6.8-6.9 GiB | 8.11 GiB | 8.42 GiB |
+| Decode after 500 / 2,000 tokens | 6.4-6.5 / 7.5 tok/s | 6.76 / 8.36 tok/s | 6.89 / 8.23 tok/s |
+| First token, 500 tokens | 10.6-10.8 s | 10.30 s | 13.38 s (no memory for the read-ahead buffer) |
+| CPU seconds, 10,000 tokens | 4.2 | 4.6 | 9.9 |
+| Free + file cache, minimum | 3.3 GiB | 2.2 GiB | 2.2 GiB |
+| Compressed during the run | 0.00 GiB | 0.44 GiB | 0.65 GiB |
+| Swap-outs | 0 | 0 | 0 |
+
+One run each, on a Mac that was warm from the runs before (the 10,000-token prompts read at 76-78 tok/s).
+A reserve of 3 buys 1.3 GiB of cache for 0.44 GiB of compression; a reserve of 2 buys nothing more and starts
+to cost (a prompt without read-ahead, rows evicted before they were used).
+
+A second sign was added to `--elastic`'s back-off, which so far only reacted to swap-outs: if macOS compressed
+256 MiB or more since the last request and less than half the reserve is free, the cache gives back what is
+missing (a quarter of itself at most) and may take it again after the next long prompt. Like the first sign it
+has only run on the tiny model (`STRATA_ELASTIC_TEST_BACKOFF=tight`).
+
+### The same long prompt did not give the same logits twice
+
+The 10,000-token prompt's answers differed between runs of the same binary ("a software system", "a software
+project"). `metal/tools/determinism.py` (new) starts the engine afresh several times, sends one prompt with
+logits reported and compares:
+
+| Prompt | Runs compared | First token's logit | Verdict |
+| --- | --- | --- | --- |
+| 10,000 tokens (8,192 + 1,805) | three starts of the new binary | 35.715, 35.644, 35.836 | different every time; the third wrote other tokens |
+| ... the answer asked again in one engine | same context | | identical |
+| 8,195 tokens (one pass of 8,192) | two starts | 37.078, 37.122 | different |
+| 4,099 tokens (one pass of 4,096) | two starts | | identical |
+| 8,195 tokens, the binary of section 9 | two starts | 37.138, 37.074 | different: not from this evening's changes |
+
+The cause is llama.cpp's Metal top-k for long rows (`kernel_top_k_f32_i32`, used when a row has more than 2,048
+candidates: for this model's block-sparse attention that is every context deeper than 8,192 tokens, and every
+pass of 8,192). It finds the k-th value by radix selection and then hands out output positions with an atomic
+counter, so which of several equal values at the threshold are taken depends on which GPU thread gets there
+first. The shorter rows go through a bitonic sort, which is why the 7,900-token document of the gate never
+showed it. **Every earlier result at more than 8,192 tokens, the full-context runs included, was one draw of
+this**: valid (ties are ties), not repeatable.
+
+`metal/patches/0007-metal-topk-deterministic.patch`: each thread counts its own contiguous slice of the row, one
+thread turns the counts into offsets, and the result is written in index order, lowest indices first among ties.
+After it ([determinism/after-fix.txt](determinism/after-fix.txt)): two starts with 8,195 tokens, identical IDs
+and logits; 10,000 tokens with a 6,000 MiB and a 3,000 MiB expert cache, identical IDs and logits.
+
+### Passes of 8,192 tokens against the reference
+
+Open since section 9. The real-model gate on the final build ([gate-late/](gate-late/), `strata-reference`
+re-recorded first, context 32,768, 3,000 MiB cache): default, indexed and `--elastic` paths **identical in IDs
+and reported logits** on chat, code and the 7,900-token document; and `--elastic --prefill 8192`, which reads
+that document in one pass where the reference took two, **identical too**.
+
+### What the KV cache could give back (measured, not built)
+
+The context reserves 3,072 MiB of KV cache for all 131,072 tokens from the first one. The plan of the installed
+configuration at four context sizes ([plans.out](file-cache/plans.out), same minute, `--reserve-gib 3`):
+
+| `--max-context` | Context without the passes' work memory | Expert cache while answering |
+| ---: | ---: | ---: |
+| 16,384 | 0.58 GiB | 10.57 GiB |
+| 32,768 | 1.05 GiB | 10.05 GiB |
+| 65,536 | 1.98 GiB | 9.03 GiB |
+| 131,072 | 3.86 GiB | 7.09 GiB |
+
+A conversation of 16,000 tokens in a 131,072 context could have a cache half as large again, if the KV cache
+took its memory as it filled. It cannot simply be left untouched: [kvlazy.m](file-cache/kvlazy.m) shows that a
+Metal buffer is resident as a whole from the first time the GPU uses it (and from `requestResidency` when it is
+in a residency set). It would take one Metal buffer per stretch of cells over the same host memory. Not built.
+
+### The final build, and what is installed now
+
+`build-metal/bin/strata`, SHA-256 `42045d8f...`, is the source as committed: seven patch files (applied once more
+to a clean checkout of the pin: 26 files, none differs from the build tree).
+
+- **Tests** ([tests-late/](tests-late/)): kernel tests 2/2 and the top-k operator test, the protocol suite (29
+  checks) as it is, with `STRATA_FILE_CACHE=keep LLAMA_MMAP_NO_ROW_PREFETCH=1` and with `STRATA_VERIFY_CACHE=1`,
+  parity against the reference build on eight paths, the shape test and its two back-off variants.
+- **Real-model gate** ([gate-late/](gate-late/)): identical IDs and logits on four paths, as above.
+- **A longer prompt at `--reserve-gib 3`** ([final-late/final-r3.out](final-late/final-r3.out)): 24,000 tokens
+  with five records hidden in them, 77.4 tok/s (310 s: GPU 293.6, CPU 9.7, SSD 6.8), then 5.58 tok/s written.
+  The answer was limited to 64 tokens, which is four records and the start of the fifth; the four are exact.
+  In the 340 s the engine was loaded macOS compressed nothing, free memory plus file cache never fell below
+  3.25 GiB, no swap-out. The cache started at 7.52 GiB and came back from the long prompt with 6.05.
+- **Through the server** ([final-late/server-smoke2.out](final-late/server-smoke2.out)), the way pi reaches it:
+  a short chat (12.9 s, "The capital of France is Paris."), a 5,077-token document (66.3 s to 96 tokens: the
+  long-prompt shape and back), a second turn on it (11.2 s; 5,072 of 5,088 prompt tokens reused). 6.5-7.0 tok/s
+  written, no swap-out.
+
+**Installed** (`strata-iq3_s.json`, a copy in
+[installed/strata-iq3_s.after-elastic.json](installed/strata-iq3_s.after-elastic.json)):
+`--max-context 131072 --kv f16 --prefill 8192 --reserve-gib 3 --elastic on`, `STRATA_METAL_INDEXED_QSA=1`.
+To go back to the plain configuration of section 8, copy
+[installed/strata-iq3_s.before-elastic.json](installed/strata-iq3_s.before-elastic.json) over it.
+
+Not done, in order of likely value:
+
+1. **The KV cache taking its memory as it fills** (table above: 7.1 -> 10.6 GiB of expert cache for a
+   conversation of up to 16,000 tokens). The largest thing left for the speed of answers.
+2. A full-context prompt on the final build. The top-k change makes every result beyond 8,192 tokens a new,
+   repeatable one, so the 70.1 tok/s and 5.27 tok/s of section 9 stand as measured but were not repeated;
+   the CPU's share (94 s of that run) should now be about half.
+3. Both back-off signs have only ever fired on the tiny model.
+4. The targets (120 tok/s read, 10 tok/s written at full depth) are not reached. A cool pass of 8,192 tokens
+   reads at 114 tok/s; five minutes in, the fanless Air reads at 77.

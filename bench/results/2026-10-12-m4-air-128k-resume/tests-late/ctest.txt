@@ -1,0 +1,5 @@
+2/2 Test #2: metal-top-k ......................   Passed    2.73 sec
+
+100% tests passed, 0 tests failed out of 2
+
+Total Test time (real) =   3.87 sec

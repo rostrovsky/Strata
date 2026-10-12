@@ -1,0 +1,5 @@
+20:51:27 BASELINE swapouts 1586587, swap used 1941.88 MiB, pressure 1, free 16.34 + file cache 2.62 GiB, compressor 10.56 in 3.78 GiB, SoC 47.5 C, battery 32.9 C
+20:51:27 STARTED pid 59261: .venv/bin/python -u metal/tools/bench.py --config strata-iq3_s.json --json build-metal/resume-128k/tidy-a1-old.json --log build-metal/resume-128k/tidy-a1-old.log --prefill 500,2000,10000 --prefill-new
+20:51:32 ok +5 s: swap-outs new 0, pressure 1, free 16.19 + file 2.64 GiB, compressor 10.55 in 3.78 GiB, SoC 43.6 C | memory: {'free_gib': 16.17, 'file_cache_gib': 2.63, 'apps_gib': 9.97, 'wired_gib': 2.43, 'swap_used_gib': 1.9, 'pressure_level': 1}
+20:53:32 ok +126 s: swap-outs new 0, pressure 1, free 0.63 + file 6.3 GiB, compressor 12.09 in 4.43 GiB, SoC 83.1 C | decode at 2000 tokens: 6.86 tok/s, 24 tokens; '<think>\nThe user wants me to summarize a document that appears to be a benchmark/performance report fo
+20:55:21 DONE exit code 0, new swap-outs over the whole run 0 pages, swap used 1941.88 MiB (was 1941.88), peak pressure level 1, engine still running: [], stopped: False

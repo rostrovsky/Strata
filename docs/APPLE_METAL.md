@@ -77,6 +77,26 @@ come from RAM, but with little free memory it made macOS swap (17,700 pages duri
 default. The staging buffer for long prompts (1.1 GiB, or 0.45 GiB if that is all there is room for) is taken only for
 the time of the prompt and only if that much memory is free beyond 1.5 GiB.
 
+What llama.cpp reads through its mapping of the model files stays in the OS file cache: the dense weights after they
+were copied to the GPU, and every row of the n-gram table that was looked up. On the M4 Air that was 8 GiB after an
+evening of prompts, and macOS compressed other programs' memory before it let go of it. Since 2026-10-12 (night) the
+engine gives those pages back itself (`msync(MS_INVALIDATE)` on a read-only mapping): all of the model after the
+load, the table's rows after every long pass and every answer. The kernel is asked to read the dense weights ahead
+of the loader, and a pass's n-gram rows ahead of the thread that gathers them (`madvise(MADV_WILLNEED)`; llama.cpp
+had that call for Linux and Windows only, so on macOS every row was a page fault: 97 µs each against 6).
+Measured, old against new, A B B A, three prompts: 3.0-4.5 GiB of other programs' memory compressed per run before,
+none after; 1-1.6 GiB free where there were 0.01-0.09; the CPU's part of a 10,000-token prompt 4.2 s instead of
+9.6-10.0; a start with the files not cached 5.6 s instead of 9.2
+([report](../bench/results/2026-10-12-m4-air-128k-resume/README.md), section 10). `STRATA_FILE_CACHE=keep` and
+`LLAMA_MMAP_NO_ROW_PREFETCH=1` give the old behaviour.
+
+**Long prompts are reproducible since the same night, and were not before.** llama.cpp's Metal top-k for rows of
+more than 2,048 candidates (for this model: every context deeper than 8,192 tokens) wrote its result through an
+atomic counter, so which of several equal scores at the threshold were taken depended on the GPU's thread timing:
+the same 10,000-token prompt gave a first logit of 35.72, 35.64 and 35.84 in three starts. With
+`metal/patches/0007-metal-topk-deterministic.patch` it writes in index order and two starts give identical IDs and
+logits. `metal/tools/determinism.py` is the check.
+
 ## What you need
 
 | | |
@@ -253,7 +273,9 @@ followed them.
 KV (64.9 tok/s, 33.6 minutes to the first token, 4.59 tok/s written, all five test records found, 61.7 MiB of
 swap-outs). The plan's double count of the context is fixed, the compute buffer no longer grows while the context
 fills, and the host part of it is in the plan. With `STRATA_METAL_INDEXED_QSA=1` and `--prefill 4096` the context
-takes 6.02 GiB on the GPU and 0.45 GiB of host memory at 131,072. The figures below predate all of this; the
+takes 6.02 GiB on the GPU and 0.45 GiB of host memory at 131,072. Later the same day, with aligned reads,
+`--elastic` and `--prefill 8192`: 70.1 tok/s (31.1 minutes), 5.27 tok/s written, five records, no swap-out; that
+configuration, at `--reserve-gib 3`, is the installed one. The figures below predate all of this; the
 reports are [the morning's](../bench/results/2026-10-12-m4-air-128k/README.md) and
 [the afternoon's](../bench/results/2026-10-12-m4-air-128k-resume/README.md), the open points are in
 [OPTIMIZATION.md](../OPTIMIZATION.md).
@@ -325,7 +347,7 @@ done). None of this is fixed or decided; the numbers are under "Measured" unless
 | `--prefill N` | tokens per pass for long prompts (default 1,024; 0 = off). 2,048 needs 1.1 GiB more for the context and read 8,000 tokens at 81 instead of 62 tok/s. |
 | `--prefill-ahead on\|off` | long prompts: read the next expert tensors while the GPU computes (default on) |
 | `--prefill-from N` | stretches of N or more new tokens go in one such pass (default 33) |
-| `--elastic on\|off` | **experimental, default off.** The long passes' work memory (2.67 GiB at 131,072 context with `--prefill 4096`) and the expert cache take turns in one budget: answers are written with the larger cache, a long prompt is read with the cache's memory, and the cache is read back from the SSD afterwards (2-3 s). Measured with aligned reads: 7.71 against 6.38 tok/s written; a full 130,944-token prompt with `--prefill 8192` at 70.1 tok/s and 5.27 tok/s written; no swap-out in ten runs. Before the reads were aligned it swapped in five. Read the [report](../bench/results/2026-10-12-m4-air-128k-resume/README.md) before turning it on. Not with `--mtp` or a set `--expert-cache` size. `--elastic-short N`: a stretch of up to N new tokens (1,024) is read in one pass beside the cache, in memory that is free at that moment; 0 = always give the cache up. With `--elastic`, `--prefill 8192` costs the answering cache nothing (9% faster on a 16,384-token prompt than 4,096); long passes fall back to half or a quarter of `--prefill` when the memory has no room |
+| `--elastic on\|off` | **experimental, default off.** The long passes' work memory (2.67 GiB at 131,072 context with `--prefill 4096`) and the expert cache take turns in one budget: answers are written with the larger cache, a long prompt is read with the cache's memory, and the cache is read back from the SSD afterwards (2-3 s). Measured with aligned reads: 7.71 against 6.38 tok/s written; a full 130,944-token prompt with `--prefill 8192` at 70.1 tok/s and 5.27 tok/s written; no swap-out in ten runs. Before the reads were aligned it swapped in five. Read the [report](../bench/results/2026-10-12-m4-air-128k-resume/README.md) before turning it on. Not with `--mtp` or a set `--expert-cache` size. `--elastic-short N`: a stretch of up to N new tokens (1,024) is read in one pass beside the cache, in memory that is free at that moment; 0 = always give the cache up. With `--elastic`, `--prefill 8192` costs the answering cache nothing (9% faster on a 16,384-token prompt than 4,096); long passes fall back to half or a quarter of `--prefill` when the memory has no room. Before a request the cache gives memory back if macOS wrote to swap since the last one (a quarter of itself, for good), or if it compressed 256 MiB or more and less than half of `--reserve-gib` is free (what is missing; it may come back after the next long prompt): both measured on the tiny model only |
 | `--mtp FILE`, `--spec N`, `--spec-min-p P` | the MTP head: up to N drafts per pass (3) while the head gives them probability P (0.75) or more. Off unless `--mtp` is given. |
 | `--lookup N` | draft what followed the last N tokens where they stood before in the context (0 = off) |
 | `--io-threads N` | threads reading experts (default 8; 4 or more read the same on the Air's SSD) |
@@ -333,7 +355,8 @@ done). None of this is fixed or decided; the numbers are under "Measured" unless
 | `--verbose` | llama.cpp's own log, and the engine's memory after every prompt pass and every change of shape |
 
 `metal/tools/swapwatch.py NAME -- <command>` runs a benchmark under a watch on macOS's swap-out counter and stops the
-engine the moment it moves; use it for every run on the real model.
+engine the moment it moves; use it for every run on the real model. `metal/tools/determinism.py` starts the engine
+afresh several times with one long prompt and compares IDs and logits between the starts.
 
 Flags of the CUDA engine that a config may carry (`--pack`, `--kv-resident`, ...) are accepted and not used; the log
 names each one.
@@ -371,6 +394,10 @@ names each one.
   in place when the buffers are host memory; it reports its hits, slots and times. ggml-metal counts the time the host
   waits for the GPU and can time every kernel (`GGML_METAL_PROFILE=1`). `LLAMA_MMAP_NO_PREFETCH` stops the read-ahead
   of a model file larger than the RAM.
+- `0002`-`0005`: indexed block-sparse attention, the top-k workspace, the reserve for a pass appended to a filled
+  cache, `llama_context_resize` (`--elastic`). `0006-apple-row-prefetch.patch`: the rows of a lazily read table are
+  read ahead on macOS as on Linux and Windows. `0007-metal-topk-deterministic.patch`: the radix top-k writes its
+  result in index order instead of in the order its threads arrive.
 
 ## Tests and tools
 

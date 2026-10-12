@@ -1,0 +1,53 @@
+[
+ [
+  "short chat",
+  {
+   "seconds": 12.91,
+   "usage": {
+    "prompt_tokens": 65,
+    "completion_tokens": 43,
+    "total_tokens": 108,
+    "prompt_tokens_details": {
+     "cached_tokens": 0
+    }
+   },
+   "finish": "stop",
+   "content": "The capital of France is Paris.",
+   "reasoning": "We need to answer user: \"Reply with one short sentence: what is the capital of France?\" Need final one short sentence. Ensure only one short sentence.\n"
+  }
+ ],
+ [
+  "long document",
+  {
+   "seconds": 66.3,
+   "usage": {
+    "prompt_tokens": 5077,
+    "completion_tokens": 96,
+    "total_tokens": 5173,
+    "prompt_tokens_details": {
+     "cached_tokens": 0
+    }
+   },
+   "finish": "length",
+   "content": "",
+   "reasoning": "We need answer user's request: \"Here is a document. ... In one sentence: what is this document about?\" Need produce one sentence. Need analyze in English because user English. Need final concise one s"
+  }
+ ],
+ [
+  "second turn",
+  {
+   "seconds": 11.2,
+   "usage": {
+    "prompt_tokens": 5088,
+    "completion_tokens": 64,
+    "total_tokens": 5152,
+    "prompt_tokens_details": {
+     "cached_tokens": 5072
+    }
+   },
+   "finish": "length",
+   "content": "",
+   "reasoning": "We need answer user's request. User: \"Here is a document... In one sentence: what is this document about? Name one number it mentions.\" Need produce final concise. Need likely answer one sentence and "
+  }
+ ]
+]
