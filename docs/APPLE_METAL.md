@@ -243,6 +243,15 @@ followed them.
 
 ## Context size
 
+**Since this section was written (2026-10-12):** a 130,944-token prompt was read at `--max-context 131072` with F16
+KV (64.9 tok/s, 33.6 minutes to the first token, 4.59 tok/s written, all five test records found, 61.7 MiB of
+swap-outs). The plan's double count of the context is fixed, the compute buffer no longer grows while the context
+fills, and the host part of it is in the plan. With `STRATA_METAL_INDEXED_QSA=1` and `--prefill 4096` the context
+takes 6.02 GiB on the GPU and 0.45 GiB of host memory at 131,072. The figures below predate all of this; the
+reports are [the morning's](../bench/results/2026-10-12-m4-air-128k/README.md) and
+[the afternoon's](../bench/results/2026-10-12-m4-air-128k-resume/README.md), the open points are in
+[OPTIMIZATION.md](../OPTIMIZATION.md).
+
 `--max-context` has no upper limit in the engine; the model's own is 262,144 tokens. What limits it on this Mac is
 memory: the context takes about 31 KB per token (the KV cache and the work buffers), and all of it comes out of the
 expert cache. Measured with `--load-only` (nothing is read or written by such a start; 0 swap-outs):
@@ -310,10 +319,12 @@ done). None of this is fixed or decided; the numbers are under "Measured" unless
 | `--prefill N` | tokens per pass for long prompts (default 1,024; 0 = off). 2,048 needs 1.1 GiB more for the context and read 8,000 tokens at 81 instead of 62 tok/s. |
 | `--prefill-ahead on\|off` | long prompts: read the next expert tensors while the GPU computes (default on) |
 | `--prefill-from N` | stretches of N or more new tokens go in one such pass (default 33) |
+| `--elastic on\|off` | **experimental, default off.** The long passes' work memory (2.67 GiB at 131,072 context with `--prefill 4096`) and the expert cache take turns in one budget: answers are written with the larger cache, a long prompt is read with the cache's memory, and the cache is read back from the SSD afterwards (about 2 s). Measured: 8.01 against 6.66 tok/s written, and **swap-outs in three of its runs at `--reserve-gib 4`** with other programs open. Read the [report](../bench/results/2026-10-12-m4-air-128k-resume/README.md) before turning it on. Not with `--mtp` or a set `--expert-cache` size. `--elastic-short N`: a stretch of up to N new tokens (1,024) is read in one pass beside the cache, in memory that is free at that moment; 0 = always give the cache up |
 | `--mtp FILE`, `--spec N`, `--spec-min-p P` | the MTP head: up to N drafts per pass (3) while the head gives them probability P (0.75) or more. Off unless `--mtp` is given. |
 | `--lookup N` | draft what followed the last N tokens where they stood before in the context (0 = off) |
 | `--io-threads N` | threads reading experts (default 8; 4 or more read the same on the Air's SSD) |
 | `--plan` / `--load-only` | print the memory plan without loading / load, print it as it came out, exit |
+| `--verbose` | llama.cpp's own log, and the engine's memory after every prompt pass and every change of shape |
 
 Flags of the CUDA engine that a config may carry (`--pack`, `--kv-resident`, ...) are accepted and not used; the log
 names each one.
@@ -324,7 +335,9 @@ names each one.
   `VRAM` command. The server answers such requests with the engine's error.
 - **One KV format** (F16; `--kv q8_0` is passed to llama.cpp, not measured).
 - **The cache does not shrink while it runs.** Programs opened after the start get what is left; unload the model
-  (`idle_unload_s`, or stop the server) to give the memory back.
+  (`idle_unload_s`, or stop the server) to give the memory back. (With `--elastic` it comes back from a long prompt
+  only as large as the memory that is free then, and gives a quarter of itself back before a request if macOS has
+  swapped since the last one. That back-off has run on the tiny test model only.)
 - **Bits differ from the CUDA engine.** The kernels are ggml's, not Strata's; the output was not compared token by
   token with the CUDA engine or with the BF16 model.
 - **`--lookup` was built and not measured** (the protocol test does not cover it either); the MTP head was measured
@@ -359,8 +372,12 @@ cmake -S ../llama.cpp -B ../llama.cpp/build -DLLAMA_BUILD_TESTS=ON && cmake --bu
 .venv/bin/python metal/tests/serve_protocol_test.py --model /tmp/tiny/qwen4exp-moe.gguf
 ```
 
-26 checks: the protocol's lines, the same ids with the cache on, off, with direct and cached reads, every chunk
-size, prefetch and (a long prompt) read-ahead, context reuse against a fresh engine, STOP, and the error answers.
+29 checks: the protocol's lines, the same ids with the cache on, off, with direct and cached reads, every chunk
+size, prefetch, `--elastic` and (a long prompt) read-ahead, context reuse against a fresh engine, STOP, and the
+error answers. Two more tests on the same model: `metal/tests/elastic_shapes_test.py --model ...` (six requests
+through `--elastic`'s three shapes against an engine without it) and `metal/tests/optimization_parity_test.py`
+(ids and logits of the default, indexed and elastic paths against a reference build). The kernel tests are built
+with `-DSTRATA_METAL_BUILD_TESTS=ON` and run by `ctest --test-dir build-metal`.
 The tiny model has 4 experts, so it cannot miss: what the read-ahead does is checked on the real model, by the gate
 and by `STRATA_VERIFY_CACHE=1`. `serve/` is not changed apart from the Monitor's CPU name and a note about GPU
 readings on macOS (`serve/telemetry.py`).

@@ -1,0 +1,72 @@
+{
+  "date": "2026-10-12 afternoon",
+  "llama_cpp_pin": "23b0202a189c44a54625aadcb37a946dd1d6278d",
+  "note": "Local artifacts at the end of the afternoon session. build-metal/bin/strata is built from the current source and patches; every file under tests/ and gate/ is from it. Nothing was installed or committed.",
+  "artifacts": [
+    {
+      "path": "build-metal/bin/strata",
+      "bytes": 10470840,
+      "sha256": "7835bd8cb48e4bc16ea114ef413f7a0d8c1cb609b71639ece4b6bb8eb432cea0"
+    },
+    {
+      "path": "build-metal/lowlevel-128k/strata-reference",
+      "bytes": 10452760,
+      "sha256": "cfc7074d2adbbc5103f0aca334b884b586ac4fabed3bd90fc33f32c9ec34d8a9"
+    },
+    {
+      "path": "build-metal/lowlevel-128k/strata-before-indexed",
+      "bytes": 10452968,
+      "sha256": "170fb056023011a60f8a39e3fc2b3ebbd13f8e10ee8c52c523efddd5c81f69f2"
+    },
+    {
+      "path": "build-metal/lowlevel-128k/strata-indexed-topk",
+      "bytes": 10453032,
+      "sha256": "0042ff3104c34217af3cc8bd84fac4f42030c48b0b5c3c888f749c8e77f0a236"
+    },
+    {
+      "path": "build-metal/lowlevel-128k/strata-relaxed-experimental",
+      "bytes": 10453288,
+      "sha256": "dbb7ed3f2a4d49b7d225b8c6f190e9589c98d81e6d8614228c89bd57bf08c8c5"
+    },
+    {
+      "path": "build-metal/resume-128k/strata-step1",
+      "bytes": 10452840,
+      "sha256": "3566ebc14085bf977027b3a620e40cd41728605c745eac8723941dc22d715123"
+    },
+    {
+      "path": "build-metal/tuning-128k/tiny/qwen4exp-moe.gguf",
+      "bytes": 19242848,
+      "sha256": "7aed752c623f086c344368740cc7951641ecdadbafae5934b728a764094d816a"
+    },
+    {
+      "path": "data/expert-profile.bin",
+      "bytes": 196632,
+      "sha256": "8f59b4aa8873209dff11c11e37bcda9529a1335b724a1afeea37bf6388975baf"
+    },
+    {
+      "path": "metal/patches/0001-moe-cache-fetch-stats-preload.patch",
+      "bytes": 46568,
+      "sha256": "2acd703b075c1621038fdb3837ccc293b938a38c0b79432ffaa8cc398ed76b76"
+    },
+    {
+      "path": "metal/patches/0002-metal-indexed-qsa.patch",
+      "bytes": 10548,
+      "sha256": "8ddb0e7f6a27760ebfd20c944b6fba5c77212b81c97d25383b2d3449b97781ce"
+    },
+    {
+      "path": "metal/patches/0003-metal-topk-workspace.patch",
+      "bytes": 2204,
+      "sha256": "9c415f0d8e14cc0a604dc8b5a130d7aee2cc6f216407da35edbaf018781aef13"
+    },
+    {
+      "path": "metal/patches/0004-kpool-append-reserve.patch",
+      "bytes": 5318,
+      "sha256": "485cdf4c8b278e0740038fb87fcb6cddf0ae6cb14885cea6a1708c211656eea2"
+    },
+    {
+      "path": "metal/patches/0005-context-resize.patch",
+      "bytes": 5255,
+      "sha256": "138f44d39679b23186f771d5325060daa0e96924576ab17ca5e087a89cab9a66"
+    }
+  ]
+}

@@ -1,0 +1,150 @@
+{
+ "when": "2026-10-12 13:19",
+ "args": [
+  "--native",
+  "/Users/rafal/Projects/strata-air/Strata-data/models/IQ3_S/Qwen3.8-Flash-Next-GSQ-RCO-IQ3_S-00001-of-00002.gguf",
+  "--expert-profile",
+  "/Users/rafal/Projects/strata-air/Strata/data/expert-profile.bin",
+  "--expert-cache",
+  "auto",
+  "--max-context",
+  "16384",
+  "--kv",
+  "f16",
+  "--prefill",
+  "4096",
+  "--reserve-gib",
+  "4",
+  "--verbose"
+ ],
+ "memory_before": {
+  "free_gib": 14.13,
+  "file_cache_gib": 3.67,
+  "apps_gib": 10.88,
+  "wired_gib": 2.53,
+  "swap_used_gib": 0.92,
+  "pressure_level": 1
+ },
+ "info": {
+  "context": "16384",
+  "kv": "f16",
+  "kv_resident": "0",
+  "expert_slots": "3625",
+  "expert_cache_mib": "7088",
+  "expert_slots_primary": "3625",
+  "expert_cache_primary_mib": "7088",
+  "spec": "0",
+  "mtp_max": "0",
+  "lookup": "0",
+  "prefetch": "10",
+  "vram_free_mib": "8678",
+  "arena_mib": "0",
+  "pool_workers": "8",
+  "backend": "metal",
+  "expert_io": "direct",
+  "engine": "0.1.42-metal"
+ },
+ "prefill": {
+  "16200": {
+   "tokens": 16200,
+   "tps": 90.65574320921331,
+   "ttft_s": 178.69977712631226,
+   "ssd_gb": 157.12220000000002,
+   "swapouts": 0,
+   "gpu_wait_s": 146.1149,
+   "ssd_s": 7.9497,
+   "gpu_busy_s": 163.7152,
+   "wall_s": 178.698,
+   "passes": 6.0,
+   "read_ahead_gb": 134.5478,
+   "read_ahead_used_gb": 123.886,
+   "watts": 25.44970786516854,
+   "decode_tps": 7.0785721508747095,
+   "generated": 8,
+   "output": "<think>\nThe user wants me to summarize",
+   "progress": [
+    {
+     "tokens": 4096,
+     "total": 16200,
+     "elapsed_s": 39.01,
+     "memory": {
+      "free_gib": 0.06,
+      "file_cache_gib": 7.03,
+      "apps_gib": 8.56,
+      "wired_gib": 15.55,
+      "swap_used_gib": 0.92,
+      "pressure_level": 1
+     },
+     "swapouts": 0
+    },
+    {
+     "tokens": 8192,
+     "total": 16200,
+     "elapsed_s": 80.81,
+     "memory": {
+      "free_gib": 0.06,
+      "file_cache_gib": 6.85,
+      "apps_gib": 8.67,
+      "wired_gib": 15.62,
+      "swap_used_gib": 0.92,
+      "pressure_level": 1
+     },
+     "swapouts": 0
+    },
+    {
+     "tokens": 12288,
+     "total": 16200,
+     "elapsed_s": 125.13,
+     "memory": {
+      "free_gib": 0.06,
+      "file_cache_gib": 6.9,
+      "apps_gib": 8.59,
+      "wired_gib": 15.65,
+      "swap_used_gib": 0.92,
+      "pressure_level": 1
+     },
+     "swapouts": 0
+    },
+    {
+     "tokens": 16197,
+     "total": 16200,
+     "elapsed_s": 178.085,
+     "memory": {
+      "free_gib": 0.01,
+      "file_cache_gib": 7.05,
+      "apps_gib": 8.99,
+      "wired_gib": 15.15,
+      "swap_used_gib": 0.92,
+      "pressure_level": 1
+     },
+     "swapouts": 0
+    }
+   ],
+   "decode_per_token": {
+    "total_ms": 141.28571428571428,
+    "gpu_wait_ms": 92.68571428571428,
+    "ssd_ms": 36.728571428571435,
+    "cpu_ms": 11.871428571428575,
+    "encode_ms": 4.271428571428571,
+    "gpu_busy_ms": 91.55714285714285,
+    "sample_ms": 0.18571428571428572,
+    "misses": 39.0,
+    "ssd_mb": 285.24285714285713,
+    "waits": 49.0,
+    "ahead": 98.42857142857143,
+    "ahead_used": 61.142857142857146,
+    "ahead_waits": 9.428571428571429,
+    "predict_ms": 4.485714285714286
+   }
+  }
+ },
+ "swapouts": 0,
+ "memory_after": {
+  "free_gib": 14.67,
+  "file_cache_gib": 6.93,
+  "apps_gib": 7.5,
+  "wired_gib": 2.09,
+  "swap_used_gib": 0.92,
+  "pressure_level": 1
+ }
+}

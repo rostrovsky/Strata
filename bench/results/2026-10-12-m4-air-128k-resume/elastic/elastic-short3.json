@@ -1,0 +1,1238 @@
+{
+ "when": "2026-10-12 14:46",
+ "args": [
+  "--native",
+  "/Users/rafal/Projects/strata-air/Strata-data/models/IQ3_S/Qwen3.8-Flash-Next-GSQ-RCO-IQ3_S-00001-of-00002.gguf",
+  "--expert-profile",
+  "/Users/rafal/Projects/strata-air/Strata/data/expert-profile.bin",
+  "--expert-cache",
+  "auto",
+  "--max-context",
+  "131072",
+  "--kv",
+  "f16",
+  "--prefill",
+  "4096",
+  "--reserve-gib",
+  "4"
+ ],
+ "memory_before": {
+  "free_gib": 14.55,
+  "file_cache_gib": 6.77,
+  "apps_gib": 7.54,
+  "wired_gib": 2.35,
+  "swap_used_gib": 1.91,
+  "pressure_level": 1
+ },
+ "ab": {
+  "STRATA_METAL_INDEXED_QSA=1 build-metal/bin/strata": [
+   {
+    "info": {
+     "context": "131072",
+     "kv": "f16",
+     "kv_resident": "0",
+     "expert_slots": "2715",
+     "expert_cache_mib": "5312",
+     "expert_slots_primary": "2715",
+     "expert_cache_primary_mib": "5312",
+     "spec": "0",
+     "mtp_max": "0",
+     "lookup": "0",
+     "prefetch": "10",
+     "vram_free_mib": "6387",
+     "arena_mib": "0",
+     "pool_workers": "8",
+     "backend": "metal",
+     "expert_io": "direct",
+     "engine": "0.1.42-metal"
+    },
+    "therm": null,
+    "temps_before": [
+     48.6,
+     34.8
+    ],
+    "memory_before": {
+     "free_gib": 14.61,
+     "file_cache_gib": 6.92,
+     "apps_gib": 7.34,
+     "wired_gib": 2.34,
+     "swap_used_gib": 1.91,
+     "pressure_level": 1
+    },
+    "ready_s": 4.487641096115112,
+    "prefill": {
+     "64": {
+      "tokens": 64,
+      "tps": 8.879023307436182,
+      "ttft_s": 7.208487033843994,
+      "ssd_gb": 23.2833,
+      "swapouts": 0,
+      "gpu_wait_s": 2.5763000000000003,
+      "ssd_s": 4.111,
+      "gpu_busy_s": 6.0525,
+      "wall_s": 7.2081,
+      "passes": 3.0,
+      "read_ahead_gb": 9.475700000000002,
+      "read_ahead_used_gb": 9.3762,
+      "watts": null,
+      "decode_tps": 6.4797858853359624,
+      "generated": 24,
+      "output": "<think>\nThe user wants me to summarize a document. However, the document provided is extremely brief - it appears to be",
+      "progress": [
+       {
+        "tokens": 61,
+        "total": 64,
+        "elapsed_s": 6.436
+       },
+       {
+        "tokens": 63,
+        "total": 64,
+        "elapsed_s": 6.995
+       }
+      ],
+      "decode_per_token": {
+       "total_ms": 154.32608695652175,
+       "gpu_wait_ms": 86.12608695652175,
+       "ssd_ms": 57.76086956521739,
+       "cpu_ms": 10.439130434782605,
+       "encode_ms": 4.0826086956521745,
+       "gpu_busy_ms": 88.19565217391305,
+       "sample_ms": 0.1391304347826087,
+       "misses": 58.869565217391305,
+       "ssd_mb": 382.8739130434783,
+       "waits": 49.0,
+       "ahead": 128.47826086956522,
+       "ahead_used": 82.6086956521739,
+       "ahead_waits": 19.130434782608695,
+       "predict_ms": 4.217391304347826
+      }
+     },
+     "128": {
+      "tokens": 128,
+      "tps": 16.2883029624351,
+      "ttft_s": 7.858872175216675,
+      "ssd_gb": 22.987099999999998,
+      "swapouts": 0,
+      "gpu_wait_s": 2.9806999999999997,
+      "ssd_s": 4.5093000000000005,
+      "gpu_busy_s": 6.789,
+      "wall_s": 7.8584,
+      "passes": 3.0,
+      "read_ahead_gb": 10.9748,
+      "read_ahead_used_gb": 10.846200000000001,
+      "watts": 12.44275,
+      "decode_tps": 6.858710562414266,
+      "generated": 24,
+      "output": "<think>\nThe user is asking me to summarize a document, but what they've provided is just a small fragment of what",
+      "progress": [
+       {
+        "tokens": 125,
+        "total": 128,
+        "elapsed_s": 7.104
+       },
+       {
+        "tokens": 127,
+        "total": 128,
+        "elapsed_s": 7.608
+       }
+      ],
+      "decode_per_token": {
+       "total_ms": 145.8,
+       "gpu_wait_ms": 85.37826086956522,
+       "ssd_ms": 49.9304347826087,
+       "cpu_ms": 10.491304347826086,
+       "encode_ms": 3.926086956521739,
+       "gpu_busy_ms": 82.01739130434783,
+       "sample_ms": 0.14347826086956522,
+       "misses": 55.91304347826087,
+       "ssd_mb": 312.7260869565217,
+       "waits": 49.0,
+       "ahead": 96.65217391304348,
+       "ahead_used": 71.0,
+       "ahead_waits": 13.26086956521739,
+       "predict_ms": 4.22608695652174
+      }
+     },
+     "250": {
+      "tokens": 250,
+      "tps": 28.130661295585735,
+      "ttft_s": 8.887753963470459,
+      "ssd_gb": 29.523799999999998,
+      "swapouts": 0,
+      "gpu_wait_s": 2.9694000000000003,
+      "ssd_s": 4.8469,
+      "gpu_busy_s": 7.073600000000001,
+      "wall_s": 8.8871,
+      "passes": 3.0,
+      "read_ahead_gb": 15.5633,
+      "read_ahead_used_gb": 12.6558,
+      "watts": null,
+      "decode_tps": 6.966952412685911,
+      "generated": 24,
+      "output": "<think>\nThe user wants me to summarize a document that appears to be a fragment from a technical document about benchmarking results",
+      "progress": [
+       {
+        "tokens": 247,
+        "total": 250,
+        "elapsed_s": 8.169
+       },
+       {
+        "tokens": 249,
+        "total": 250,
+        "elapsed_s": 8.674
+       }
+      ],
+      "decode_per_token": {
+       "total_ms": 143.5391304347826,
+       "gpu_wait_ms": 82.06521739130434,
+       "ssd_ms": 51.060869565217395,
+       "cpu_ms": 10.41304347826087,
+       "encode_ms": 3.747826086956522,
+       "gpu_busy_ms": 77.90434782608695,
+       "sample_ms": 0.15217391304347827,
+       "misses": 53.47826086956522,
+       "ssd_mb": 310.7173913043478,
+       "waits": 49.0,
+       "ahead": 98.1304347826087,
+       "ahead_used": 76.17391304347827,
+       "ahead_waits": 17.304347826086957,
+       "predict_ms": 4.195652173913044
+      }
+     },
+     "500": {
+      "tokens": 500,
+      "tps": 47.387076596470614,
+      "ttft_s": 10.552071332931519,
+      "ssd_gb": 35.739599999999996,
+      "swapouts": 0,
+      "gpu_wait_s": 4.1578,
+      "ssd_s": 4.8359,
+      "gpu_busy_s": 8.0074,
+      "wall_s": 10.5514,
+      "passes": 3.0,
+      "read_ahead_gb": 20.258200000000002,
+      "read_ahead_used_gb": 17.740099999999998,
+      "watts": null,
+      "decode_tps": 5.806028171858434,
+      "generated": 24,
+      "output": "<think>\nThe user wants me to summarize a technical document about llama.cpp's speculative decoding and quantization features. Let me",
+      "progress": [
+       {
+        "tokens": 497,
+        "total": 500,
+        "elapsed_s": 9.877
+       }
+      ],
+      "decode_per_token": {
+       "total_ms": 172.23478260869567,
+       "gpu_wait_ms": 95.11304347826086,
+       "ssd_ms": 65.17391304347827,
+       "cpu_ms": 11.94782608695653,
+       "encode_ms": 4.004347826086956,
+       "gpu_busy_ms": 91.80869565217391,
+       "sample_ms": 0.15217391304347827,
+       "misses": 66.78260869565217,
+       "ssd_mb": 406.67826086956524,
+       "waits": 49.0,
+       "ahead": 132.0,
+       "ahead_used": 102.91304347826087,
+       "ahead_waits": 23.652173913043477,
+       "predict_ms": 4.269565217391304
+      }
+     },
+     "1000": {
+      "tokens": 1000,
+      "tps": 69.25351634729253,
+      "ttft_s": 14.44039511680603,
+      "ssd_gb": 39.6232,
+      "swapouts": 0,
+      "gpu_wait_s": 7.2766,
+      "ssd_s": 5.0013000000000005,
+      "gpu_busy_s": 10.986600000000001,
+      "wall_s": 14.4397,
+      "passes": 3.0,
+      "read_ahead_gb": 23.9626,
+      "read_ahead_used_gb": 20.751099999999997,
+      "watts": null,
+      "decode_tps": 6.750014673944944,
+      "generated": 24,
+      "output": "<think>\nThe user wants me to summarize a technical document about what appears to be a local LLM serving engine (likely",
+      "progress": [
+       {
+        "tokens": 997,
+        "total": 1000,
+        "elapsed_s": 13.89
+       }
+      ],
+      "decode_per_token": {
+       "total_ms": 148.15217391304347,
+       "gpu_wait_ms": 81.55652173913043,
+       "ssd_ms": 55.460869565217386,
+       "cpu_ms": 11.134782608695659,
+       "encode_ms": 3.891304347826087,
+       "gpu_busy_ms": 78.49130434782609,
+       "sample_ms": 0.14782608695652175,
+       "misses": 59.91304347826087,
+       "ssd_mb": 319.75217391304346,
+       "waits": 49.0,
+       "ahead": 95.95652173913044,
+       "ahead_used": 76.69565217391305,
+       "ahead_waits": 15.695652173913043,
+       "predict_ms": 4.221739130434782
+      }
+     },
+     "2000": {
+      "tokens": 2000,
+      "tps": 86.96635271813335,
+      "ttft_s": 22.997967958450317,
+      "ssd_gb": 44.467699999999994,
+      "swapouts": 0,
+      "gpu_wait_s": 15.169,
+      "ssd_s": 4.2625,
+      "gpu_busy_s": 18.3525,
+      "wall_s": 22.997400000000003,
+      "passes": 3.0,
+      "read_ahead_gb": 26.486900000000002,
+      "read_ahead_used_gb": 24.1352,
+      "watts": 17.23298305084746,
+      "decode_tps": 6.239826370048833,
+      "generated": 24,
+      "output": "<think>\nThe user wants me to summarize a technical document about a system called \"Strata\" that deals with running large",
+      "progress": [
+       {
+        "tokens": 1997,
+        "total": 2000,
+        "elapsed_s": 22.367
+       }
+      ],
+      "decode_per_token": {
+       "total_ms": 160.2608695652174,
+       "gpu_wait_ms": 84.42173913043479,
+       "ssd_ms": 64.82608695652173,
+       "cpu_ms": 11.013043478260867,
+       "encode_ms": 3.9478260869565216,
+       "gpu_busy_ms": 81.00869565217391,
+       "sample_ms": 0.13478260869565217,
+       "misses": 68.65217391304348,
+       "ssd_mb": 367.3478260869565,
+       "waits": 49.0,
+       "ahead": 109.82608695652173,
+       "ahead_used": 87.3913043478261,
+       "ahead_waits": 20.0,
+       "predict_ms": 4.173913043478261
+      }
+     }
+    },
+    "swapouts": 0,
+    "temps_after": [
+     72.2,
+     35.3
+    ]
+   },
+   {
+    "info": {
+     "context": "131072",
+     "kv": "f16",
+     "kv_resident": "0",
+     "expert_slots": "3220",
+     "expert_cache_mib": "6298",
+     "expert_slots_primary": "3220",
+     "expert_cache_primary_mib": "6298",
+     "spec": "0",
+     "mtp_max": "0",
+     "lookup": "0",
+     "prefetch": "10",
+     "vram_free_mib": "5401",
+     "arena_mib": "0",
+     "pool_workers": "8",
+     "backend": "metal",
+     "expert_io": "direct",
+     "engine": "0.1.42-metal"
+    },
+    "therm": null,
+    "temps_before": [
+     49.2,
+     35.0
+    ],
+    "memory_before": {
+     "free_gib": 15.87,
+     "file_cache_gib": 6.5,
+     "apps_gib": 6.62,
+     "wired_gib": 2.21,
+     "swap_used_gib": 1.91,
+     "pressure_level": 1
+    },
+    "ready_s": 8.899776697158813,
+    "prefill": {
+     "64": {
+      "tokens": 64,
+      "tps": 9.024634431800555,
+      "ttft_s": 7.092171907424927,
+      "ssd_gb": 21.8037,
+      "swapouts": 0,
+      "gpu_wait_s": 2.3549,
+      "ssd_s": 4.0884,
+      "gpu_busy_s": 5.3827,
+      "wall_s": 7.0916999999999994,
+      "passes": 3.0,
+      "read_ahead_gb": 9.0276,
+      "read_ahead_used_gb": 8.9299,
+      "watts": null,
+      "decode_tps": 6.796087817273882,
+      "generated": 24,
+      "output": "<think>\nThe user wants me to summarize a document. However, the document provided is extremely brief - it appears to be",
+      "progress": [
+       {
+        "tokens": 61,
+        "total": 64,
+        "elapsed_s": 6.314
+       },
+       {
+        "tokens": 63,
+        "total": 64,
+        "elapsed_s": 6.852
+       }
+      ],
+      "decode_per_token": {
+       "total_ms": 147.14347826086959,
+       "gpu_wait_ms": 84.14347826086956,
+       "ssd_ms": 52.61304347826086,
+       "cpu_ms": 10.386956521739144,
+       "encode_ms": 4.043478260869565,
+       "gpu_busy_ms": 79.9695652173913,
+       "sample_ms": 0.14782608695652175,
+       "misses": 52.78260869565217,
+       "ssd_mb": 345.004347826087,
+       "waits": 49.0,
+       "ahead": 116.08695652173913,
+       "ahead_used": 73.69565217391305,
+       "ahead_waits": 18.08695652173913,
+       "predict_ms": 4.21304347826087
+      }
+     },
+     "128": {
+      "tokens": 128,
+      "tps": 16.67404840684678,
+      "ttft_s": 7.677093982696533,
+      "ssd_gb": 22.1166,
+      "swapouts": 0,
+      "gpu_wait_s": 2.9052,
+      "ssd_s": 4.3084,
+      "gpu_busy_s": 7.273899999999999,
+      "wall_s": 7.6766000000000005,
+      "passes": 3.0,
+      "read_ahead_gb": 10.5524,
+      "read_ahead_used_gb": 10.3636,
+      "watts": null,
+      "decode_tps": 7.263998989356662,
+      "generated": 24,
+      "output": "<think>\nThe user is asking me to summarize a document, but what they've provided is just a small fragment of what",
+      "progress": [
+       {
+        "tokens": 125,
+        "total": 128,
+        "elapsed_s": 6.999
+       }
+      ],
+      "decode_per_token": {
+       "total_ms": 137.66521739130437,
+       "gpu_wait_ms": 80.56521739130434,
+       "ssd_ms": 46.98695652173913,
+       "cpu_ms": 10.113043478260876,
+       "encode_ms": 3.7217391304347824,
+       "gpu_busy_ms": 76.82173913043479,
+       "sample_ms": 0.1391304347826087,
+       "misses": 50.52173913043478,
+       "ssd_mb": 284.704347826087,
+       "waits": 49.0,
+       "ahead": 88.52173913043478,
+       "ahead_used": 64.8695652173913,
+       "ahead_waits": 13.26086956521739,
+       "predict_ms": 4.165217391304347
+      }
+     },
+     "250": {
+      "tokens": 250,
+      "tps": 28.480291638186376,
+      "ttft_s": 8.778548002243042,
+      "ssd_gb": 28.340700000000002,
+      "swapouts": 0,
+      "gpu_wait_s": 3.0157,
+      "ssd_s": 4.440300000000001,
+      "gpu_busy_s": 6.9498999999999995,
+      "wall_s": 8.778,
+      "passes": 3.0,
+      "read_ahead_gb": 14.9397,
+      "read_ahead_used_gb": 12.0114,
+      "watts": null,
+      "decode_tps": 7.193569574328339,
+      "generated": 24,
+      "output": "<think>\nThe user wants me to summarize a document that appears to be a fragment from a technical document about benchmarking results",
+      "progress": [
+       {
+        "tokens": 247,
+        "total": 250,
+        "elapsed_s": 7.971
+       },
+       {
+        "tokens": 249,
+        "total": 250,
+        "elapsed_s": 8.481
+       }
+      ],
+      "decode_per_token": {
+       "total_ms": 139.01304347826087,
+       "gpu_wait_ms": 82.92173913043479,
+       "ssd_ms": 45.69565217391305,
+       "cpu_ms": 10.39565217391305,
+       "encode_ms": 3.7304347826086954,
+       "gpu_busy_ms": 78.84782608695652,
+       "sample_ms": 0.1391304347826087,
+       "misses": 47.52173913043478,
+       "ssd_mb": 272.46521739130435,
+       "waits": 49.0,
+       "ahead": 85.34782608695652,
+       "ahead_used": 65.04347826086956,
+       "ahead_waits": 14.521739130434783,
+       "predict_ms": 4.139130434782609
+      }
+     },
+     "500": {
+      "tokens": 500,
+      "tps": 46.231657589851224,
+      "ttft_s": 10.816086053848267,
+      "ssd_gb": 35.7515,
+      "swapouts": 0,
+      "gpu_wait_s": 4.1602,
+      "ssd_s": 4.934399999999999,
+      "gpu_busy_s": 8.1444,
+      "wall_s": 10.815100000000001,
+      "passes": 3.0,
+      "read_ahead_gb": 19.5433,
+      "read_ahead_used_gb": 17.0682,
+      "watts": 21.25956,
+      "decode_tps": 6.196287615506884,
+      "generated": 24,
+      "output": "<think>\nThe user wants me to summarize a technical document about llama.cpp's speculative decoding and quantization features. Let me",
+      "progress": [
+       {
+        "tokens": 497,
+        "total": 500,
+        "elapsed_s": 10.252
+       }
+      ],
+      "decode_per_token": {
+       "total_ms": 161.38695652173914,
+       "gpu_wait_ms": 90.0086956521739,
+       "ssd_ms": 60.49130434782609,
+       "cpu_ms": 10.886956521739144,
+       "encode_ms": 3.856521739130435,
+       "gpu_busy_ms": 87.0695652173913,
+       "sample_ms": 0.14347826086956522,
+       "misses": 59.26086956521739,
+       "ssd_mb": 355.74782608695654,
+       "waits": 49.0,
+       "ahead": 114.73913043478261,
+       "ahead_used": 88.43478260869566,
+       "ahead_waits": 20.91304347826087,
+       "predict_ms": 4.195652173913044
+      }
+     },
+     "1000": {
+      "tokens": 1000,
+      "tps": 68.69075422448138,
+      "ttft_s": 14.558819055557251,
+      "ssd_gb": 39.247,
+      "swapouts": 0,
+      "gpu_wait_s": 7.2173,
+      "ssd_s": 4.8979,
+      "gpu_busy_s": 12.889299999999999,
+      "wall_s": 14.5581,
+      "passes": 3.0,
+      "read_ahead_gb": 23.107,
+      "read_ahead_used_gb": 19.9328,
+      "watts": null,
+      "decode_tps": 6.841165972635336,
+      "generated": 24,
+      "output": "<think>\nThe user wants me to summarize a technical document about what appears to be a local LLM serving engine (likely",
+      "progress": [
+       {
+        "tokens": 997,
+        "total": 1000,
+        "elapsed_s": 13.981
+       }
+      ],
+      "decode_per_token": {
+       "total_ms": 146.17391304347825,
+       "gpu_wait_ms": 81.25652173913043,
+       "ssd_ms": 53.95652173913044,
+       "cpu_ms": 10.960869565217388,
+       "encode_ms": 3.8000000000000003,
+       "gpu_busy_ms": 77.34347826086957,
+       "sample_ms": 0.14782608695652175,
+       "misses": 55.91304347826087,
+       "ssd_mb": 295.7695652173913,
+       "waits": 49.0,
+       "ahead": 88.6086956521739,
+       "ahead_used": 70.43478260869566,
+       "ahead_waits": 14.521739130434783,
+       "predict_ms": 4.143478260869565
+      }
+     },
+     "2000": {
+      "tokens": 2000,
+      "tps": 88.09680076468024,
+      "ttft_s": 22.706781148910522,
+      "ssd_gb": 42.4358,
+      "swapouts": 0,
+      "gpu_wait_s": 14.9131,
+      "ssd_s": 3.944,
+      "gpu_busy_s": 24.4596,
+      "wall_s": 22.7023,
+      "passes": 3.0,
+      "read_ahead_gb": 25.6509,
+      "read_ahead_used_gb": 23.3454,
+      "watts": null,
+      "decode_tps": 6.5159499121763265,
+      "generated": 24,
+      "output": "<think>\nThe user wants me to summarize a technical document about a system called \"Strata\" that deals with running large",
+      "progress": [
+       {
+        "tokens": 1997,
+        "total": 2000,
+        "elapsed_s": 22.109
+       }
+      ],
+      "decode_per_token": {
+       "total_ms": 153.4695652173913,
+       "gpu_wait_ms": 84.53478260869565,
+       "ssd_ms": 58.02173913043478,
+       "cpu_ms": 10.91304347826088,
+       "encode_ms": 3.8434782608695657,
+       "gpu_busy_ms": 81.02173913043478,
+       "sample_ms": 0.15217391304347827,
+       "misses": 61.56521739130435,
+       "ssd_mb": 323.4217391304348,
+       "waits": 49.0,
+       "ahead": 95.34782608695652,
+       "ahead_used": 75.30434782608695,
+       "ahead_waits": 16.869565217391305,
+       "predict_ms": 4.143478260869565
+      }
+     }
+    },
+    "swapouts": 0,
+    "temps_after": [
+     74.3,
+     35.5
+    ]
+   }
+  ],
+  "STRATA_METAL_INDEXED_QSA=1 build-metal/bin/strata --elastic on": [
+   {
+    "info": {
+     "context": "131072",
+     "kv": "f16",
+     "kv_resident": "0",
+     "expert_slots": "4030",
+     "expert_cache_mib": "7878",
+     "expert_slots_primary": "4030",
+     "expert_cache_primary_mib": "7878",
+     "spec": "0",
+     "mtp_max": "0",
+     "lookup": "0",
+     "prefetch": "10",
+     "vram_free_mib": "5754",
+     "arena_mib": "0",
+     "pool_workers": "8",
+     "backend": "metal",
+     "expert_io": "direct",
+     "engine": "0.1.42-metal"
+    },
+    "therm": null,
+    "temps_before": [
+     49.6,
+     35.0
+    ],
+    "memory_before": {
+     "free_gib": 14.84,
+     "file_cache_gib": 6.43,
+     "apps_gib": 7.75,
+     "wired_gib": 2.18,
+     "swap_used_gib": 1.91,
+     "pressure_level": 1
+    },
+    "ready_s": 9.510946035385132,
+    "prefill": {
+     "64": {
+      "tokens": 64,
+      "tps": 10.007036197326245,
+      "ttft_s": 6.395907878875732,
+      "ssd_gb": 19.5162,
+      "swapouts": 0,
+      "gpu_wait_s": 1.8089000000000002,
+      "ssd_s": 3.6466,
+      "gpu_busy_s": 4.941,
+      "wall_s": 6.3955,
+      "passes": 3.0,
+      "read_ahead_gb": 8.3786,
+      "read_ahead_used_gb": 8.2962,
+      "watts": null,
+      "decode_tps": 7.4784587871890755,
+      "generated": 24,
+      "output": "<think>\nThe user wants me to summarize a document. However, the document provided is extremely brief - it appears to be",
+      "progress": [
+       {
+        "tokens": 61,
+        "total": 64,
+        "elapsed_s": 5.679
+       },
+       {
+        "tokens": 63,
+        "total": 64,
+        "elapsed_s": 6.217
+       }
+      ],
+      "decode_per_token": {
+       "total_ms": 133.7173913043478,
+       "gpu_wait_ms": 80.9304347826087,
+       "ssd_ms": 42.856521739130436,
+       "cpu_ms": 9.930434782608689,
+       "encode_ms": 3.7217391304347824,
+       "gpu_busy_ms": 76.6086956521739,
+       "sample_ms": 0.1391304347826087,
+       "misses": 43.69565217391305,
+       "ssd_mb": 286.33478260869566,
+       "waits": 49.0,
+       "ahead": 97.08695652173913,
+       "ahead_used": 60.47826086956522,
+       "ahead_waits": 14.130434782608695,
+       "predict_ms": 4.1521739130434785
+      }
+     },
+     "128": {
+      "tokens": 128,
+      "tps": 17.851663830855486,
+      "ttft_s": 7.17084002494812,
+      "ssd_gb": 19.3804,
+      "swapouts": 0,
+      "gpu_wait_s": 2.3981999999999997,
+      "ssd_s": 3.9845,
+      "gpu_busy_s": 6.511699999999999,
+      "wall_s": 7.1701999999999995,
+      "passes": 3.0,
+      "read_ahead_gb": 9.5995,
+      "read_ahead_used_gb": 9.163799999999998,
+      "watts": null,
+      "decode_tps": 8.10401324829992,
+      "generated": 24,
+      "output": "<think>\nThe user is asking me to summarize a document, but what they've provided is just a small fragment of what",
+      "progress": [
+       {
+        "tokens": 125,
+        "total": 128,
+        "elapsed_s": 6.513
+       }
+      ],
+      "decode_per_token": {
+       "total_ms": 123.39565217391304,
+       "gpu_wait_ms": 80.5,
+       "ssd_ms": 33.165217391304346,
+       "cpu_ms": 9.730434782608693,
+       "encode_ms": 3.5217391304347827,
+       "gpu_busy_ms": 75.13913043478261,
+       "sample_ms": 0.14782608695652175,
+       "misses": 36.69565217391305,
+       "ssd_mb": 204.4913043478261,
+       "waits": 49.0,
+       "ahead": 63.34782608695652,
+       "ahead_used": 45.130434782608695,
+       "ahead_waits": 7.826086956521739,
+       "predict_ms": 4.1
+      }
+     },
+     "250": {
+      "tokens": 250,
+      "tps": 29.47974152162634,
+      "ttft_s": 8.480928897857666,
+      "ssd_gb": 24.622700000000002,
+      "swapouts": 0,
+      "gpu_wait_s": 2.9086,
+      "ssd_s": 3.9163,
+      "gpu_busy_s": 6.8362,
+      "wall_s": 8.4804,
+      "passes": 3.0,
+      "read_ahead_gb": 13.6124,
+      "read_ahead_used_gb": 10.764100000000001,
+      "watts": null,
+      "decode_tps": 8.58881959744576,
+      "generated": 24,
+      "output": "<think>\nThe user wants me to summarize a document that appears to be a fragment from a technical document about benchmarking results",
+      "progress": [
+       {
+        "tokens": 247,
+        "total": 250,
+        "elapsed_s": 7.897
+       }
+      ],
+      "decode_per_token": {
+       "total_ms": 116.4304347826087,
+       "gpu_wait_ms": 80.20434782608696,
+       "ssd_ms": 26.52173913043478,
+       "cpu_ms": 9.70434782608696,
+       "encode_ms": 3.508695652173913,
+       "gpu_busy_ms": 74.9391304347826,
+       "sample_ms": 0.14347826086956522,
+       "misses": 30.52173913043478,
+       "ssd_mb": 168.79130434782607,
+       "waits": 49.0,
+       "ahead": 52.17391304347826,
+       "ahead_used": 36.34782608695652,
+       "ahead_waits": 6.043478260869565,
+       "predict_ms": 4.073913043478261
+      }
+     },
+     "500": {
+      "tokens": 500,
+      "tps": 48.899755501222494,
+      "ttft_s": 10.2256600856781,
+      "ssd_gb": 29.9462,
+      "swapouts": 0,
+      "gpu_wait_s": 4.214,
+      "ssd_s": 3.9579,
+      "gpu_busy_s": 8.452399999999999,
+      "wall_s": 10.225,
+      "passes": 3.0,
+      "read_ahead_gb": 18.1067,
+      "read_ahead_used_gb": 15.703299999999999,
+      "watts": null,
+      "decode_tps": 7.70674172362954,
+      "generated": 24,
+      "output": "<think>\nThe user wants me to summarize a technical document about llama.cpp's speculative decoding and quantization features. Let me",
+      "progress": [
+       {
+        "tokens": 497,
+        "total": 500,
+        "elapsed_s": 9.772
+       }
+      ],
+      "decode_per_token": {
+       "total_ms": 129.75652173913045,
+       "gpu_wait_ms": 80.94782608695652,
+       "ssd_ms": 38.94782608695652,
+       "cpu_ms": 9.8608695652174,
+       "encode_ms": 3.6260869565217395,
+       "gpu_busy_ms": 77.07391304347826,
+       "sample_ms": 0.1782608695652174,
+       "misses": 42.30434782608695,
+       "ssd_mb": 237.5913043478261,
+       "waits": 49.0,
+       "ahead": 74.04347826086956,
+       "ahead_used": 52.73913043478261,
+       "ahead_waits": 12.608695652173912,
+       "predict_ms": 4.091304347826087
+      }
+     },
+     "1000": {
+      "tokens": 1000,
+      "tps": 70.9023745205227,
+      "ttft_s": 14.104554176330566,
+      "ssd_gb": 36.158300000000004,
+      "swapouts": 0,
+      "gpu_wait_s": 7.2296000000000005,
+      "ssd_s": 4.1259,
+      "gpu_busy_s": 13.2376,
+      "wall_s": 14.1039,
+      "passes": 3.0,
+      "read_ahead_gb": 21.8345,
+      "read_ahead_used_gb": 18.7227,
+      "watts": 21.562050847457627,
+      "decode_tps": 7.301819105368424,
+      "generated": 24,
+      "output": "<think>\nThe user wants me to summarize a technical document about what appears to be a local LLM serving engine (likely",
+      "progress": [
+       {
+        "tokens": 997,
+        "total": 1000,
+        "elapsed_s": 13.559
+       }
+      ],
+      "decode_per_token": {
+       "total_ms": 136.95217391304348,
+       "gpu_wait_ms": 81.65652173913043,
+       "ssd_ms": 44.595652173913045,
+       "cpu_ms": 10.700000000000006,
+       "encode_ms": 3.6999999999999997,
+       "gpu_busy_ms": 77.17391304347827,
+       "sample_ms": 0.14782608695652175,
+       "misses": 48.26086956521739,
+       "ssd_mb": 255.1304347826087,
+       "waits": 49.0,
+       "ahead": 76.6086956521739,
+       "ahead_used": 60.43478260869565,
+       "ahead_waits": 11.173913043478262,
+       "predict_ms": 4.104347826086957
+      }
+     },
+     "2000": {
+      "tokens": 2000,
+      "tps": 76.70858790995946,
+      "ttft_s": 26.089060068130493,
+      "ssd_gb": 49.1085,
+      "swapouts": 48,
+      "gpu_wait_s": 14.3952,
+      "ssd_s": 8.09,
+      "gpu_busy_s": 28.7589,
+      "wall_s": 26.0727,
+      "passes": 3.0,
+      "read_ahead_gb": 26.963900000000002,
+      "read_ahead_used_gb": 24.5014,
+      "watts": null,
+      "decode_tps": 8.144475920679888,
+      "generated": 24,
+      "output": "<think>\nThe user wants me to summarize a technical document about a system called \"Strata\" that deals with running large",
+      "progress": [
+       {
+        "tokens": 1997,
+        "total": 2000,
+        "elapsed_s": 22.721
+       },
+       {
+        "tokens": 1999,
+        "total": 2000,
+        "elapsed_s": 25.936
+       }
+      ],
+      "decode_per_token": {
+       "total_ms": 122.78695652173913,
+       "gpu_wait_ms": 83.76521739130435,
+       "ssd_ms": 28.686956521739127,
+       "cpu_ms": 10.334782608695654,
+       "encode_ms": 3.5782608695652174,
+       "gpu_busy_ms": 77.79565217391304,
+       "sample_ms": 0.17391304347826086,
+       "misses": 36.391304347826086,
+       "ssd_mb": 180.58260869565217,
+       "waits": 49.0,
+       "ahead": 51.0,
+       "ahead_used": 35.47826086956522,
+       "ahead_waits": 4.086956521739131,
+       "predict_ms": 4.091304347826087
+      }
+     }
+    },
+    "swapouts": 48,
+    "temps_after": [
+     73.5,
+     35.4
+    ]
+   },
+   {
+    "info": {
+     "context": "131072",
+     "kv": "f16",
+     "kv_resident": "0",
+     "expert_slots": "4370",
+     "expert_cache_mib": "8542",
+     "expert_slots_primary": "4370",
+     "expert_cache_primary_mib": "8542",
+     "spec": "0",
+     "mtp_max": "0",
+     "lookup": "0",
+     "prefetch": "10",
+     "vram_free_mib": "5091",
+     "arena_mib": "0",
+     "pool_workers": "8",
+     "backend": "metal",
+     "expert_io": "direct",
+     "engine": "0.1.42-metal"
+    },
+    "therm": null,
+    "temps_before": [
+     49.4,
+     34.9
+    ],
+    "memory_before": {
+     "free_gib": 14.75,
+     "file_cache_gib": 7.14,
+     "apps_gib": 7.07,
+     "wired_gib": 2.25,
+     "swap_used_gib": 1.91,
+     "pressure_level": 1
+    },
+    "ready_s": 9.651242971420288,
+    "prefill": {
+     "64": {
+      "tokens": 64,
+      "tps": 9.887376600905313,
+      "ttft_s": 6.473282814025879,
+      "ssd_gb": 18.7529,
+      "swapouts": 0,
+      "gpu_wait_s": 1.8756,
+      "ssd_s": 3.5034,
+      "gpu_busy_s": 3.1335,
+      "wall_s": 6.472899999999999,
+      "passes": 3.0,
+      "read_ahead_gb": 8.1274,
+      "read_ahead_used_gb": 8.0421,
+      "watts": null,
+      "decode_tps": 7.436386562772801,
+      "generated": 24,
+      "output": "<think>\nThe user wants me to summarize a document. However, the document provided is extremely brief - it appears to be",
+      "progress": [
+       {
+        "tokens": 61,
+        "total": 64,
+        "elapsed_s": 5.698
+       },
+       {
+        "tokens": 63,
+        "total": 64,
+        "elapsed_s": 6.254
+       }
+      ],
+      "decode_per_token": {
+       "total_ms": 134.47391304347826,
+       "gpu_wait_ms": 86.68695652173913,
+       "ssd_ms": 37.67391304347826,
+       "cpu_ms": 10.113043478260876,
+       "encode_ms": 3.808695652173913,
+       "gpu_busy_ms": 80.47391304347826,
+       "sample_ms": 0.1391304347826087,
+       "misses": 40.04347826086956,
+       "ssd_mb": 264.2608695652174,
+       "waits": 49.0,
+       "ahead": 90.1304347826087,
+       "ahead_used": 55.56521739130435,
+       "ahead_waits": 11.826086956521738,
+       "predict_ms": 4.260869565217392
+      }
+     },
+     "128": {
+      "tokens": 128,
+      "tps": 18.285453064956215,
+      "ttft_s": 7.000542879104614,
+      "ssd_gb": 17.5747,
+      "swapouts": 0,
+      "gpu_wait_s": 2.2984,
+      "ssd_s": 3.8242,
+      "gpu_busy_s": 4.3006,
+      "wall_s": 7.000100000000001,
+      "passes": 3.0,
+      "read_ahead_gb": 9.2844,
+      "read_ahead_used_gb": 8.7696,
+      "watts": 10.633016949152543,
+      "decode_tps": 8.754900841231777,
+      "generated": 24,
+      "output": "<think>\nThe user is asking me to summarize a document, but what they've provided is just a small fragment of what",
+      "progress": [
+       {
+        "tokens": 125,
+        "total": 128,
+        "elapsed_s": 6.448
+       }
+      ],
+      "decode_per_token": {
+       "total_ms": 114.22173913043478,
+       "gpu_wait_ms": 80.1608695652174,
+       "ssd_ms": 24.430434782608696,
+       "cpu_ms": 9.63043478260869,
+       "encode_ms": 3.5217391304347827,
+       "gpu_busy_ms": 75.24782608695652,
+       "sample_ms": 0.1391304347826087,
+       "misses": 27.73913043478261,
+       "ssd_mb": 146.6913043478261,
+       "waits": 49.0,
+       "ahead": 43.30434782608695,
+       "ahead_used": 27.26086956521739,
+       "ahead_waits": 4.260869565217392,
+       "predict_ms": 4.091304347826087
+      }
+     },
+     "250": {
+      "tokens": 250,
+      "tps": 29.44085920203495,
+      "ttft_s": 8.492262840270996,
+      "ssd_gb": 24.0686,
+      "swapouts": 0,
+      "gpu_wait_s": 2.849,
+      "ssd_s": 3.8534,
+      "gpu_busy_s": 5.3306000000000004,
+      "wall_s": 8.4916,
+      "passes": 3.0,
+      "read_ahead_gb": 13.2032,
+      "read_ahead_used_gb": 10.384,
+      "watts": null,
+      "decode_tps": 8.792048929663608,
+      "generated": 24,
+      "output": "<think>\nThe user wants me to summarize a document that appears to be a fragment from a technical document about benchmarking results",
+      "progress": [
+       {
+        "tokens": 247,
+        "total": 250,
+        "elapsed_s": 7.953
+       }
+      ],
+      "decode_per_token": {
+       "total_ms": 113.73913043478261,
+       "gpu_wait_ms": 80.17391304347827,
+       "ssd_ms": 23.891304347826086,
+       "cpu_ms": 9.673913043478262,
+       "encode_ms": 3.5130434782608693,
+       "gpu_busy_ms": 74.96521739130435,
+       "sample_ms": 0.15217391304347827,
+       "misses": 26.217391304347824,
+       "ssd_mb": 147.68695652173915,
+       "waits": 49.0,
+       "ahead": 45.391304347826086,
+       "ahead_used": 30.217391304347824,
+       "ahead_waits": 5.6521739130434785,
+       "predict_ms": 4.065217391304348
+      }
+     },
+     "500": {
+      "tokens": 500,
+      "tps": 48.92224298699647,
+      "ttft_s": 10.220951080322266,
+      "ssd_gb": 29.7431,
+      "swapouts": 0,
+      "gpu_wait_s": 4.1692,
+      "ssd_s": 3.8303000000000003,
+      "gpu_busy_s": 7.986,
+      "wall_s": 10.2203,
+      "passes": 3.0,
+      "read_ahead_gb": 17.6677,
+      "read_ahead_used_gb": 15.3119,
+      "watts": null,
+      "decode_tps": 7.852509388869922,
+      "generated": 24,
+      "output": "<think>\nThe user wants me to summarize a technical document about llama.cpp's speculative decoding and quantization features. Let me",
+      "progress": [
+       {
+        "tokens": 497,
+        "total": 500,
+        "elapsed_s": 9.816
+       }
+      ],
+      "decode_per_token": {
+       "total_ms": 127.35217391304347,
+       "gpu_wait_ms": 80.6086956521739,
+       "ssd_ms": 36.75217391304348,
+       "cpu_ms": 9.991304347826086,
+       "encode_ms": 3.5478260869565217,
+       "gpu_busy_ms": 76.36086956521739,
+       "sample_ms": 0.1565217391304348,
+       "misses": 36.56521739130435,
+       "ssd_mb": 210.66521739130437,
+       "waits": 49.0,
+       "ahead": 66.0,
+       "ahead_used": 45.73913043478261,
+       "ahead_waits": 12.0,
+       "predict_ms": 4.095652173913043
+      }
+     },
+     "1000": {
+      "tokens": 1000,
+      "tps": 70.43344743551818,
+      "ttft_s": 14.19832706451416,
+      "ssd_gb": 34.673,
+      "swapouts": 0,
+      "gpu_wait_s": 7.2268,
+      "ssd_s": 4.0131,
+      "gpu_busy_s": 12.841299999999999,
+      "wall_s": 14.197799999999999,
+      "passes": 3.0,
+      "read_ahead_gb": 21.2189,
+      "read_ahead_used_gb": 18.1312,
+      "watts": null,
+      "decode_tps": 7.7944964077538295,
+      "generated": 24,
+      "output": "<think>\nThe user wants me to summarize a technical document about what appears to be a local LLM serving engine (likely",
+      "progress": [
+       {
+        "tokens": 997,
+        "total": 1000,
+        "elapsed_s": 13.716
+       }
+      ],
+      "decode_per_token": {
+       "total_ms": 128.29565217391306,
+       "gpu_wait_ms": 81.22173913043478,
+       "ssd_ms": 36.55652173913043,
+       "cpu_ms": 10.51739130434784,
+       "encode_ms": 3.6652173913043478,
+       "gpu_busy_ms": 76.84782608695652,
+       "sample_ms": 0.1391304347826087,
+       "misses": 39.73913043478261,
+       "ssd_mb": 207.61739130434782,
+       "waits": 49.0,
+       "ahead": 61.69565217391305,
+       "ahead_used": 47.34782608695652,
+       "ahead_waits": 8.608695652173912,
+       "predict_ms": 4.086956521739131
+      }
+     },
+     "2000": {
+      "tokens": 2000,
+      "tps": 73.7977425270561,
+      "ttft_s": 27.101953983306885,
+      "ssd_gb": 50.425599999999996,
+      "swapouts": 0,
+      "gpu_wait_s": 14.6567,
+      "ssd_s": 8.4991,
+      "gpu_busy_s": 26.8455,
+      "wall_s": 27.1011,
+      "passes": 3.0,
+      "read_ahead_gb": 26.351599999999998,
+      "read_ahead_used_gb": 23.897599999999997,
+      "watts": 18.6315,
+      "decode_tps": 8.111158132317675,
+      "generated": 24,
+      "output": "<think>\nThe user wants me to summarize a technical document about a system called \"Strata\" that deals with running large",
+      "progress": [
+       {
+        "tokens": 1997,
+        "total": 2000,
+        "elapsed_s": 23.26
+       },
+       {
+        "tokens": 1999,
+        "total": 2000,
+        "elapsed_s": 26.949
+       }
+      ],
+      "decode_per_token": {
+       "total_ms": 123.28695652173913,
+       "gpu_wait_ms": 83.99130434782609,
+       "ssd_ms": 28.491304347826084,
+       "cpu_ms": 10.804347826086957,
+       "encode_ms": 3.5304347826086957,
+       "gpu_busy_ms": 78.0608695652174,
+       "sample_ms": 0.15217391304347827,
+       "misses": 34.43478260869565,
+       "ssd_mb": 168.8217391304348,
+       "waits": 49.0,
+       "ahead": 47.34782608695652,
+       "ahead_used": 32.34782608695652,
+       "ahead_waits": 3.8260869565217392,
+       "predict_ms": 4.095652173913043
+      }
+     }
+    },
+    "swapouts": 0,
+    "temps_after": [
+     71.4,
+     35.3
+    ]
+   }
+  ]
+ },
+ "memory_after": {
+  "free_gib": 17.75,
+  "file_cache_gib": 5.58,
+  "apps_gib": 6.11,
+  "wired_gib": 1.76,
+  "swap_used_gib": 1.91,
+  "pressure_level": 1
+ }
+}

@@ -11,6 +11,10 @@ The requested 120 tok/s prefill and 10 tok/s decode have not been reached. The f
 new swap-outs. Optimization stopped at the user's request. See the [full handoff](../../../OPTIMIZATION.md) for
 source/binary differences, unbuilt experiments, desktop integration status, and proposed next steps.
 
+**Continued the same afternoon:** [2026-10-12-m4-air-128k-resume](../2026-10-12-m4-air-128k-resume/README.md)
+explains the 442 MiB of compute-buffer growth reported below, rebuilds and tests the patches, and archives the SIMD
+sort.
+
 ## Changes retained
 
 1. **Pass selected attention cells directly to Metal.** QSA already selects its KV cells. The old graph scatters

@@ -1,0 +1,14 @@
+strata metal: memory now: 17.8 GiB free or file cache, 11.0 GiB held by other programs, 2.5 GiB wired, 0.9 GiB in swap
+sched_reserve:       MTL0 compute buffer size =  1502.78 MiB
+sched_reserve:        CPU compute buffer size =   233.25 MiB
+~llama_context:       MTL0 compute buffer size is 1502.7842 MiB, matches expectation of 1502.7842 MiB
+~llama_context:        CPU compute buffer size is 233.2513 MiB, matches expectation of 233.2513 MiB
+~llama_context:        CPU compute buffer size is   0.0000 MiB, matches expectation of   0.0000 MiB
+strata metal: context 2.05 GiB on the GPU; expert cache 6.93 GiB (auto; Metal has room for 15.1, the free memory for 6.9)
+sched_reserve:       MTL0 compute buffer size =  1502.78 MiB
+sched_reserve:        CPU compute buffer size =   233.25 MiB
+strata metal: expert cache: 3625 of 24576 experts (15%), 6.92 GiB; missed experts are read from the SSD by 8 threads (past the OS file cache)
+strata metal: expert cache filled with the profile's 3625 most used experts in 2.3 s (6.91 GiB, 3.01 GiB/s; 7.09 GiB came from the SSD)
+~llama_context:       MTL0 compute buffer size is 1502.7842 MiB, matches expectation of 1502.7842 MiB
+~llama_context:        CPU compute buffer size is 233.2513 MiB, matches expectation of 233.2513 MiB
+~llama_context:        CPU compute buffer size is   0.0000 MiB, matches expectation of   0.0000 MiB

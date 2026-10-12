@@ -1,0 +1,47 @@
+memory: {'free_gib': 16.75, 'file_cache_gib': 3.56, 'apps_gib': 8.47, 'wired_gib': 2.42, 'swap_used_gib': 0.91, 'pressure_level': 1}
+temperature before the run: SoC 45.0 C, battery 35.0 C
+bin/strata: ready in 6.5 s; context 131072, expert cache 2691 experts (5265 MiB), direct reads
+prefill     64 tokens:     8.9 tok/s, first token after 7.23 s, 20.0 GB from the SSD, 3 passes; 7.2 s = SSD 4.2 + GPU wait 2.5 + CPU 0.5 (GPU busy 5.8; 9.5 GB read ahead, 9.4 used); swap-outs 0, 8.6 W
+  decode at 64 tokens: 6.18 tok/s, 12 tokens; '<think>\nThe user wants me to summarize a document. However'
+prefill    128 tokens:    17.2 tok/s, first token after 7.46 s, 18.5 GB from the SSD, 3 passes; 7.4 s = SSD 4.2 + GPU wait 2.6 + CPU 0.6 (GPU busy 4.8; 10.3 GB read ahead, 10.2 used); swap-outs 0
+  decode at 128 tokens: 6.75 tok/s, 12 tokens; '<think>\nThe user is asking me to summarize a document,'
+prefill    250 tokens:    26.7 tok/s, first token after 9.36 s, 27.0 GB from the SSD, 3 passes; 9.4 s = SSD 5.2 + GPU wait 3.1 + CPU 1.1 (GPU busy 7.5; 14.7 GB read ahead, 11.8 used); swap-outs 0
+  decode at 250 tokens: 7.29 tok/s, 12 tokens; '<think>\nThe user wants me to summarize a document that appears'
+prefill    500 tokens:    45.8 tok/s, first token after 10.92 s, 31.9 GB from the SSD, 3 passes; 10.9 s = SSD 5.2 + GPU wait 4.1 + CPU 1.5 (GPU busy 8.5; 21.4 GB read ahead, 18.8 used); swap-outs 0
+  decode at 500 tokens: 6.99 tok/s, 12 tokens; '<think>\nThe user wants me to summarize a technical document about'
+prefill   1000 tokens:    69.2 tok/s, first token after 14.45 s, 36.1 GB from the SSD, 3 passes; 14.5 s = SSD 4.9 + GPU wait 7.3 + CPU 2.2 (GPU busy 12.4; 26.1 GB read ahead, 22.9 used); swap-outs 0
+  decode at 1000 tokens: 7.21 tok/s, 12 tokens; '<think>\nThe user wants me to summarize a technical document about'
+temperature before the run: SoC 44.8 C, battery 35.0 C
+bin/strata: ready in 10.8 s; context 131072, expert cache 4219 experts (8247 MiB), direct reads
+prefill     64 tokens:     5.9 tok/s, first token after 10.86 s, 29.0 GB from the SSD, 3 passes; 10.9 s = SSD 7.4 + GPU wait 2.6 + CPU 0.9 (GPU busy 6.6; 11.5 GB read ahead, 11.3 used); swap-outs 0
+  decode at 64 tokens: 7.34 tok/s, 12 tokens; '<think>\nThe user wants me to summarize a document. However'
+prefill    128 tokens:    12.1 tok/s, first token after 10.61 s, 25.8 GB from the SSD, 3 passes; 10.6 s = SSD 7.0 + GPU wait 2.7 + CPU 1.0 (GPU busy 6.6; 12.4 GB read ahead, 12.4 used); swap-outs 0, 12.0 W
+  decode at 128 tokens: 8.41 tok/s, 12 tokens; '<think>\nThe user is asking me to summarize a document,'
+prefill    250 tokens:    19.9 tok/s, first token after 12.53 s, 34.6 GB from the SSD, 3 passes; 12.5 s = SSD 8.4 + GPU wait 2.7 + CPU 1.4 (GPU busy 7.5; 18.5 GB read ahead, 15.4 used); swap-outs 0
+  decode at 250 tokens: 9.07 tok/s, 12 tokens; '<think>\nThe user wants me to summarize a document that appears'
+prefill    500 tokens:    36.5 tok/s, first token after 13.68 s, 38.1 GB from the SSD, 3 passes; 13.7 s = SSD 8.2 + GPU wait 3.8 + CPU 1.6 (GPU busy 8.9; 27.0 GB read ahead, 24.1 used); swap-outs 0
+  decode at 500 tokens: 9.44 tok/s, 12 tokens; '<think>\nThe user wants me to summarize a technical document about'
+prefill   1000 tokens:    57.0 tok/s, first token after 17.54 s, 45.0 GB from the SSD, 3 passes; 17.5 s = SSD 8.3 + GPU wait 6.9 + CPU 2.3 (GPU busy 11.3; 31.8 GB read ahead, 28.3 used); swap-outs 0
+  decode at 1000 tokens: 9.95 tok/s, 12 tokens; '<think>\nThe user wants me to summarize a technical document about'
+temperature before the run: SoC 44.8 C, battery 35.1 C
+bin/strata: ready in 10.2 s; context 131072, expert cache 4400 experts (8600 MiB), direct reads
+prefill     64 tokens:     8.0 tok/s, first token after 8.03 s, 23.0 GB from the SSD, 9 passes; 8.0 s = SSD 3.9 + GPU wait 3.6 + CPU 0.5 (GPU busy 3.7); swap-outs 0
+  decode at 64 tokens: 6.54 tok/s, 12 tokens; '<think>\nThe user wants me to summarize a document. However'
+prefill    128 tokens:    11.9 tok/s, first token after 10.73 s, 29.2 GB from the SSD, 16 passes; 10.7 s = SSD 4.0 + GPU wait 5.9 + CPU 0.8 (GPU busy 6.0); swap-outs 0, 11.3 W
+  decode at 128 tokens: 6.40 tok/s, 12 tokens; '<think>\nThe user is asking me to summarize a document,'
+prefill    250 tokens:     9.1 tok/s, first token after 27.55 s, 68.0 GB from the SSD, 30 passes; 27.5 s = SSD 12.2 + GPU wait 13.7 + CPU 1.6 (GPU busy 14.3); swap-outs 0
+  decode at 250 tokens: 6.82 tok/s, 12 tokens; '<think>\nThe user wants me to summarize a document that appears'
+  read 261/500 tokens in 30.3 s; swap-outs 0
+  read 495/500 tokens in 60.5 s; swap-outs 0
+prefill    500 tokens:     8.1 tok/s, first token after 61.66 s, 154.4 GB from the SSD, 58 passes; 61.7 s = SSD 30.8 + GPU wait 27.7 + CPU 3.1 (GPU busy 28.1); swap-outs 0, 20.0 W
+  decode at 500 tokens: 6.47 tok/s, 12 tokens; '<think>\nThe user wants me to summarize a technical document about'
+  read 252/1000 tokens in 30.8 s; swap-outs 0
+  read 504/1000 tokens in 61.5 s; swap-outs 0
+  read 756/1000 tokens in 91.9 s; swap-outs 0
+prefill   1000 tokens:     8.2 tok/s, first token after 121.98 s, 301.5 GB from the SSD, 113 passes; 122.0 s = SSD 59.7 + GPU wait 56.1 + CPU 6.1 (GPU busy 56.9); swap-outs 0, 18.7 W
+  decode at 1000 tokens: 6.77 tok/s, 12 tokens; '<think>\nThe user wants me to summarize a technical document about'
+
+medians of 1 runs:
+  STRATA_METAL_INDEXED_QSA=1 build-metal/bin/strata: cache 5265 MiB, prefill 64: 8.9 tok/s, prefill 128: 17.2 tok/s, prefill 250: 26.7 tok/s, prefill 500: 45.8 tok/s, prefill 1000: 69.2 tok/s, swap-outs 0
+  STRATA_METAL_INDEXED_QSA=1 build-metal/bin/strata --elastic on --elastic-from 33: cache 8247 MiB, prefill 64: 5.9 tok/s, prefill 128: 12.1 tok/s, prefill 250: 19.9 tok/s, prefill 500: 36.5 tok/s, prefill 1000: 57.0 tok/s, swap-outs 65568
+  STRATA_METAL_INDEXED_QSA=1 build-metal/bin/strata --elastic on --elastic-from 100000: cache 8600 MiB, prefill 64: 8.0 tok/s, prefill 128: 11.9 tok/s, prefill 250: 9.1 tok/s, prefill 500: 8.1 tok/s, prefill 1000: 8.2 tok/s, swap-outs 0

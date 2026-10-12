@@ -1,0 +1,16 @@
+strata metal: memory now: 20.5 GiB free or file cache, 8.8 GiB held by other programs, 2.5 GiB wired, 1.9 GiB in swap
+strata metal: context 6.02 GiB on the GPU (2.16 of it for the passes) and 0.45 GiB of host memory; expert cache 3.65 GiB (auto; Metal has room for 11.2, the free memory for 3.6)
+strata metal: --elastic: answers are written with a 5.91 GiB expert cache (0.27 GiB of work memory). A long prompt is read in passes of 4096 with 2.61 GiB of work memory in the cache's place; up to 1024 new tokens in one pass beside the cache, where 0.94 GiB are free for it
+strata metal: expert cache: 3092 of 24576 experts (13%), 5.91 GiB; missed experts are read from the SSD by 8 threads (past the OS file cache)
+strata metal: expert cache filled with the profile's 3092 most used experts in 1.9 s (5.89 GiB, 3.15 GiB/s; 5.81 GiB came from the SSD)
+strata metal: prompts are read 6 tokens per pass (more than 32 new tokens: 4096 per pass, their experts streamed from the SSD)
+strata metal: the context has its long-prompt shape after 0.14 s (0 experts read back): 10371.5 MiB on the GPU, 8481.7 MiB in all
+strata metal: the context has its answering shape after 1.68 s (3092 experts read back): 14259.7 MiB on the GPU, 14461.8 MiB in all
+strata metal: the context has its long-prompt shape after 0.14 s (0 experts read back): 10372.8 MiB on the GPU, 8510.9 MiB in all
+strata metal: the context has its answering shape after 1.74 s (3092 experts read back): 14260.7 MiB on the GPU, 14465.0 MiB in all
+strata metal: the context has its long-prompt shape after 0.15 s (0 experts read back): 10372.8 MiB on the GPU, 8514.1 MiB in all
+strata metal: the context has its answering shape after 1.74 s (3092 experts read back): 14260.7 MiB on the GPU, 14481.8 MiB in all
+strata metal: the context has its long-prompt shape after 0.21 s (0 experts read back): 10372.8 MiB on the GPU, 8518.6 MiB in all
+strata metal: the context has its answering shape after 1.90 s (3092 experts read back): 14260.7 MiB on the GPU, 14479.1 MiB in all
+strata metal: the context has its long-prompt shape after 0.33 s (0 experts read back): 10372.8 MiB on the GPU, 8515.7 MiB in all
+strata metal: the context has its answering shape after 1.92 s (3092 experts read back): 14260.7 MiB on the GPU, 14494.9 MiB in all

@@ -1,0 +1,5 @@
+strata metal: memory now: 22.8 GiB free or file cache, 6.7 GiB held by other programs, 2.2 GiB wired, 1.9 GiB in swap
+strata metal: context 6.02 GiB on the GPU (2.16 of it for the passes) and 0.45 GiB of host memory; expert cache 6.16 GiB (auto; Metal has room for 11.2, the free memory for 6.2)
+strata metal: expert cache: 3220 of 24576 experts (13%), 6.15 GiB; missed experts are read from the SSD by 8 threads (past the OS file cache)
+strata metal: expert cache filled with the profile's 3220 most used experts in 1.9 s (6.14 GiB, 3.24 GiB/s; 5.82 GiB came from the SSD)
+strata metal: prompts are read 6 tokens per pass (more than 32 new tokens: 4096 per pass, their experts streamed from the SSD)

@@ -1,0 +1,35 @@
+memory: {'free_gib': 11.9, 'file_cache_gib': 7.94, 'apps_gib': 8.54, 'wired_gib': 2.83, 'swap_used_gib': 0.92, 'pressure_level': 1}
+temperature before the run: SoC 44.8 C, battery 34.3 C
+bin/strata: ready in 2.8 s; context 131072, expert cache 1592 experts (3120 MiB), direct reads
+  read 4096/12288 tokens in 38.7 s; swap-outs 0
+  read 8192/12288 tokens in 83.8 s; swap-outs 0
+  read 12285/12288 tokens in 154.2 s; swap-outs 0
+prefill  12288 tokens:    79.3 tok/s, first token after 154.94 s, 149.4 GB from the SSD, 5 passes; 154.9 s = SSD 7.6 + GPU wait 131.9 + CPU 15.5 (GPU busy 162.2; 111.1 GB read ahead, 102.7 used); swap-outs 0, 20.9 W
+  decode at 12288 tokens: 3.78 tok/s, 48 tokens; '<think>\nThe user wants me to summarize a lengthy technical document about "Strata" - a local LLM inference engine. Let me identify the key sections and distill the most important information into a concise summary.\n\nThe document covers:'
+temperature before the run: SoC 44.7 C, battery 34.9 C
+bin/strata: ready in 9.1 s; context 131072, expert cache 3274 experts (6402 MiB), direct reads
+  read 4096/12288 tokens in 46.1 s; swap-outs 0
+  read 8192/12288 tokens in 103.4 s; swap-outs 0
+  read 10240/12288 tokens in 154.4 s; swap-outs 0
+  read 12285/12288 tokens in 198.5 s; swap-outs 0
+prefill  12288 tokens:    61.7 tok/s, first token after 199.17 s, 233.2 GB from the SSD, 8 passes; 199.2 s = SSD 16.9 + GPU wait 158.1 + CPU 24.1 (GPU busy 195.9; 189.2 GB read ahead, 171.4 used); swap-outs 0, 19.7 W
+  decode at 12288 tokens: 4.96 tok/s, 48 tokens; '<think>\nThe user wants me to summarize a lengthy technical document about "Strata" - a local LLM inference engine. Let me identify the key sections and distill the most important information into a concise summary.\n\nThe document covers:'
+temperature before the run: SoC 45.0 C, battery 35.3 C
+bin/strata: ready in 9.1 s; context 131072, expert cache 3385 experts (6619 MiB), direct reads
+  read 4096/12288 tokens in 46.9 s; swap-outs 0
+  read 8192/12288 tokens in 111.4 s; swap-outs 0
+  read 10240/12288 tokens in 162.5 s; swap-outs 0
+  read 12285/12288 tokens in 205.8 s; swap-outs 0
+prefill  12288 tokens:    59.5 tok/s, first token after 206.47 s, 231.5 GB from the SSD, 8 passes; 206.5 s = SSD 16.4 + GPU wait 165.0 + CPU 25.0 (GPU busy 185.6; 187.9 GB read ahead, 170.1 used); swap-outs 0, 18.8 W
+  decode at 12288 tokens: 4.88 tok/s, 48 tokens; '<think>\nThe user wants me to summarize a lengthy technical document about "Strata" - a local LLM inference engine. Let me identify the key sections and distill the most important information into a concise summary.\n\nThe document covers:'
+temperature before the run: SoC 45.0 C, battery 35.4 C
+bin/strata: ready in 8.2 s; context 131072, expert cache 2065 experts (4043 MiB), direct reads
+  read 4096/12288 tokens in 39.1 s; swap-outs 0
+  read 8192/12288 tokens in 88.0 s; swap-outs 0
+  read 12285/12288 tokens in 181.4 s; swap-outs 0
+prefill  12288 tokens:    67.4 tok/s, first token after 182.19 s, 145.6 GB from the SSD, 5 passes; 182.2 s = SSD 7.7 + GPU wait 157.8 + CPU 16.6 (GPU busy 172.7; 108.3 GB read ahead, 100.0 used); swap-outs 0, 20.8 W
+  decode at 12288 tokens: 3.75 tok/s, 48 tokens; '<think>\nThe user wants me to summarize a lengthy technical document about "Strata" - a local LLM inference engine. Let me identify the key sections and distill the most important information into a concise summary.\n\nThe document covers:'
+
+medians of 2 runs:
+  STRATA_METAL_INDEXED_QSA=1 build-metal/bin/strata --prefill 4096: cache 3120 MiB, prefill 12288: 73.4 tok/s, swap-outs 0
+  STRATA_METAL_INDEXED_QSA=1 build-metal/bin/strata --prefill 2048: cache 6402 MiB, prefill 12288: 60.6 tok/s, swap-outs 0

@@ -1,0 +1,9 @@
+memory: {'free_gib': 14.13, 'file_cache_gib': 3.67, 'apps_gib': 10.88, 'wired_gib': 2.53, 'swap_used_gib': 0.92, 'pressure_level': 1}
+bin/strata: ready in 9.0 s; context 16384, expert cache 3625 experts (7088 MiB), direct reads
+  read 4096/16200 tokens in 39.0 s; swap-outs 0
+  read 8192/16200 tokens in 80.8 s; swap-outs 0
+  read 12288/16200 tokens in 125.1 s; swap-outs 0
+  read 16197/16200 tokens in 178.1 s; swap-outs 0
+prefill  16200 tokens:    90.7 tok/s, first token after 178.70 s, 157.1 GB from the SSD, 6 passes; 178.7 s = SSD 7.9 + GPU wait 146.1 + CPU 24.6 (GPU busy 163.7; 134.5 GB read ahead, 123.9 used); swap-outs 0, 25.4 W
+  decode at 16200 tokens: 7.08 tok/s, 8 tokens; '<think>\nThe user wants me to summarize'
+swap-outs over the whole run: 0

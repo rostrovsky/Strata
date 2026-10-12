@@ -1,0 +1,8 @@
+strata metal: context 2.67 GiB on the GPU (1.62 of it for the passes) and 0.26 GiB of host memory; expert cache 2.93 GiB (auto; Metal has room for 14.5, the free memory for 8.4)
+strata metal: --elastic: answers are written with a 2.93 GiB expert cache (0.08 GiB of work memory). A long prompt is read in passes of 4096 with 1.88 GiB of work memory in the cache's place; up to 1024 new tokens in one pass beside the cache, where 0.68 GiB are free for it
+strata metal: expert cache: 1529 of 24576 experts (6%), 2.93 GiB; missed experts are read from the SSD by 8 threads (past the OS file cache)
+strata metal: prompts are read 2 tokens per pass (more than 32 new tokens: 4096 per pass, their experts streamed from the SSD)
+strata metal: the context has its short-prompt shape after 0.07 s (0 experts read back): 8767.2 MiB on the GPU, 8369.1 MiB in all
+strata metal: the context has its answering shape after 0.03 s (0 experts read back): 8135.8 MiB on the GPU, 8488.9 MiB in all
+strata metal: the context has its long-prompt shape after 0.10 s (0 experts read back): 6946.3 MiB on the GPU, 5602.9 MiB in all
+strata metal: the context has its answering shape after 0.79 s (1529 experts read back): 8135.8 MiB on the GPU, 8555.8 MiB in all

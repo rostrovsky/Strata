@@ -1,0 +1,126 @@
+ggml_metal_device_init: tensor API disabled for pre-M5 and pre-A19 devices
+ggml_metal_library_init: using embedded metal library
+ggml_metal_library_compile_all: compiled 'fa_aux' library in 0.001 sec
+ggml_metal_library_compile_all: compiled 'fa_f16' library in 0.003 sec
+ggml_metal_library_compile_all: compiled 'fa_f32' library in 0.001 sec
+ggml_metal_library_compile_all: compiled 'fa_q4_0' library in 0.002 sec
+ggml_metal_library_compile_all: compiled 'fa_q4_1' library in 0.002 sec
+ggml_metal_library_compile_all: compiled 'fa_q5_0' library in 0.006 sec
+ggml_metal_library_compile_all: compiled 'fa_q5_1' library in 0.002 sec
+ggml_metal_library_compile_all: compiled 'fa_q8_0' library in 0.009 sec
+ggml_metal_library_compile_all: compiled 'fa_vec_f16' library in 0.010 sec
+ggml_metal_library_compile_all: compiled 'fa_vec_f32' library in 0.009 sec
+ggml_metal_library_compile_all: compiled 'fa_vec_q4_0' library in 0.008 sec
+ggml_metal_library_compile_all: compiled 'fa_vec_q4_1' library in 0.005 sec
+ggml_metal_library_compile_all: compiled 'fa_vec_q5_0' library in 0.003 sec
+ggml_metal_library_compile_all: compiled 'fa_vec_q5_1' library in 0.004 sec
+ggml_metal_library_compile_all: compiled 'fa_vec_q8_0' library in 0.006 sec
+ggml_metal_library_compile_all: compiled 'mul_mv' library in 0.007 sec
+ggml_metal_library_compile_all: compiled 'mul_mv_mma' library in 0.012 sec
+ggml_metal_library_compile_all: compiled 'mul_mm' library in 0.011 sec
+ggml_metal_library_compile_all: compiled 'quantize' library in 0.009 sec
+ggml_metal_library_compile_all: compiled 'softmax' library in 0.010 sec
+ggml_metal_library_compile_all: compiled 'norm' library in 0.010 sec
+ggml_metal_library_compile_all: compiled 'unary' library in 0.010 sec
+ggml_metal_library_compile_all: compiled 'binbcast' library in 0.010 sec
+ggml_metal_library_compile_all: compiled 'reduce' library in 0.009 sec
+ggml_metal_library_compile_all: compiled 'tri' library in 0.009 sec
+ggml_metal_library_compile_all: compiled 'ssm' library in 0.009 sec
+ggml_metal_library_compile_all: compiled 'wkv' library in 0.009 sec
+ggml_metal_library_compile_all: compiled 'gated_delta_net' library in 0.009 sec
+ggml_metal_library_compile_all: compiled 'solve_tri' library in 0.008 sec
+ggml_metal_library_compile_all: compiled 'rope' library in 0.007 sec
+ggml_metal_library_compile_all: compiled 'conv' library in 0.007 sec
+ggml_metal_library_compile_all: compiled 'upscale' library in 0.007 sec
+ggml_metal_library_compile_all: compiled 'argsort' library in 0.004 sec
+ggml_metal_library_compile_all: compiled 'pool' library in 0.003 sec
+ggml_metal_library_compile_all: compiled 'misc' library in 0.003 sec
+ggml_metal_library_compile_all: loaded 35 libraries from embedded data in 0.013 sec (max single = 0.012 sec)
+ggml_metal_rsets_init: creating a residency set collection (keep_alive = 180 s)
+ggml_metal_device_init: GPU name:   MTL0 (Apple M4)
+ggml_metal_device_init: GPU family: MTLGPUFamilyApple9  (1009)
+ggml_metal_device_init: GPU family: MTLGPUFamilyMetal3  (5001)
+ggml_metal_device_init: simdgroup reduction   = true
+ggml_metal_device_init: simdgroup matrix mul. = true
+ggml_metal_device_init: has unified memory    = true
+ggml_metal_device_init: has bfloat            = true
+ggml_metal_device_init: has tensor            = false
+ggml_metal_device_init: use residency sets    = true
+ggml_metal_device_init: use shared buffers    = true
+ggml_metal_device_init: recommendedMaxWorkingSetSize  = 22906.50 MB
+ggml_metal_init: allocating
+ggml_metal_init: found device: Apple M4
+ggml_metal_init: picking default device: Apple M4
+ggml_metal_init: use fusion         = true
+ggml_metal_init: use concurrency    = true
+ggml_metal_init: use graph optimize = true
+ggml_metal_library_compile_pipeline: compiling pipeline: base = 'kernel_flash_attn_ext_vec_idx', name = 'kernel_flash_attn_ext_vec_idx'
+ggml_metal_library_compile_pipeline: loaded kernel_flash_attn_ext_vec_idx                 0x15868c600 | th_max = 1024 | th_width =   32
+ggml_metal_library_compile_pipeline: compiling pipeline: base = 'kernel_flash_attn_ext_vec_f16_dk128_dv128', name = 'kernel_flash_attn_ext_vec_f16_dk128_dv128_mask=1_sink=0_bias=0_scap=0_kvpad=0_sparse=1_ns10=128_ns20=128_nsg=1_nwg=32'
+ggml_metal_library_compile_pipeline: loaded kernel_flash_attn_ext_vec_f16_dk128_dv128_mask=1_sink=0_bias=0_scap=0_kvpad=0_sparse=1_ns10=128_ns20=128_nsg=1_nwg=32      0x15865be40 | th_max = 1024 | th_width =   32
+ggml_metal_library_compile_pipeline: compiling pipeline: base = 'kernel_flash_attn_ext_vec_reduce', name = 'kernel_flash_attn_ext_vec_reduce_dv=128_nwg=32'
+ggml_metal_library_compile_pipeline: loaded kernel_flash_attn_ext_vec_reduce_dv=128_nwg=32      0x158692900 | th_max = 1024 | th_width =   32
+ggml_metal_library_compile_pipeline: compiling pipeline: base = 'kernel_flash_attn_ext_vec_idx_i32', name = 'kernel_flash_attn_ext_vec_idx_i32'
+ggml_metal_library_compile_pipeline: loaded kernel_flash_attn_ext_vec_idx_i32             0x15868cde0 | th_max = 1024 | th_width =   32
+ggml_metal_library_compile_pipeline: compiling pipeline: base = 'kernel_flash_attn_ext_vec_f16_dk128_dv128', name = 'kernel_flash_attn_ext_vec_f16_dk128_dv128_mask=0_sink=0_bias=0_scap=0_kvpad=0_sparse=1_ns10=128_ns20=128_nsg=1_nwg=32'
+ggml_metal_library_compile_pipeline: loaded kernel_flash_attn_ext_vec_f16_dk128_dv128_mask=0_sink=0_bias=0_scap=0_kvpad=0_sparse=1_ns10=128_ns20=128_nsg=1_nwg=32      0x158693d10 | th_max = 1024 | th_width =   32
+head=128 kv=256 queries=3 selected=1 strided=1: 0 differing floats, max error 0
+head=128 kv=256 queries=3 selected=7 strided=1: 0 differing floats, max error 0
+head=128 kv=256 queries=3 selected=32 strided=1: 0 differing floats, max error 0
+head=128 kv=256 queries=3 selected=64 strided=1: 0 differing floats, max error 0
+head=128 kv=256 queries=1 selected=127 strided=1: 0 differing floats, max error 0
+ggml_metal_library_compile_pipeline: compiling pipeline: base = 'kernel_flash_attn_ext_vec_f16_dk128_dv128', name = 'kernel_flash_attn_ext_vec_f16_dk128_dv128_mask=1_sink=0_bias=0_scap=0_kvpad=0_sparse=1_ns10=128_ns20=128_nsg=2_nwg=32'
+ggml_metal_library_compile_pipeline: loaded kernel_flash_attn_ext_vec_f16_dk128_dv128_mask=1_sink=0_bias=0_scap=0_kvpad=0_sparse=1_ns10=128_ns20=128_nsg=2_nwg=32      0x128615760 | th_max = 1024 | th_width =   32
+ggml_metal_library_compile_pipeline: compiling pipeline: base = 'kernel_flash_attn_ext_vec_f16_dk128_dv128', name = 'kernel_flash_attn_ext_vec_f16_dk128_dv128_mask=0_sink=0_bias=0_scap=0_kvpad=0_sparse=1_ns10=128_ns20=128_nsg=2_nwg=32'
+ggml_metal_library_compile_pipeline: loaded kernel_flash_attn_ext_vec_f16_dk128_dv128_mask=0_sink=0_bias=0_scap=0_kvpad=0_sparse=1_ns10=128_ns20=128_nsg=2_nwg=32      0x128615f00 | th_max = 1024 | th_width =   32
+head=128 kv=5000 queries=1 selected=2051 strided=0: 0 differing floats, max error 0
+head=128 kv=256 queries=7 selected=127 strided=1: 0 differing floats, max error 0
+head=128 kv=5000 queries=7 selected=2051 strided=0: 0 differing floats, max error 0
+ggml_metal_library_compile_pipeline: compiling pipeline: base = 'kernel_flash_attn_ext_vec_f16_dk128_dv128', name = 'kernel_flash_attn_ext_vec_f16_dk128_dv128_mask=1_sink=0_bias=0_scap=0_kvpad=0_sparse=1_ns10=128_ns20=128_nsg=2_nwg=1'
+ggml_metal_library_compile_pipeline: loaded kernel_flash_attn_ext_vec_f16_dk128_dv128_mask=1_sink=0_bias=0_scap=0_kvpad=0_sparse=1_ns10=128_ns20=128_nsg=2_nwg=1      0x158696270 | th_max = 1024 | th_width =   32
+ggml_metal_library_compile_pipeline: compiling pipeline: base = 'kernel_flash_attn_ext_vec_f16_dk128_dv128', name = 'kernel_flash_attn_ext_vec_f16_dk128_dv128_mask=0_sink=0_bias=0_scap=0_kvpad=0_sparse=1_ns10=128_ns20=128_nsg=2_nwg=1'
+ggml_metal_library_compile_pipeline: loaded kernel_flash_attn_ext_vec_f16_dk128_dv128_mask=0_sink=0_bias=0_scap=0_kvpad=0_sparse=1_ns10=128_ns20=128_nsg=2_nwg=1      0x158697350 | th_max = 1024 | th_width =   32
+head=128 kv=256 queries=33 selected=127 strided=1: 0 differing floats, max error 0
+ggml_metal_library_compile_pipeline: compiling pipeline: base = 'kernel_flash_attn_ext_vec_f16_dk128_dv128', name = 'kernel_flash_attn_ext_vec_f16_dk128_dv128_mask=1_sink=0_bias=0_scap=0_kvpad=0_sparse=1_ns10=128_ns20=128_nsg=4_nwg=1'
+ggml_metal_library_compile_pipeline: loaded kernel_flash_attn_ext_vec_f16_dk128_dv128_mask=1_sink=0_bias=0_scap=0_kvpad=0_sparse=1_ns10=128_ns20=128_nsg=4_nwg=1      0x15871d740 | th_max = 1024 | th_width =   32
+ggml_metal_library_compile_pipeline: compiling pipeline: base = 'kernel_flash_attn_ext_vec_f16_dk128_dv128', name = 'kernel_flash_attn_ext_vec_f16_dk128_dv128_mask=0_sink=0_bias=0_scap=0_kvpad=0_sparse=1_ns10=128_ns20=128_nsg=4_nwg=1'
+ggml_metal_library_compile_pipeline: loaded kernel_flash_attn_ext_vec_f16_dk128_dv128_mask=0_sink=0_bias=0_scap=0_kvpad=0_sparse=1_ns10=128_ns20=128_nsg=4_nwg=1      0x15871edf0 | th_max = 1024 | th_width =   32
+head=128 kv=5000 queries=33 selected=2051 strided=0: 0 differing floats, max error 0
+head=128 kv=256 queries=65 selected=127 strided=1: 0 differing floats, max error 0
+head=128 kv=5000 queries=65 selected=2051 strided=0: 0 differing floats, max error 0
+head=128 kv=131072 queries=3 selected=2051 strided=1: 0 differing floats, max error 0
+head=128 kv=8192 queries=3 selected=4096 strided=0: 0 differing floats, max error 0
+ggml_metal_library_compile_pipeline: compiling pipeline: base = 'kernel_flash_attn_ext_vec_f16_dk256_dv256', name = 'kernel_flash_attn_ext_vec_f16_dk256_dv256_mask=1_sink=0_bias=0_scap=0_kvpad=0_sparse=1_ns10=256_ns20=256_nsg=1_nwg=32'
+ggml_metal_library_compile_pipeline: loaded kernel_flash_attn_ext_vec_f16_dk256_dv256_mask=1_sink=0_bias=0_scap=0_kvpad=0_sparse=1_ns10=256_ns20=256_nsg=1_nwg=32      0x158695720 | th_max = 1024 | th_width =   32
+ggml_metal_library_compile_pipeline: compiling pipeline: base = 'kernel_flash_attn_ext_vec_reduce', name = 'kernel_flash_attn_ext_vec_reduce_dv=256_nwg=32'
+ggml_metal_library_compile_pipeline: loaded kernel_flash_attn_ext_vec_reduce_dv=256_nwg=32      0x158688710 | th_max = 1024 | th_width =   32
+ggml_metal_library_compile_pipeline: compiling pipeline: base = 'kernel_flash_attn_ext_vec_f16_dk256_dv256', name = 'kernel_flash_attn_ext_vec_f16_dk256_dv256_mask=0_sink=0_bias=0_scap=0_kvpad=0_sparse=1_ns10=256_ns20=256_nsg=1_nwg=32'
+ggml_metal_library_compile_pipeline: loaded kernel_flash_attn_ext_vec_f16_dk256_dv256_mask=0_sink=0_bias=0_scap=0_kvpad=0_sparse=1_ns10=256_ns20=256_nsg=1_nwg=32      0x158698990 | th_max = 1024 | th_width =   32
+head=256 kv=256 queries=3 selected=1 strided=1: 0 differing floats, max error 0
+head=256 kv=256 queries=3 selected=7 strided=1: 0 differing floats, max error 0
+head=256 kv=256 queries=3 selected=32 strided=1: 0 differing floats, max error 0
+head=256 kv=256 queries=3 selected=64 strided=1: 0 differing floats, max error 0
+head=256 kv=256 queries=1 selected=127 strided=1: 0 differing floats, max error 0
+ggml_metal_library_compile_pipeline: compiling pipeline: base = 'kernel_flash_attn_ext_vec_f16_dk256_dv256', name = 'kernel_flash_attn_ext_vec_f16_dk256_dv256_mask=1_sink=0_bias=0_scap=0_kvpad=0_sparse=1_ns10=256_ns20=256_nsg=2_nwg=32'
+ggml_metal_library_compile_pipeline: loaded kernel_flash_attn_ext_vec_f16_dk256_dv256_mask=1_sink=0_bias=0_scap=0_kvpad=0_sparse=1_ns10=256_ns20=256_nsg=2_nwg=32      0x15871f4d0 | th_max = 1024 | th_width =   32
+ggml_metal_library_compile_pipeline: compiling pipeline: base = 'kernel_flash_attn_ext_vec_f16_dk256_dv256', name = 'kernel_flash_attn_ext_vec_f16_dk256_dv256_mask=0_sink=0_bias=0_scap=0_kvpad=0_sparse=1_ns10=256_ns20=256_nsg=2_nwg=32'
+ggml_metal_library_compile_pipeline: loaded kernel_flash_attn_ext_vec_f16_dk256_dv256_mask=0_sink=0_bias=0_scap=0_kvpad=0_sparse=1_ns10=256_ns20=256_nsg=2_nwg=32      0x15871bea0 | th_max = 1024 | th_width =   32
+head=256 kv=5000 queries=1 selected=2051 strided=0: 0 differing floats, max error 0
+head=256 kv=256 queries=7 selected=127 strided=1: 0 differing floats, max error 0
+head=256 kv=5000 queries=7 selected=2051 strided=0: 0 differing floats, max error 0
+ggml_metal_library_compile_pipeline: compiling pipeline: base = 'kernel_flash_attn_ext_vec_f16_dk256_dv256', name = 'kernel_flash_attn_ext_vec_f16_dk256_dv256_mask=1_sink=0_bias=0_scap=0_kvpad=0_sparse=1_ns10=256_ns20=256_nsg=2_nwg=1'
+ggml_metal_library_compile_pipeline: loaded kernel_flash_attn_ext_vec_f16_dk256_dv256_mask=1_sink=0_bias=0_scap=0_kvpad=0_sparse=1_ns10=256_ns20=256_nsg=2_nwg=1      0x15871b9e0 | th_max = 1024 | th_width =   32
+ggml_metal_library_compile_pipeline: compiling pipeline: base = 'kernel_flash_attn_ext_vec_f16_dk256_dv256', name = 'kernel_flash_attn_ext_vec_f16_dk256_dv256_mask=0_sink=0_bias=0_scap=0_kvpad=0_sparse=1_ns10=256_ns20=256_nsg=2_nwg=1'
+ggml_metal_library_compile_pipeline: loaded kernel_flash_attn_ext_vec_f16_dk256_dv256_mask=0_sink=0_bias=0_scap=0_kvpad=0_sparse=1_ns10=256_ns20=256_nsg=2_nwg=1      0x158720bf0 | th_max = 1024 | th_width =   32
+head=256 kv=256 queries=33 selected=127 strided=1: 0 differing floats, max error 0
+ggml_metal_library_compile_pipeline: compiling pipeline: base = 'kernel_flash_attn_ext_vec_f16_dk256_dv256', name = 'kernel_flash_attn_ext_vec_f16_dk256_dv256_mask=1_sink=0_bias=0_scap=0_kvpad=0_sparse=1_ns10=256_ns20=256_nsg=4_nwg=1'
+ggml_metal_library_compile_pipeline: loaded kernel_flash_attn_ext_vec_f16_dk256_dv256_mask=1_sink=0_bias=0_scap=0_kvpad=0_sparse=1_ns10=256_ns20=256_nsg=4_nwg=1      0x158721bc0 | th_max = 1024 | th_width =   32
+ggml_metal_library_compile_pipeline: compiling pipeline: base = 'kernel_flash_attn_ext_vec_f16_dk256_dv256', name = 'kernel_flash_attn_ext_vec_f16_dk256_dv256_mask=0_sink=0_bias=0_scap=0_kvpad=0_sparse=1_ns10=256_ns20=256_nsg=4_nwg=1'
+ggml_metal_library_compile_pipeline: loaded kernel_flash_attn_ext_vec_f16_dk256_dv256_mask=0_sink=0_bias=0_scap=0_kvpad=0_sparse=1_ns10=256_ns20=256_nsg=4_nwg=1      0x15871d040 | th_max = 1024 | th_width =   32
+head=256 kv=5000 queries=33 selected=2051 strided=0: 0 differing floats, max error 0
+head=256 kv=256 queries=65 selected=127 strided=1: 0 differing floats, max error 0
+head=256 kv=5000 queries=65 selected=2051 strided=0: 0 differing floats, max error 0
+head=256 kv=131072 queries=3 selected=2051 strided=1: 0 differing floats, max error 0
+head=256 kv=8192 queries=3 selected=4096 strided=0: 0 differing floats, max error 0
+ggml_metal_free: deallocating
+all indexed attention outputs are bit-identical

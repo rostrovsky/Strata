@@ -1,0 +1,16 @@
+memory: {'free_gib': 13.43, 'file_cache_gib': 6.53, 'apps_gib': 9.07, 'wired_gib': 2.17, 'swap_used_gib': 1.91, 'pressure_level': 1}
+bin/strata: ready in 8.6 s; context 131072, expert cache 3092 experts (6047 MiB), direct reads
+prefill   2000 tokens:    80.2 tok/s, first token after 24.94 s, 53.2 GB from the SSD, 3 passes; 24.9 s = SSD 7.9 + GPU wait 14.5 + CPU 2.5 (GPU busy 20.7; 35.6 GB read ahead, 31.3 used); swap-outs 0, 11.3 W
+  decode at 2000 tokens: 6.78 tok/s, 12 tokens; '<think>\nThe user wants me to summarize a technical document about'
+prefill   2100 tokens:    82.9 tok/s, first token after 25.35 s, 49.4 GB from the SSD, 3 passes; 25.3 s = SSD 7.0 + GPU wait 15.6 + CPU 2.7 (GPU busy 20.2; 39.3 GB read ahead, 35.8 used); swap-outs 0, 6.3 W
+  decode at 2100 tokens: 8.99 tok/s, 12 tokens; '<think>\nThe user wants me to summarize a document that appears'
+  read 2199/2200 tokens in 30.4 s; swap-outs 2520
+prefill   2200 tokens:    72.0 tok/s, first token after 30.57 s, 48.9 GB from the SSD, 3 passes; 30.6 s = SSD 5.6 + GPU wait 21.7 + CPU 3.2 (GPU busy 24.5; 39.2 GB read ahead, 35.6 used); swap-outs 2520
+  decode at 2200 tokens: 8.28 tok/s, 12 tokens; '<think>\nThe user wants me to summarize a technical document about'
+  read 2297/2300 tokens in 44.2 s; swap-outs 0
+prefill   2300 tokens:    49.3 tok/s, first token after 46.61 s, 48.6 GB from the SSD, 3 passes; 46.6 s = SSD 3.4 + GPU wait 39.6 + CPU 3.6 (GPU busy 44.9; 38.6 GB read ahead, 35.9 used); swap-outs 0, 11.1 W
+  decode at 2300 tokens: 5.24 tok/s, 12 tokens; '<think>\nThe user wants me to summarize a technical document about'
+  read 2397/2400 tokens in 46.5 s; swap-outs 0
+prefill   2400 tokens:    48.9 tok/s, first token after 49.12 s, 48.7 GB from the SSD, 3 passes; 49.1 s = SSD 3.6 + GPU wait 41.6 + CPU 4.0 (GPU busy 55.3; 39.2 GB read ahead, 35.8 used); swap-outs 112, 14.7 W
+  decode at 2400 tokens: 7.79 tok/s, 12 tokens; '<think>\nThe user wants me to summarize a technical document about'
+swap-outs over the whole run: 2632

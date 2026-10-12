@@ -1,0 +1,567 @@
+{
+ "when": "2026-10-12 13:32",
+ "args": [
+  "--native",
+  "/Users/rafal/Projects/strata-air/Strata-data/models/IQ3_S/Qwen3.8-Flash-Next-GSQ-RCO-IQ3_S-00001-of-00002.gguf",
+  "--expert-profile",
+  "/Users/rafal/Projects/strata-air/Strata/data/expert-profile.bin",
+  "--expert-cache",
+  "auto",
+  "--max-context",
+  "131072",
+  "--kv",
+  "f16",
+  "--reserve-gib",
+  "4"
+ ],
+ "memory_before": {
+  "free_gib": 11.9,
+  "file_cache_gib": 7.94,
+  "apps_gib": 8.54,
+  "wired_gib": 2.83,
+  "swap_used_gib": 0.92,
+  "pressure_level": 1
+ },
+ "ab": {
+  "STRATA_METAL_INDEXED_QSA=1 build-metal/bin/strata --prefill 4096": [
+   {
+    "info": {
+     "context": "131072",
+     "kv": "f16",
+     "kv_resident": "0",
+     "expert_slots": "1592",
+     "expert_cache_mib": "3120",
+     "expert_slots_primary": "1592",
+     "expert_cache_primary_mib": "3120",
+     "spec": "0",
+     "mtp_max": "0",
+     "lookup": "0",
+     "prefetch": "10",
+     "vram_free_mib": "8579",
+     "arena_mib": "0",
+     "pool_workers": "8",
+     "backend": "metal",
+     "expert_io": "direct",
+     "engine": "0.1.42-metal"
+    },
+    "therm": null,
+    "temps_before": [
+     49.3,
+     34.3
+    ],
+    "memory_before": {
+     "free_gib": 11.55,
+     "file_cache_gib": 8.05,
+     "apps_gib": 9.22,
+     "wired_gib": 2.39,
+     "swap_used_gib": 0.92,
+     "pressure_level": 1
+    },
+    "ready_s": 2.7514328956604004,
+    "prefill": {
+     "12288": {
+      "tokens": 12288,
+      "tps": 79.30914301204352,
+      "ttft_s": 154.94053316116333,
+      "ssd_gb": 149.40210000000002,
+      "swapouts": 0,
+      "gpu_wait_s": 131.85670000000002,
+      "ssd_s": 7.5813999999999995,
+      "gpu_busy_s": 162.22060000000002,
+      "wall_s": 154.938,
+      "passes": 5.0,
+      "read_ahead_gb": 111.06710000000001,
+      "read_ahead_used_gb": 102.67139999999999,
+      "watts": 20.872095505617978,
+      "decode_tps": 3.7759496111575293,
+      "generated": 48,
+      "output": "<think>\nThe user wants me to summarize a lengthy technical document about \"Strata\" - a local LLM inference engine. Let me identify the key sections and distill the most important information into a concise summary.\n\nThe document covers:",
+      "progress": [
+       {
+        "tokens": 4096,
+        "total": 12288,
+        "elapsed_s": 38.686,
+        "memory": {
+         "free_gib": 0.06,
+         "file_cache_gib": 7.78,
+         "apps_gib": 8.51,
+         "wired_gib": 14.86,
+         "swap_used_gib": 0.92,
+         "pressure_level": 1
+        },
+        "swapouts": 0
+       },
+       {
+        "tokens": 8192,
+        "total": 12288,
+        "elapsed_s": 83.797,
+        "memory": {
+         "free_gib": 0.05,
+         "file_cache_gib": 7.23,
+         "apps_gib": 8.57,
+         "wired_gib": 15.34,
+         "swap_used_gib": 0.92,
+         "pressure_level": 1
+        },
+        "swapouts": 0
+       },
+       {
+        "tokens": 12285,
+        "total": 12288,
+        "elapsed_s": 154.215,
+        "memory": {
+         "free_gib": 0.01,
+         "file_cache_gib": 7.41,
+         "apps_gib": 8.97,
+         "wired_gib": 14.82,
+         "swap_used_gib": 0.92,
+         "pressure_level": 1
+        },
+        "swapouts": 0
+       }
+      ],
+      "decode_per_token": {
+       "total_ms": 264.8340425531915,
+       "gpu_wait_ms": 185.7872340425532,
+       "ssd_ms": 63.43191489361703,
+       "cpu_ms": 15.614893617021288,
+       "encode_ms": 5.991489361702128,
+       "gpu_busy_ms": 179.74680851063832,
+       "sample_ms": 0.19148936170212766,
+       "misses": 79.95744680851064,
+       "ssd_mb": 491.0978723404255,
+       "waits": 49.0,
+       "ahead": 160.48936170212767,
+       "ahead_used": 113.48936170212765,
+       "ahead_waits": 7.617021276595745,
+       "predict_ms": 5.972340425531915
+      }
+     }
+    },
+    "swapouts": 0,
+    "temps_after": [
+     59.7,
+     34.8
+    ]
+   },
+   {
+    "info": {
+     "context": "131072",
+     "kv": "f16",
+     "kv_resident": "0",
+     "expert_slots": "2065",
+     "expert_cache_mib": "4043",
+     "expert_slots_primary": "2065",
+     "expert_cache_primary_mib": "4043",
+     "spec": "0",
+     "mtp_max": "0",
+     "lookup": "0",
+     "prefetch": "10",
+     "vram_free_mib": "7656",
+     "arena_mib": "0",
+     "pool_workers": "8",
+     "backend": "metal",
+     "expert_io": "direct",
+     "engine": "0.1.42-metal"
+    },
+    "therm": null,
+    "temps_before": [
+     49.6,
+     35.4
+    ],
+    "memory_before": {
+     "free_gib": 15.59,
+     "file_cache_gib": 4.81,
+     "apps_gib": 8.5,
+     "wired_gib": 2.31,
+     "swap_used_gib": 0.92,
+     "pressure_level": 1
+    },
+    "ready_s": 8.18001103401184,
+    "prefill": {
+     "12288": {
+      "tokens": 12288,
+      "tps": 67.44633191960231,
+      "ttft_s": 182.19203209877014,
+      "ssd_gb": 145.6248,
+      "swapouts": 0,
+      "gpu_wait_s": 157.83929999999998,
+      "ssd_s": 7.7028,
+      "gpu_busy_s": 172.72379999999998,
+      "wall_s": 182.18929999999997,
+      "passes": 5.0,
+      "read_ahead_gb": 108.302,
+      "read_ahead_used_gb": 99.972,
+      "watts": 20.811191011235955,
+      "decode_tps": 3.7515664785562057,
+      "generated": 48,
+      "output": "<think>\nThe user wants me to summarize a lengthy technical document about \"Strata\" - a local LLM inference engine. Let me identify the key sections and distill the most important information into a concise summary.\n\nThe document covers:",
+      "progress": [
+       {
+        "tokens": 4096,
+        "total": 12288,
+        "elapsed_s": 39.105,
+        "memory": {
+         "free_gib": 0.06,
+         "file_cache_gib": 6.56,
+         "apps_gib": 8.53,
+         "wired_gib": 16.04,
+         "swap_used_gib": 0.92,
+         "pressure_level": 1
+        },
+        "swapouts": 0
+       },
+       {
+        "tokens": 8192,
+        "total": 12288,
+        "elapsed_s": 87.964,
+        "memory": {
+         "free_gib": 0.08,
+         "file_cache_gib": 6.16,
+         "apps_gib": 8.85,
+         "wired_gib": 16.11,
+         "swap_used_gib": 0.92,
+         "pressure_level": 1
+        },
+        "swapouts": 0
+       },
+       {
+        "tokens": 12285,
+        "total": 12288,
+        "elapsed_s": 181.418,
+        "memory": {
+         "free_gib": 0.02,
+         "file_cache_gib": 5.86,
+         "apps_gib": 9.05,
+         "wired_gib": 16.27,
+         "swap_used_gib": 0.92,
+         "pressure_level": 1
+        },
+        "swapouts": 0
+       }
+      ],
+      "decode_per_token": {
+       "total_ms": 266.5553191489362,
+       "gpu_wait_ms": 194.08085106382978,
+       "ssd_ms": 55.59148936170213,
+       "cpu_ms": 16.882978723404275,
+       "encode_ms": 6.8319148936170215,
+       "gpu_busy_ms": 185.86170212765958,
+       "sample_ms": 0.21702127659574466,
+       "misses": 69.65957446808511,
+       "ssd_mb": 438.12553191489366,
+       "waits": 49.0,
+       "ahead": 144.68085106382978,
+       "ahead_used": 100.87234042553192,
+       "ahead_waits": 4.531914893617022,
+       "predict_ms": 6.2531914893617015
+      }
+     }
+    },
+    "swapouts": 0,
+    "temps_after": [
+     59.0,
+     35.9
+    ]
+   }
+  ],
+  "STRATA_METAL_INDEXED_QSA=1 build-metal/bin/strata --prefill 2048": [
+   {
+    "info": {
+     "context": "131072",
+     "kv": "f16",
+     "kv_resident": "0",
+     "expert_slots": "3274",
+     "expert_cache_mib": "6402",
+     "expert_slots_primary": "3274",
+     "expert_cache_primary_mib": "6402",
+     "spec": "0",
+     "mtp_max": "0",
+     "lookup": "0",
+     "prefetch": "10",
+     "vram_free_mib": "6155",
+     "arena_mib": "0",
+     "pool_workers": "8",
+     "backend": "metal",
+     "expert_io": "direct",
+     "engine": "0.1.42-metal"
+    },
+    "therm": null,
+    "temps_before": [
+     49.6,
+     34.9
+    ],
+    "memory_before": {
+     "free_gib": 13.23,
+     "file_cache_gib": 7.46,
+     "apps_gib": 8.17,
+     "wired_gib": 2.36,
+     "swap_used_gib": 0.92,
+     "pressure_level": 1
+    },
+    "ready_s": 9.125164031982422,
+    "prefill": {
+     "12288": {
+      "tokens": 12288,
+      "tps": 61.69789721033922,
+      "ttft_s": 199.16660833358765,
+      "ssd_gb": 233.19910000000002,
+      "swapouts": 0,
+      "gpu_wait_s": 158.0999,
+      "ssd_s": 16.9255,
+      "gpu_busy_s": 195.903,
+      "wall_s": 199.164,
+      "passes": 8.0,
+      "read_ahead_gb": 189.2367,
+      "read_ahead_used_gb": 171.3594,
+      "watts": 19.67105462184874,
+      "decode_tps": 4.962307578605064,
+      "generated": 48,
+      "output": "<think>\nThe user wants me to summarize a lengthy technical document about \"Strata\" - a local LLM inference engine. Let me identify the key sections and distill the most important information into a concise summary.\n\nThe document covers:",
+      "progress": [
+       {
+        "tokens": 2048,
+        "total": 12288,
+        "elapsed_s": 22.419
+       },
+       {
+        "tokens": 4096,
+        "total": 12288,
+        "elapsed_s": 46.112,
+        "memory": {
+         "free_gib": 0.04,
+         "file_cache_gib": 5.12,
+         "apps_gib": 8.26,
+         "wired_gib": 17.77,
+         "swap_used_gib": 0.92,
+         "pressure_level": 2
+        },
+        "swapouts": 0
+       },
+       {
+        "tokens": 6144,
+        "total": 12288,
+        "elapsed_s": 70.758
+       },
+       {
+        "tokens": 8192,
+        "total": 12288,
+        "elapsed_s": 103.364,
+        "memory": {
+         "free_gib": 0.05,
+         "file_cache_gib": 5.16,
+         "apps_gib": 8.39,
+         "wired_gib": 17.6,
+         "swap_used_gib": 0.92,
+         "pressure_level": 2
+        },
+        "swapouts": 0
+       },
+       {
+        "tokens": 10240,
+        "total": 12288,
+        "elapsed_s": 154.395,
+        "memory": {
+         "free_gib": 0.07,
+         "file_cache_gib": 4.79,
+         "apps_gib": 8.3,
+         "wired_gib": 18.04,
+         "swap_used_gib": 0.92,
+         "pressure_level": 2
+        },
+        "swapouts": 0
+       },
+       {
+        "tokens": 12285,
+        "total": 12288,
+        "elapsed_s": 198.49,
+        "memory": {
+         "free_gib": 0.04,
+         "file_cache_gib": 4.88,
+         "apps_gib": 8.65,
+         "wired_gib": 17.63,
+         "swap_used_gib": 0.92,
+         "pressure_level": 2
+        },
+        "swapouts": 0
+       }
+      ],
+      "decode_per_token": {
+       "total_ms": 201.5191489361702,
+       "gpu_wait_ms": 141.20425531914896,
+       "ssd_ms": 45.86382978723404,
+       "cpu_ms": 14.45106382978722,
+       "encode_ms": 5.357446808510638,
+       "gpu_busy_ms": 134.2872340425532,
+       "sample_ms": 0.17446808510638295,
+       "misses": 53.808510638297875,
+       "ssd_mb": 337.95531914893616,
+       "waits": 49.0,
+       "ahead": 111.70212765957447,
+       "ahead_used": 75.27659574468085,
+       "ahead_waits": 6.404255319148936,
+       "predict_ms": 5.731914893617021
+      }
+     }
+    },
+    "swapouts": 0,
+    "temps_after": [
+     59.5,
+     35.4
+    ]
+   },
+   {
+    "info": {
+     "context": "131072",
+     "kv": "f16",
+     "kv_resident": "0",
+     "expert_slots": "3385",
+     "expert_cache_mib": "6619",
+     "expert_slots_primary": "3385",
+     "expert_cache_primary_mib": "6619",
+     "spec": "0",
+     "mtp_max": "0",
+     "lookup": "0",
+     "prefetch": "10",
+     "vram_free_mib": "5938",
+     "arena_mib": "0",
+     "pool_workers": "8",
+     "backend": "metal",
+     "expert_io": "direct",
+     "engine": "0.1.42-metal"
+    },
+    "therm": null,
+    "temps_before": [
+     49.8,
+     35.2
+    ],
+    "memory_before": {
+     "free_gib": 15.31,
+     "file_cache_gib": 5.16,
+     "apps_gib": 8.55,
+     "wired_gib": 2.19,
+     "swap_used_gib": 0.92,
+     "pressure_level": 1
+    },
+    "ready_s": 9.149221897125244,
+    "prefill": {
+     "12288": {
+      "tokens": 12288,
+      "tps": 59.516803761647985,
+      "ttft_s": 206.46534705162048,
+      "ssd_gb": 231.5163,
+      "swapouts": 0,
+      "gpu_wait_s": 164.99579999999997,
+      "ssd_s": 16.436700000000002,
+      "gpu_busy_s": 185.61520000000002,
+      "wall_s": 206.4627,
+      "passes": 8.0,
+      "read_ahead_gb": 187.94320000000002,
+      "read_ahead_used_gb": 170.0854,
+      "watts": 18.82590336134454,
+      "decode_tps": 4.8814432454327354,
+      "generated": 48,
+      "output": "<think>\nThe user wants me to summarize a lengthy technical document about \"Strata\" - a local LLM inference engine. Let me identify the key sections and distill the most important information into a concise summary.\n\nThe document covers:",
+      "progress": [
+       {
+        "tokens": 2048,
+        "total": 12288,
+        "elapsed_s": 22.788
+       },
+       {
+        "tokens": 4096,
+        "total": 12288,
+        "elapsed_s": 46.903,
+        "memory": {
+         "free_gib": 0.06,
+         "file_cache_gib": 5.12,
+         "apps_gib": 8.34,
+         "wired_gib": 17.68,
+         "swap_used_gib": 0.92,
+         "pressure_level": 2
+        },
+        "swapouts": 0
+       },
+       {
+        "tokens": 6144,
+        "total": 12288,
+        "elapsed_s": 72.831
+       },
+       {
+        "tokens": 8192,
+        "total": 12288,
+        "elapsed_s": 111.438,
+        "memory": {
+         "free_gib": 0.06,
+         "file_cache_gib": 4.86,
+         "apps_gib": 8.54,
+         "wired_gib": 17.75,
+         "swap_used_gib": 0.92,
+         "pressure_level": 2
+        },
+        "swapouts": 0
+       },
+       {
+        "tokens": 10240,
+        "total": 12288,
+        "elapsed_s": 162.506,
+        "memory": {
+         "free_gib": 0.06,
+         "file_cache_gib": 4.53,
+         "apps_gib": 8.46,
+         "wired_gib": 18.15,
+         "swap_used_gib": 0.92,
+         "pressure_level": 2
+        },
+        "swapouts": 0
+       },
+       {
+        "tokens": 12285,
+        "total": 12288,
+        "elapsed_s": 205.771,
+        "memory": {
+         "free_gib": 0.06,
+         "file_cache_gib": 4.61,
+         "apps_gib": 8.77,
+         "wired_gib": 17.77,
+         "swap_used_gib": 0.92,
+         "pressure_level": 2
+        },
+        "swapouts": 0
+       }
+      ],
+      "decode_per_token": {
+       "total_ms": 204.85744680851062,
+       "gpu_wait_ms": 146.22553191489362,
+       "ssd_ms": 44.214893617021275,
+       "cpu_ms": 14.417021276595724,
+       "encode_ms": 5.306382978723405,
+       "gpu_busy_ms": 139.3468085106383,
+       "sample_ms": 0.20212765957446807,
+       "misses": 52.340425531914896,
+       "ssd_mb": 327.5,
+       "waits": 49.0,
+       "ahead": 108.25531914893617,
+       "ahead_used": 72.48936170212765,
+       "ahead_waits": 6.23404255319149,
+       "predict_ms": 5.748936170212766
+      }
+     }
+    },
+    "swapouts": 0,
+    "temps_after": [
+     58.8,
+     35.6
+    ]
+   }
+  ]
+ },
+ "memory_after": {
+  "free_gib": 15.14,
+  "file_cache_gib": 5.74,
+  "apps_gib": 8.27,
+  "wired_gib": 2.05,
+  "swap_used_gib": 0.92,
+  "pressure_level": 1
+ }
+}

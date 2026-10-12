@@ -1,8 +1,12 @@
 # Strata optimization handoff — M4 MacBook Air, 32 GiB
 
-Updated **2026-10-12**. The user explicitly stopped optimization and requested this handoff. No further tuning,
-builds, benchmarks, or deployment were performed while preparing it. Resume optimization only when requested.
-The performance goal is **not complete**.
+Updated **2026-10-12, afternoon**. The work was stopped in the morning at the user's request, resumed in the
+afternoon ("continue the OPTIMIZATION.md work"), and stopped again where every next step either takes the Mac for
+half an hour or risks swap, which is the user's call. The performance goal is **not complete**.
+
+Reports: [morning](bench/results/2026-10-12-m4-air-128k/README.md),
+[afternoon](bench/results/2026-10-12-m4-air-128k-resume/README.md). Sections below that describe the morning are
+marked where the afternoon changed them.
 
 ## Read this first
 
@@ -10,37 +14,63 @@ The original goal was a usable **131,072-token total context** with the highest 
 machine can sustain while a browser, Ghostty, pi, and other normal desktop apps remain open. The later target was
 **above 120 tok/s prefill and above 10 tok/s generation, without sacrificing quality**.
 
-The strongest result is a completed **130,944-token input** at 131,072-token capacity, using the original IQ3_S
-weights and **F16 KV**. It retrieved all five exact records spread across the input. Prefill was **64.92 tok/s**
-(**33 minutes 36.9 seconds** to the first token); subsequent decode was **4.59 tok/s**. Repeating the request reused
-130,943 tokens, returned identical output IDs, and reduced first-token latency to **0.403 seconds**.
+The strongest full-context result is still the morning's: a completed **130,944-token input** at 131,072-token
+capacity, original IQ3_S weights, **F16 KV**, all five exact records retrieved. Prefill **64.92 tok/s**
+(**33 minutes 36.9 seconds** to the first token), decode **4.59 tok/s**; a repeat reused 130,943 tokens and
+answered in **0.403 seconds**. It was **not swap-free** (61.7 MiB) and reported pressure level 2.
 
-This establishes functional use near the full context limit. It does **not** meet the speed target, establish broad
-model quality, or prove that the machine has reached an absolute hardware limit. It also was **not swap-free**:
-3,948 new 16 KiB swap-out pages, about **61.7 MiB**, appeared by the 81,920-token progress sample. No further
-swap-outs were observed through completion. A separate memory sample reported macOS pressure level 2 (warning).
+What the afternoon established:
 
-The main useful low-level change reduced the **planned context and compute allocation from 8.39 to 5.58 GiB** at
-131,072 capacity with a 4,096-token prefill batch. It removes a redundant dense attention mask and unused top-k
-scratch. That leaves more space for cached experts. A final controlled F16 throughput comparison remains undone.
+- **Why that run's memory was off, and a plan that counts it.** The compute buffer grew by 442 MiB because of how
+  ggml's allocator lays out a pass appended to a filled cache; it is now reserved at the start (2,209 MiB instead
+  of 1,759 at 131,072 context with 4,096-token passes). 459 MiB of host memory for a pass's inputs was never in
+  the plan and now is. The morning's candidate was 0.89 GiB larger than its plan said.
+- **4,096-token passes are right** (79.3, 67.4 tok/s against 61.7, 59.5 for 2,048, same prompt, A B B A), and
+  keeping the GPU busy during them changes nothing measurable (70.6 against 71.6 tok/s).
+- **The Air throttles inside a run when it is warm**: the third 4,096-token pass took 70-93 s where the first took
+  39 s. Heat, not the SSD, holds a long prompt near 65 tok/s.
+- **`--elastic`** (new, opt-in): the 2.67 GiB of work memory that only long passes need and the expert cache take
+  turns in one budget. A B B A: **8.01 against 6.66 tok/s** written (+20%), first token 2-10% sooner for prompts
+  up to 1,000 tokens, 3.7 s later for a 2,000-token one.
+- **`--elastic` swapped on this desktop**: 1,024 MiB at an engine start (a bug in its first form, fixed), then
+  0.75 MiB and 41 MiB in two later runs at `--reserve-gib 4`. It is off by default and **must not be installed
+  as it is**. The cause is not one bug: see "The memory this desktop really has".
+
+None of this reaches 120 tok/s or 10 tok/s at full context, and no measurement here suggests a way to on this
+Mac with the apps open: the GPU alone takes 82-126 ms per written token, and a warm Air reads at about 65 tok/s.
 
 **Do not confuse the following states:**
 
 | Item | State at handoff |
 | --- | --- |
-| Production Strata configuration | Still **32,768** context; the 128k candidate was not installed |
-| pi local-provider configuration | Still **32,768** context; real pi tool use against the candidate was not tested |
-| Completed full-context run | Used saved executable `build-metal/lowlevel-128k/strata-indexed-topk` |
-| Current repository source | Consolidated patches plus an **unbuilt, untested SIMD-sort experiment** |
-| `build-metal/bin/strata` | Older compiled source, including rejected experiments disabled by default; **not equivalent to current source** |
-| Generated `build-metal/llama.cpp` | Older patched tree; reconfiguration will replace its patch state |
-| Running work | Full-context benchmark ended; its shell session is gone. No optimization process was left running |
-| Git | HEAD was `29c52020` (`ngz`) and clean before these handoff/documentation additions |
+| Production Strata configuration | Still **32,768** context. Nothing was installed |
+| pi local-provider configuration | Still **32,768** context; pi against a 128k server was not tested |
+| Completed full-context run | The morning's, with the saved executable `build-metal/lowlevel-128k/strata-indexed-topk`. **Not repeated with the new plan** |
+| Repository source | Five patches (`0001`-`0005`), engine with `--elastic`; built and tested (kernel tests, tiny-model parity, protocol suite, shape test). Applied once more to a clean checkout of the pin at the end |
+| `build-metal/bin/strata` | Built from the current source |
+| Default path | Same arithmetic as before; **not** the same memory plan: 450 MiB more reserved at 131,072 context with 4,096-token passes, host buffer subtracted |
+| Real-model exact gate on the final build | Passed against `strata-reference` at 32,768 context with a 3,000 MiB cache: chat, code, 7,900-token document, identical ids and reported logits on the default, indexed and `--elastic` paths |
+| Swap | The afternoon's `--elastic` tests wrote 1,066 MiB to swap (68,248 pages). macOS had 0.92 GiB in swap before, 1.95 GiB after |
+| Running work | Nothing was left running |
+| Git | Nothing committed in the afternoon. HEAD `2daacf82` (`dzyn dzyn`, the morning's handoff) plus uncommitted changes |
 
-Commit `29c52020` already contains the optimization source and the initial results report, including the untested
-code. A commit is not evidence that its contents were validated. Earlier baseline commit `c6127518` (`u`) contains
-the planner and staging fixes. The original planner comparison used the earlier `3497a384` engine. No commit,
-push, or pull request was created for this handoff.
+Commit `29c52020` contains the morning's optimization source, `2daacf82` its handoff and results. A commit is not
+evidence that its contents were validated.
+
+### The memory this desktop really has
+
+The plan takes "free or file cache, minus swap, minus the reserve". Two things make that generous here:
+
+- The other programs (a VM, Citrix, VS Code, the browser) had **14.4 GiB in macOS's compressor, held in 4.9 GiB**.
+  The plan sees 4.9. When those programs are used, the rest comes back.
+- macOS does not give up the file cache first: in one long-prompt run it compressed 10 GiB of other programs'
+  memory while 5 GiB of file cache stayed.
+
+The engine without `--elastic` got away with it all afternoon (no swap-out in about fifteen starts, prompts up to
+16,200 tokens): it reserves 2.67 GiB of work memory and touches only part of it unless a long prompt is being
+read. `--elastic` fills that memory with experts, and swapped. A full-context prompt touches all of it for half an
+hour, which is where the morning's run swapped. **Whatever is tried next should watch `vm_stat`'s Swapouts over
+the whole run, not the benchmark's per-request lines** (they do not cover the engine's start).
 
 ## Machine, model, and non-negotiable constraints
 
@@ -87,8 +117,8 @@ Run the commands in this document from **`/Users/rafal/Projects/strata-air/Strat
 | Production config / launcher | `strata-iq3_s.json` / `run-iq3_s.sh` in the repository |
 | Main engine / server | `metal/src/main.cpp` / `serve/server.py` |
 | Benchmark / tests | `metal/tools/bench.py` / `metal/tests/` |
-| Local experiment outputs | `build-metal/lowlevel-128k/` and `build-metal/tuning-128k/` |
-| Preserved results | `bench/results/2026-10-12-m4-air-128k/` |
+| Local experiment outputs | `build-metal/lowlevel-128k/`, `build-metal/tuning-128k/`, `build-metal/resume-128k/` (afternoon) |
+| Preserved results | `bench/results/2026-10-12-m4-air-128k/` (morning), `bench/results/2026-10-12-m4-air-128k-resume/` (afternoon) |
 | Earlier planner/Q8 report | `bench/results/2026-10-11-m4-air-128k/` |
 
 The Metal engine is a separate CMake project. llama.cpp is pinned to
@@ -158,8 +188,9 @@ unique. Unallocated dense input masks are no longer filled. Padding contributes 
 
 The original sort uses a 16 KiB threadgroup array and 78 bitonic compare stages at 4,096 entries. Before top-k was
 fixed, indexed QSA reduced the planned 4k-batch allocation from **8.39 to 6.37 GiB**. At 8k batch it reduced
-**12.09 to 9.07 GiB**. The final cleaned patch removes the failed compact-mask dependency; **that cleanup has not
-been rebuilt or retested**.
+**12.09 to 9.07 GiB**. The final cleaned patch removes the failed compact-mask dependency. It was rebuilt and
+retested in the afternoon: **28/28** attention cases bit-identical (the 20 below plus selected counts 1/7/32/64 for
+both head sizes), tiny-model parity and the protocol suite passed.
 
 Validation on the earlier compiled indexed implementation:
 
@@ -187,31 +218,98 @@ ncols > 2048 && (k > 64 || (nrows > 4 && ncols >= 8192))
 The radix path gets only its output allocation; only the bitonic path gets two full input-sized index workspaces.
 No selection algorithm or floating-point arithmetic changes. This reduced the 4k-batch context/workspace plan
 from **6.37 to 5.58 GiB**. **533/533 upstream Metal TOP_K cases passed**, the 20 attention cases stayed bit-identical,
-and tiny-model parity passed. The consolidated patch layout still needs a fresh build and validation.
+and tiny-model parity passed. The consolidated patch layout was built and validated in the afternoon (533/533 again).
 
-### New SIMD index sort — `metal/patches/0004-metal-qsa-simd-sort.patch`
+### SIMD index sort — archived in the afternoon
 
-**UNBUILT AND UNTESTED.** Opt-in: `STRATA_METAL_QSA_SIMD_SORT=1`; default is off. It adds
-`kernel_flash_attn_ext_vec_idx_i32_simd` while retaining the old kernel. Cross-lane distances of 32 or more use the
-old threadgroup compare/exchange and barriers. Smaller distances use `simd_shuffle_xor` on registers with one
-barrier per outer stage. The intended result is the same integer order with roughly 78 → 40 barriers at 4,096
-entries. This assumes the Apple 32-lane SIMD layout and needs explicit small/partial-group tests. No speedup or
-correctness claim is established. Retain it only if tests and a controlled measurement justify it.
+Built and tested: 28/28 attention cases bit-identical with `STRATA_METAL_QSA_SIMD_SORT=1`, tiny-model parity
+identical. Kernel time off/on/on/off at 256-wide heads: 3,580/3,606 against 3,499/3,496 us (65 queries), 15,235/
+15,381 against 15,010/14,951 us (256 queries): about 2% of an operation that is 7% of a pass. Not worth a kernel
+that assumes 32-lane SIMD groups. The patch and its timings are under
+`bench/results/2026-10-12-m4-air-128k/rejected-experiments/`; the environment variable no longer exists.
 
-Tests were expanded after the last successful run, so current test source is ahead of validation:
+### Reserve for an appended pass, and the host buffer — `metal/patches/0004-kpool-append-reserve.patch` (afternoon)
 
-- `indexed_qsa_test.cpp` adds selected counts 1/7/32/64 for both head sizes: **28 intended cases**, only the prior 20
-  have been run. `--bench` adds six cases: heads 128/256 × queries 1/65/256, KV length 131,072, 2,051 selected cells,
-  strided rows, five warmups and 100 timed graph executions.
-- `optimization_parity_test.py` now checks default, indexed, and SIMD variants. Five prompts of 15/64/129/257/513
-  tokens generate 12 outputs each. A repeating prompt plus `--lookup 1 --spec 3` forces 12 tokens and asserts that
-  drafts were actually offered. These latest three-variant tests have not run.
-- The existing tiny fixture is `build-metal/tuning-128k/tiny/qwen4exp-moe.gguf` (about 18 MiB). It has 128-element
-  attention heads and exercises the indexed path at 1,024 context. Do not assume the tiny-model generator path in
-  older docs exists; it was not found at that documented location.
+Always active. This is the morning's "unresolved memory warning" (2,201 MiB against an expected 1,759 MiB).
 
-`metal/CMakeLists.txt` adds optional test targets `strata-test-indexed-qsa` and `strata-test-backend-ops`, with CTest
-entries for attention and TOP_K. Tests default off; the local build cache had them on.
+llama.cpp reserves the graph of a full cache in which every pool of the QSA index is re-pooled (`n_new` = 32,768 at
+131,072 context). A pass appended to a filled cache re-pools about `n_tokens/4 + 1` pools. Every tensor of that
+graph is smaller or equal, but ggml-alloc is best-fit: without the large re-pooling tensors early in the graph the
+513 MiB index score tensor (`n_pool x n_tokens` F32) finds no hole and extends the buffer. The allocator plans
+each pass afresh as `n_pool` grows (a pass at shallow depth uses the bitonic top-k, whose scratch is larger than
+the reserved radix one, and from then on every pass is larger than the last plan), so the buffer was freed and
+allocated again, larger, on every pass past about 18,000 tokens.
+
+The patch adds `llama_memory_hybrid_idx_context::kpool_reserve_append` and reserves that graph too, first, so the
+buffer is still allocated once. Reserved at 131,072 context: 4,096-token passes 1,759 -> **2,209 MiB**; 2,048 and
+1,024-token passes unchanged (1,351 and 1,125 MiB: their score tensors fit the holes). It also adds
+`llama_get_compute_buffer_sizes(ctx, &device, &host)`; the engine subtracts the host part (459 MiB for 4,096-token
+passes, `malloc`ed and untouched when the plan is made) before sizing the cache.
+
+Not verified by a full-context run: that 2,209 MiB is never exceeded. It equals what the morning's run ended with
+plus the 64 pools of padding, and a 16,200-token run at 16,384 context ended at its reserved size.
+
+Looked at and dropped: Metal reserves 256 MiB of F16 dequantization scratch per attention operation even for an
+F16 KV cache. Skipping it changed the reserved size by 0 MiB.
+
+### `--elastic` — `metal/patches/0005-context-resize.patch`, `metal/src/main.cpp` (afternoon)
+
+Opt-in, off by default, **experimental, and it swapped on this desktop** (see "Read this first").
+
+`llama_context_resize(ctx, n_batch, moe_cache_size)` frees the scheduler's compute buffers and the MoE cache and
+makes them anew for another pass size and cache size; a cache whose size does not change is kept with its
+contents and callbacks. The memory module is not touched (the patch refuses sliding-window models, whose memory is
+sized with the ubatch). One trap is handled in it: `output_ids` is sized once from `n_batch`; growing the batch
+without growing it overflowed the heap (found with AddressSanitizer on the tiny model).
+
+The engine keeps the context in one of three shapes:
+
+| Shape | Passes | Cache | When |
+| --- | --- | --- | --- |
+| Answer | 16 tokens | everything the budget has | writing; stretches of up to 32 new tokens |
+| Short | `--elastic-short` (1,024) | kept | a stretch one such pass reads, if its 0.94 GiB + 1.5 GiB are free at that moment |
+| Long | `--prefill` | 256 MiB (it only carries the engine's read hooks) | anything longer; the cache is read back afterwards, 1.7-2.4 s for 6.5 GiB |
+
+Why 16 and not 32 for Answer: from 32 tokens llama.cpp computes a layer the cache does not serve on the GPU from
+copies of whole expert tensors, which costs 0.56 GiB of work memory and makes the shape's size depend on the
+cache. Below 32 the size is the same with and without a cache, so every shape can be measured on the cache-less
+probe context and **the cache is allocated exactly once** at start (the first form allocated a provisional cache,
+then the final one: 1,024 MiB of swap-outs).
+
+Passes are the ones the engine makes without `--elastic` (same sizes, same kernels), so output is identical:
+tiny-model parity (ids and logits), the protocol suite, `metal/tests/elastic_shapes_test.py` (six requests through
+all three shapes), the same under AddressSanitizer, and the real-model gate in the afternoon report.
+
+Safety added after the swaps, in this order: the cache comes back from the Long shape only as large as leaves
+`--reserve-gib` free at that moment; it is not cleared when made (`LLAMA_MOE_CACHE_NO_CLEAR`: fresh Metal pages
+are zero anyway), so it takes memory at the SSD's pace; before a request, if macOS's swap-out count moved since
+the last one, the cache gives a quarter of itself back (at most 1 GiB) and stays smaller. **The last one has only
+run on the tiny model**, with the count faked (`STRATA_ELASTIC_TEST_BACKOFF=1`). After the gentler allocation went
+in, a real-model run still swapped 41 MiB; after that `--elastic` ran on the real model only once more, in the
+exact gate with a cache capped at 3,000 MiB (no swap-out, identical output).
+
+Numbers (A B B A, 131,072 context, `--reserve-gib 4`, prompts of 64-2,000 tokens, 24 tokens written each): cache
+5,312/6,298 MiB plain against 7,878/8,542 MiB; written 6.66 against 8.01 tok/s; per token 151 ms (GPU 85, SSD 55)
+against 125 ms (GPU 82, SSD 34); first token 7.2 -> 6.4 s (64 tokens), 14.5 -> 14.1 s (1,000), 22.9 -> 26.6 s
+(2,000, Long shape).
+
+Other engine changes of the afternoon: end of input on stdin now cancels the request under way (a killed server
+used to leave the engine reading its prompt to the end, up to half an hour); `--verbose` prints the memory after
+every prompt pass and every change of shape.
+
+Tests as they stand, all run on the final binary (`bench/results/2026-10-12-m4-air-128k-resume/tests/`):
+
+- `strata-test-indexed-qsa`: 28 cases. `--bench` adds six timing cases.
+- `strata-test-backend-ops -b MTL0 -o TOP_K`: 533 cases.
+- `optimization_parity_test.py`: default, indexed, elastic, elastic-long against `strata-before-indexed`; five
+  prompts of 15-513 tokens and a forced speculative run.
+- `serve_protocol_test.py`: 29 checks, three of them `--elastic`.
+- `elastic_shapes_test.py`: new.
+- The tiny fixture is `build-metal/tuning-128k/tiny/qwen4exp-moe.gguf` (about 18 MiB). **Do not run it at
+  `--max-context 131072`**: its graph reserves 15 GiB.
+
+`metal/CMakeLists.txt` has the optional test targets `strata-test-indexed-qsa` and `strata-test-backend-ops`, with
+CTest entries for attention and TOP_K. Tests default off; the local build cache has them on.
 
 ## Completed F16 measurements
 
@@ -259,14 +357,13 @@ Decode at full depth averaged **217.79 ms/token**: GPU wait 126.45 ms, unoverlap
 12.43 ms. GPU busy was 128.80 ms/token, about 100.21 cache misses and 458.09 MB SSD reads per token; router prediction
 took 4.87 ms/token. These measurements suggest that router micro-optimization alone cannot close the gap to 10 tok/s.
 
-**Unresolved memory warning:** the completed engine log ends with:
+**The memory warning, resolved in the afternoon:** the completed engine log ends with:
 
 ```text
 ~llama_context: MTL0 compute buffer size of 2201.2842 MiB, does not match expectation of 1759.2842 MiB
 ```
 
-That is **442 MiB of additional compute allocation** relative to the expected buffer. Its cause and timing have
-not been investigated. It may matter to the planner and paging, but that causal connection is unproven. The final
+See "Reserve for an appended pass" above for the cause and the fix. The final
 `memory_after` JSON sample was taken after engine exit and is not its live peak. The main JSON lacks numeric
 pressure level because the running script predated that instrumentation; `full-128k-memory.jsonl` is a separate,
 single preserved snapshot, not a continuous pressure trace.
@@ -286,6 +383,11 @@ single preserved snapshot, not a continuous pressure trace.
 | Smaller keepalive grid / inserted sleeps | No reliable improvement. Earlier small-grid 6.22 vs 6.15; a 60 µs sleep changed sustained 5.33 → 5.44 with lower power, but was not sufficient evidence for a new default; 120 µs slowed it |
 | Reading a whole predicted next-layer tensor | Slower than reading only predicted experts; earlier 256-token prompt 16.6 vs 22.8 tok/s |
 | MTP speculative head | Adds about 2.04 GiB weights + 0.6 GiB context; open-app measurements often lost. A closed-app sustained run gained about 12%, but the quality gate failed, including a non-near-tie difference. Keep off |
+| SIMD index sort (afternoon) | Correct; about 2% of the attention operation. Archived |
+| `--prefill 2048` instead of 4096 (afternoon) | 12,288-token prompt, A B B A: 61.7, 59.5 against 79.3, 67.4 tok/s. Needs 1.06 GiB less memory and no append reserve, reads twice the bytes (233 against 149 GB). Kept at 4,096 |
+| Keep-alive off during long passes (afternoon) | 71.9, 71.4 against 77.5, 63.7 tok/s with it on: nothing outside the noise. The experimental `STRATA_KEEPALIVE=decode` was removed again |
+| No F16 dequant scratch for an F16 KV cache (afternoon) | 0 MiB less reserved. Dropped |
+| Reading a prompt through the cache instead of a long pass (afternoon, a first form of `--elastic`) | 27.5 s for 250 tokens, 122 s for 1,000 (8 tok/s, 300 GB read), and the answer after it slower too. Only stretches of up to 32 tokens go that way |
 
 Relaxed-sync median kernel times, off/on/off-order balanced by ABBA:
 
@@ -330,55 +432,57 @@ its 62 seconds of unoverlapped SSD time alone cannot turn a 2,017-second prefill
 
 ## Next steps if the user resumes optimization
 
-These are proposed experiments, not established improvements. Complete one controlled change at a time and keep
-the default path unchanged unless measurements justify a new default.
+The morning's list, with where it stands:
 
-1. **Reconcile source, binaries, and tests first.** Preserve the saved reference executables. Reconfigure the
-   consolidated patches, build, and run both attention paths, TOP_K, tiny generation/speculative parity, and the
-   server protocol suite. The prepared `pending/validate-final.py` performs that sequence and an off/on/on/off SIMD
-   kernel comparison. It has not run; inspect it before use. It runs relative to the repository root and still
-   relies on local ignored reference binaries and the tiny fixture. If SIMD sort fails or produces no repeatable
-   gain, archive it and retain the validated integer-sort design.
-2. **Account for actual full-depth memory before deployment.** Investigate the 442 MiB compute-buffer growth,
-   growing host input/pooling masks, bulk staging, and checkpoint allocations. A reserve of **5 GiB** was an idea,
-   not a tested fix. More reserve means fewer cached experts and may reduce decode speed. Staging currently checks
-   free memory above a hardcoded 1.5 GiB rather than reserving its full peak separately; it can consume nominal
-   desktop headroom. Host masks may approach roughly 0.5 GiB at 128k/4k batch. Check possible double-counting in
-   free/file/purgeable estimates rather than assuming it. Auto cache is fixed at startup and cannot accommodate
-   arbitrary later app growth.
-3. **Try disabling keepalive only during bulk prefill.** The GPU is already busy during large prompt passes; dummy
-   keepalive may waste power and thermal headroom on this fanless machine. Start with ABBA `STRATA_KEEPALIVE=off`
-   versus `always` on 4k prefill with one generated token, then sustained prefill if promising. Retain keepalive
-   during decode. A future `decode` mode could scope the busy guard around answer generation, near `Bulk.finish()`.
-   Nothing implementing that mode has been written. The known decode regression from turning keepalive off is not
-   evidence against a prefill-only policy.
-4. **Run the missing fair final F16 comparison.** Compare the pre-low-level `strata-reference` with the rebuilt
-   candidate at 131,072 capacity, F16, batch 4,096, the same chosen reserve, apps open, and `--chunk 2`. Run chat/code
-   in ABBA order, then a sustained workload. For automatic-cache benefits, allow cache sizes to differ and record
-   them; for kernel/math comparisons, cap both caches at the same fitting value. The existing rows establish
-   allocation savings, not a final isolated throughput gain.
-5. **Complete desktop integration only after validation.** Merge the tested settings into production and update
-   pi's local provider. Check API context/aliases, then actual pi tool use, browser and Ghostty responsiveness, and
-   reuse across turns. The staged configuration has not earned a claim of swap-free desktop use.
+1. ~~Reconcile source, binaries, and tests.~~ **Done** (afternoon report, section 1).
+2. ~~Account for actual full-depth memory.~~ **Done for the engine's own memory**: the compute-buffer growth and
+   the host buffer are in the plan. Still out of the plan, by design: the read-ahead buffer (1.1 GiB, taken only if
+   that much plus 1.5 GiB is free when a long prompt starts) and conversation checkpoints (113 MiB each, up to
+   six). **Not done: the other programs' compressed memory** ("The memory this desktop really has").
+3. ~~Keep-alive off during bulk prefill.~~ **Measured, no gain, removed.**
+4. Fair final F16 comparison: **partly.** The afternoon's A B B A runs compare settings of the current build; the
+   real-model gate compares it with `strata-reference` for output. A sustained decode comparison against
+   `strata-reference` was not run.
+5. Desktop integration: **not done, on purpose.** Nothing with a 131,072 context has been shown swap-free here.
+
+What is open now, each needing the user's go-ahead because it takes the Mac for half an hour or can swap:
+
+1. **A full 130,944-token prompt with the new plan**, without `--elastic`, watching Swapouts over the whole run
+   (the command is under "Reproduction"; use `build-metal/bin/strata` and add nothing else). If it still swaps,
+   the reserve has to grow or the read-ahead buffer has to go into the plan; if it does not, `pending/
+   desktop-128k.json` can be installed and pi pointed at it.
+2. **`--elastic` with a larger reserve** (`--reserve-gib 6` in `pending/desktop-128k-elastic.json` is a guess):
+   first the five-request run that swapped 41 MiB (`elastic/elastic-long-trips.*` in the afternoon report), then
+   a full prompt. Its back-off has never met a real swap-out. Running it with the VM and Citrix closed would show
+   how much of the trouble is this desktop.
+3. **A plan that knows about compressed memory.** `host_memory()` could count part of "stored in compressor
+   minus occupied by compressor" as owed, the way it counts swap. How large a part is not known; it would shrink
+   every cache.
+4. **`--prefill 8192` in the Long shape.** With `--elastic` the Long shape has about 2.9 GiB to spare at 131,072
+   context, enough for 8,192-token passes (3.28 GiB on the GPU + 0.92 GiB host), which halve the SSD traffic of
+   a long prompt. Not measured.
+5. The read-back after a long prompt (about 2 s for 6.5 GiB) could be shortened by keeping the hottest part of
+   the cache through the Long shape, or made free by reading back while the first tokens are written. Neither is
+   written.
 
 Further ideas, in approximate order of likely value:
 
 | Idea | Why it might help / what remains unknown |
 | --- | --- |
-| Reclaim prefill workspace for decode cache | Several GiB of workspace reduce expert cache even when decoding needs less. ggml graph allocation grows rather than shrinking; recreating a scheduler and resizing expert buffers would require preserving KV, GDN, QSA pools, and cache validity. High potential, substantial engineering, no implementation |
+| Reclaim prefill workspace for decode cache | **Implemented in the afternoon as `--elastic`**: +20% written tok/s at the same plan, and swap-outs on this desktop. See above |
 | Save session state across idle unload | A repeated 128k request can start in 0.4 s while resident, but cold refill costs 33.6 minutes. The 900 s idle unload loses that benefit. The Metal engine has in-memory recurrent checkpoints, not a full persistent KV/GDN/QSA session format. Disk state would be large and needs correct model/template identity and state restoration. No implementation |
-| SIMD integer QSA sort | Current unbuilt patch reduces barriers without intended FP changes. Kernel wins may have little whole-model impact; measure before keeping |
+| SIMD integer QSA sort | Built, correct, about 2% of the operation: archived in the afternoon |
 | Full-depth kernel/dispatch profiling | Locate the sustained GPU bottleneck after removing workspace waste. Quantized matrix-vector bandwidth and dispatch overhead are more promising than optimizing a 4–5 ms CPU component alone |
 | Router BF16 dot/NEON work | `metal/src/router_predict.hpp` already uses NEON F32 FMA over BF16 weights. Check hardware BF16 instructions and generated assembly first. Rounding predictor inputs changes predictions, not actual model routing, but might hurt prefetch hit rate. Use offline router traces and end-to-end measurements; untested |
 | Prefetch confidence margin | Read fewer false positives to save SSD work and heat, at the risk of more blocking misses. Depth/count already have negative results; confidence margin still needs a specific test. Predictions must never replace the real router |
-| Pressure-aware cache | Could adapt to apps growing after startup. Safe live resizing and buffer references make this more complex than increasing a reserve. No implementation |
+| Pressure-aware cache | With `--elastic` only: the cache is re-fitted to the free memory when it comes back from a long prompt, and gives memory back before a request if macOS has swapped. The second has run on the tiny model only. Without `--elastic` the cache is still fixed at start |
 | Better expert-tile grid locality | The rejected flat grid may have disturbed useful expert/M/N tile ordering. Revisit only with a concrete locality hypothesis; previous 1.3% change was inconclusive |
 | Use resident cached experts during bulk streaming | Might avoid SSD bytes and heat, but requires copy/synchronization work. Unoverlapped SSD was a small share of full prefill. No demonstrated benefit |
 | Metal Tensor API on M4 | `GGML_METAL_TENSOR_ENABLE=1` was not tested; upstream default on this M4 was disabled. Different floating-point order requires a quality gate. Do not assume a gain |
 | Lookup speculation on representative code tasks | Tiny forced lookup verification passed, but end-to-end pi workloads and quality at full context were not measured. Batched verification can change rounding just as MTP did; keep it off until measured |
 
-Do not spend another long run repeating relaxed matrix barriers, compact masks, chunk-64 GDN, deeper prefetch, or
-cache-policy sweeps without a new hypothesis. Raising Metal's recommended limit or using `--overcommit-gib` was not
+Do not spend another long run repeating relaxed matrix barriers, compact masks, chunk-64 GDN, deeper prefetch,
+cache-policy sweeps, 2,048-token passes or keep-alive changes without a new hypothesis. Raising Metal's recommended limit or using `--overcommit-gib` was not
 validated; host memory was the limit in the observed plans. System-wide overcommit, QoS changes, and closing user
 apps are not demonstrated solutions to this task.
 
@@ -438,18 +542,18 @@ expert cache, and `--max-context 32768`. Its API model name is `qwen3.8-flash-ne
 and idle unload 900 seconds. `run-iq3_s.sh` starts `.venv/bin/python serve/server.py --engine strata --config
 strata-iq3_s.json --port 8080 --open` from the repository.
 
-The **uninstalled candidate** is preserved at `bench/results/2026-10-12-m4-air-128k/pending/desktop-128k.json` and
-also remains in the local build directory. It adds:
+The **uninstalled candidates** are in `bench/results/2026-10-12-m4-air-128k-resume/pending/` (the morning's
+`pending/desktop-128k.json` is the same as the first of them):
 
 ```text
---max-context 131072 --kv f16 --prefill 4096 --reserve-gib 4
-env: STRATA_METAL_INDEXED_QSA=1
-aliases: qwen3.8-27b-iq3_s
+desktop-128k.json          --max-context 131072 --kv f16 --prefill 4096 --reserve-gib 4
+desktop-128k-elastic.json  the same with --elastic on and --reserve-gib 6 (experimental; 6 was not run)
+both                       env: STRATA_METAL_INDEXED_QSA=1     aliases: qwen3.8-27b-iq3_s
 ```
 
-It leaves idle unload unchanged and does not enable SIMD sort, MTP, or lookup. It points to the ordinary engine
-binary, which currently differs from source. Re-read and merge current production settings before later applying
-it; do not overwrite intervening user changes. The measured paging and compute-buffer warning remain unresolved.
+They leave idle unload unchanged and do not enable MTP or lookup. They point to the ordinary engine binary, which
+is now built from the current source. Re-read and merge current production settings before applying one; do not
+overwrite intervening user changes. Neither has read a full-context prompt with this build.
 
 pi was version **1.0.2**, executable `/Users/rafal/.bun/bin/pi`, linked into the global
 `@earendil-works/pi-coding-agent` package. In `/Users/rafal/.pi/agent/models.json`, provider `qwen-local` uses
@@ -485,7 +589,12 @@ tradeoff and was not part of the completed work.
 
 ## Evidence and local recovery map
 
-The results directory now preserves the finished full-context JSON, engine log, console output, and separate memory
+The afternoon's evidence is in `bench/results/2026-10-12-m4-air-128k-resume/`: `tests/` (every test on the final
+binary), `memory/` (the per-pass memory trace and the 16k run that ended at its reserved size), `batch-ab.*`,
+`rejected/keepalive-ab.*`, `elastic/` (the A B B A run, the first three-engine run with the 1,024 MiB swap, the
+five-request run with the 41 MiB swap, a verbose run with the shape changes timed), `gate/` and `pending/`.
+
+The morning's results directory preserves the finished full-context JSON, engine log, console output, and separate memory
 sample, along with earlier measurements, correctness failures and passes, profiling, rejected patches, and pending
 scripts. `artifact-manifest.json` records SHA-256 identities for local executables, the tiny fixture, and expert
 profile. Large binaries and model weights were not copied into the report.
@@ -511,7 +620,9 @@ Local executables to preserve before cleaning `build-metal/`:
 | `build-metal/lowlevel-128k/strata-full-outputs` | Before the output-reservation fix |
 | `build-metal/lowlevel-128k/strata-before-indexed` | Output-reservation fix; old compact experiments available but off; no indexed QSA/top-k fix |
 | `build-metal/lowlevel-128k/strata-indexed-topk` | **Executable used for the successful full-context test**; before relaxed-sync and source cleanup |
-| `build-metal/bin/strata` | Last compiled experimental tree, includes relaxed-sync; not current consolidated source |
+| `build-metal/lowlevel-128k/strata-relaxed-experimental` | The morning's last `bin/strata` (relaxed-sync tree), kept before the afternoon's rebuild |
+| `build-metal/resume-128k/strata-step1` | The consolidated morning patches as first rebuilt in the afternoon (with the SIMD patch, before `0004`/`0005`) |
+| `build-metal/bin/strata` | Current source |
 
 `docs/APPLE_METAL.md` remains useful for architecture and older experiments, but some status statements are stale:
 it says the largest exercised context was 40,960, describes the now-fixed planner problem as open, and gives older
@@ -519,5 +630,5 @@ batch settings and closed-app advice. The 2026-10-11 report also has historical 
 Use this handoff and the finished F16 result for the latest status. The 2026-10-12 report was updated with completion
 and a pointer here; its prior correctness numbers still refer to the earlier compiled implementation.
 
-The next agent should be able to start with source/binary reconciliation and the memory warning, without another
-blind 34-minute prefill or a repeat of the rejected kernel experiments.
+The next agent should be able to start from the open list under "Next steps", with the user's answer to which of
+the swap-risking runs they want.
