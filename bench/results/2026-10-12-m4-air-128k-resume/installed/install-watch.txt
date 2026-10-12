@@ -1,0 +1,2 @@
+16:51:10 BASELINE swapouts 1586191, swap used 1975.69 MiB, pressure 1, free 14.0 + file cache 7.7 GiB
+16:52:46 DONE new swap-outs 0 pages, swap used 1975.69 MiB (was 1975.69), peak pressure level 1

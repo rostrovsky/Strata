@@ -1,12 +1,14 @@
 # Strata optimization handoff — M4 MacBook Air, 32 GiB
 
-Updated **2026-10-12, afternoon**. The work was stopped in the morning at the user's request, resumed in the
+Updated **2026-10-12, evening**. The work was stopped in the morning at the user's request, resumed in the
 afternoon ("continue the OPTIMIZATION.md work"), and stopped again where every next step either takes the Mac for
-half an hour or risks swap, which is the user's call. The performance goal is **not complete**.
+half an hour or risks swap, which is the user's call. In the evening the user asked for the first of those steps:
+a full-context prompt with the corrected plan ran **without a swap-out**, and the 128k configuration was installed.
+The performance goal is **not complete**.
 
 Reports: [morning](bench/results/2026-10-12-m4-air-128k/README.md),
-[afternoon](bench/results/2026-10-12-m4-air-128k-resume/README.md). Sections below that describe the morning are
-marked where the afternoon changed them.
+[afternoon](bench/results/2026-10-12-m4-air-128k-resume/README.md), [evening](bench/results/2026-10-12-m4-air-128k-resume/README.md#8-evening-the-full-context-prompt-with-the-new-plan-and-the-install) (section 8 of the
+afternoon's). Sections below that describe the morning are marked where the afternoon or the evening changed them.
 
 ## Read this first
 
@@ -14,10 +16,18 @@ The original goal was a usable **131,072-token total context** with the highest 
 machine can sustain while a browser, Ghostty, pi, and other normal desktop apps remain open. The later target was
 **above 120 tok/s prefill and above 10 tok/s generation, without sacrificing quality**.
 
-The strongest full-context result is still the morning's: a completed **130,944-token input** at 131,072-token
+The first full-context result was the morning's: a completed **130,944-token input** at 131,072-token
 capacity, original IQ3_S weights, **F16 KV**, all five exact records retrieved. Prefill **64.92 tok/s**
 (**33 minutes 36.9 seconds** to the first token), decode **4.59 tok/s**; a repeat reused 130,943 tokens and
 answered in **0.403 seconds**. It was **not swap-free** (61.7 MiB) and reported pressure level 2.
+
+**The evening's is the one the installed configuration rests on:** the same prompt with the corrected plan,
+`build-metal/bin/strata`, no `--elastic`. Prefill **63.68 tok/s** (**34 minutes 16 seconds** to the first token),
+decode **4.54 tok/s**, five of five records, a repeat that reused 130,943 tokens and answered in **0.309 seconds**
+with identical output. **Zero swap-outs** over the whole run (the system-wide counter read every 5 seconds from
+before the engine's start to a minute after its exit), pressure level 1 in every sample, no compute-buffer warning.
+It is one run on one evening's desktop: free memory was under 0.1 GiB for the half hour, and macOS held up to
+14.9 GiB of other programs' memory compressed.
 
 What the afternoon established:
 
@@ -43,16 +53,16 @@ Mac with the apps open: the GPU alone takes 82-126 ms per written token, and a w
 
 | Item | State at handoff |
 | --- | --- |
-| Production Strata configuration | Still **32,768** context. Nothing was installed |
-| pi local-provider configuration | Still **32,768** context; pi against a 128k server was not tested |
-| Completed full-context run | The morning's, with the saved executable `build-metal/lowlevel-128k/strata-indexed-topk`. **Not repeated with the new plan** |
+| Production Strata configuration | **131,072** context since the evening of 2026-10-12: `pending/desktop-128k.json` merged in (`--kv f16 --prefill 4096 --reserve-gib 4`, indexed QSA, the alias pi asks for). No `--elastic`. The 32,768 file is kept as `bench/results/2026-10-12-m4-air-128k-resume/installed/strata-iq3_s.before.json` |
+| pi local-provider configuration | `contextWindow` **131,072** (backup: `~/.pi/agent/models.json.backup-20261012-165047-32k`). The smoke test against the 128k server passed: a real `read` tool call and the marker. A long pi session was not tested |
+| Completed full-context run | Two: the morning's (`build-metal/lowlevel-128k/strata-indexed-topk`, old plan, 61.7 MiB swapped) and the evening's (`build-metal/bin/strata`, new plan, **0 swap-outs**) |
 | Repository source | Five patches (`0001`-`0005`), engine with `--elastic`; built and tested (kernel tests, tiny-model parity, protocol suite, shape test). Applied once more to a clean checkout of the pin at the end |
 | `build-metal/bin/strata` | Built from the current source |
 | Default path | Same arithmetic as before; **not** the same memory plan: 450 MiB more reserved at 131,072 context with 4,096-token passes, host buffer subtracted |
 | Real-model exact gate on the final build | Passed against `strata-reference` at 32,768 context with a 3,000 MiB cache: chat, code, 7,900-token document, identical ids and reported logits on the default, indexed and `--elastic` paths |
-| Swap | The afternoon's `--elastic` tests wrote 1,066 MiB to swap (68,248 pages). macOS had 0.92 GiB in swap before, 1.95 GiB after |
-| Running work | Nothing was left running |
-| Git | Nothing committed in the afternoon. HEAD `2daacf82` (`dzyn dzyn`, the morning's handoff) plus uncommitted changes |
+| Swap | The afternoon's `--elastic` tests wrote 1,066 MiB to swap (68,248 pages). macOS had 0.92 GiB in swap before, 1.95 GiB after. The evening's full-context run, server start and pi test wrote none (1,975.69 MiB in use before and after) |
+| Running work | Nothing was left running; the server was stopped again after the pi test |
+| Git | The afternoon is committed as `8bfdb751` (source) and `cb36a298` (documents and results); the evening's result is the commit after them. `main` is ahead of `origin/main`; nothing was pushed |
 
 Commit `29c52020` contains the morning's optimization source, `2daacf82` its handoff and results. A commit is not
 evidence that its contents were validated.
@@ -246,8 +256,9 @@ buffer is still allocated once. Reserved at 131,072 context: 4,096-token passes 
 `llama_get_compute_buffer_sizes(ctx, &device, &host)`; the engine subtracts the host part (459 MiB for 4,096-token
 passes, `malloc`ed and untouched when the plan is made) before sizing the cache.
 
-Not verified by a full-context run: that 2,209 MiB is never exceeded. It equals what the morning's run ended with
-plus the 64 pools of padding, and a 16,200-token run at 16,384 context ended at its reserved size.
+Verified in the evening by a full-context run: 130,944 tokens ended without the mismatch warning, so 2,209 MiB
+was not exceeded. (It equals what the morning's run ended with plus the 64 pools of padding; a 16,200-token run at
+16,384 context also ended at its reserved size.)
 
 Looked at and dropped: Metal reserves 256 MiB of F16 dequantization scratch per attention operation even for an
 F16 KV cache. Skipping it changed the reserved size by 0 MiB.
@@ -323,11 +334,14 @@ The allocation column is the startup plan, not proof that the runtime allocation
 | Indexed QSA before top-k fix, 8,192 | 8,192 | 9.07 GiB | 2,589 MiB | 103.7 | 78.97 s | 4.14 | 5,870 |
 | Indexed QSA + top-k, 16,384 | 4,096 | 5.58 GiB | 5,735 MiB | 77.35 | 211.84 s | 4.85 | 0 |
 | Indexed QSA + top-k, **130,944** | **4,096** | **5.58 GiB** | **5,038 MiB** | **64.92** | **2,016.89 s** | **4.59** | **3,948** |
+| Current build, new plan (evening), **130,944** | **4,096** | **6.02 GiB + 0.45 GiB host** | **4,933 MiB** | **63.68** | **2,056.18 s** | **4.54** | **0** |
 
 The 8k-batch run paged about 91.7 MiB and was not selected for the desktop candidate. An earlier unindexed 8k-batch
 attempt planned 12.09 GiB and zero expert cache; it was stopped before completion. `outputs-limited.*` is **not** a
 completed benchmark. A four-thread C++ build overlapped part of the 16k run, so its speed is confounded. The 16k
 functional test still retrieved 5/5 records and repeated all 76 output IDs with 16,383 reused tokens and 0.379 s TTFT.
+The last row is the evening's run with `build-metal/bin/strata`; its start memory, pass times and the 5-second swap
+watch are in [section 8 of the afternoon report](bench/results/2026-10-12-m4-air-128k-resume/README.md#8-evening-the-full-context-prompt-with-the-new-plan-and-the-install). The details below are the morning's run.
 
 ### Full-context run details
 
@@ -443,14 +457,14 @@ The morning's list, with where it stands:
 4. Fair final F16 comparison: **partly.** The afternoon's A B B A runs compare settings of the current build; the
    real-model gate compares it with `strata-reference` for output. A sustained decode comparison against
    `strata-reference` was not run.
-5. Desktop integration: **not done, on purpose.** Nothing with a 131,072 context has been shown swap-free here.
+5. Desktop integration: **done in the evening**, after the swap-free full-context run: configuration installed,
+   pi's context window raised, smoke test passed. Not tested: a long prompt through the HTTP server or pi.
 
 What is open now, each needing the user's go-ahead because it takes the Mac for half an hour or can swap:
 
-1. **A full 130,944-token prompt with the new plan**, without `--elastic`, watching Swapouts over the whole run
-   (the command is under "Reproduction"; use `build-metal/bin/strata` and add nothing else). If it still swaps,
-   the reserve has to grow or the read-ahead buffer has to go into the plan; if it does not, `pending/
-   desktop-128k.json` can be installed and pi pointed at it.
+1. ~~A full 130,944-token prompt with the new plan, without `--elastic`, watching Swapouts over the whole run.~~
+   **Done in the evening: no swap-out**, 63.68 tok/s; `pending/desktop-128k.json` is installed and pi points at it.
+   Free memory was under 0.1 GiB while the prompt was read, so item 3 still matters.
 2. **`--elastic` with a larger reserve** (`--reserve-gib 6` in `pending/desktop-128k-elastic.json` is a guess):
    first the five-request run that swapped 41 MiB (`elastic/elastic-long-trips.*` in the afternoon report), then
    a full prompt. Its back-off has never met a real swap-out. Running it with the VM and Citrix closed would show
@@ -535,15 +549,22 @@ app memory, existing swap, **new** swap-outs, temperature, power mode, and wheth
 GB in SSD counters is decimal; GiB/MiB in allocations is binary. Page counts here are 16 KiB pages. Do not sum
 overlapping GPU-busy and I/O counters as though they were disjoint wall time.
 
-## Production and pi integration still to do
+## Production and pi integration
+
+**Installed on the evening of 2026-10-12.** Production `strata-iq3_s.json` is now `pending/desktop-128k.json`
+(131,072 context, no `--elastic`), pi's `contextWindow` is 131,072, `/health` and `/v1/models` report 131,072, and
+the pi smoke test below made a real `read` tool call and returned the marker. To go back, copy
+`bench/results/2026-10-12-m4-air-128k-resume/installed/strata-iq3_s.before.json` over `strata-iq3_s.json` and
+`~/.pi/agent/models.json.backup-20261012-165047-32k` over `~/.pi/agent/models.json`, then start the server again.
+The rest of this section was written before the install; where it says 32,768 it describes that state.
 
 Production `strata-iq3_s.json` points at `build-metal/bin/strata`, uses the native model and expert profile, automatic
 expert cache, and `--max-context 32768`. Its API model name is `qwen3.8-flash-next-iq3_s`, backend `metal`, port 8080,
 and idle unload 900 seconds. `run-iq3_s.sh` starts `.venv/bin/python serve/server.py --engine strata --config
 strata-iq3_s.json --port 8080 --open` from the repository.
 
-The **uninstalled candidates** are in `bench/results/2026-10-12-m4-air-128k-resume/pending/` (the morning's
-`pending/desktop-128k.json` is the same as the first of them):
+The candidates are in `bench/results/2026-10-12-m4-air-128k-resume/pending/` (the morning's
+`pending/desktop-128k.json` is the same as the first of them, which is the one installed in the evening):
 
 ```text
 desktop-128k.json          --max-context 131072 --kv f16 --prefill 4096 --reserve-gib 4
@@ -553,7 +574,8 @@ both                       env: STRATA_METAL_INDEXED_QSA=1     aliases: qwen3.8-
 
 They leave idle unload unchanged and do not enable MTP or lookup. They point to the ordinary engine binary, which
 is now built from the current source. Re-read and merge current production settings before applying one; do not
-overwrite intervening user changes. Neither has read a full-context prompt with this build.
+overwrite intervening user changes. `desktop-128k.json` has read a full-context prompt with this build (evening);
+the `--elastic` one has not.
 
 pi was version **1.0.2**, executable `/Users/rafal/.bun/bin/pi`, linked into the global
 `@earendil-works/pi-coding-agent` package. In `/Users/rafal/.pi/agent/models.json`, provider `qwen-local` uses
@@ -564,7 +586,7 @@ not the local provider. Do not change global defaults or print credentials while
 
 After future validation and installation, set the local provider's context window to 131,072 and check `/health`
 and `/v1/models` plus actual tool use. A prepared fixture at `build-metal/lowlevel-128k/pi-smoke.txt` contains
-`STRATA_PI_READ_CONFIRMED_7c4a91e2`. A suggested, **not yet run**, pi smoke test is:
+`STRATA_PI_READ_CONFIRMED_7c4a91e2`. The pi smoke test (run in the evening against the 128k server, passed) is:
 
 ```sh
 /Users/rafal/.bun/bin/pi \
@@ -593,6 +615,9 @@ The afternoon's evidence is in `bench/results/2026-10-12-m4-air-128k-resume/`: `
 binary), `memory/` (the per-pass memory trace and the 16k run that ended at its reserved size), `batch-ab.*`,
 `rejected/keepalive-ab.*`, `elastic/` (the A B B A run, the first three-engine run with the 1,024 MiB swap, the
 five-request run with the 41 MiB swap, a verbose run with the shape changes timed), `gate/` and `pending/`.
+The evening's is in the same directory: `full-128k/` (the result JSON, console, engine log, the swap watch and its
+script) and `installed/` (the configuration before and after, `/health`, `/v1/models`, pi's transcript, the server's
+engine log).
 
 The morning's results directory preserves the finished full-context JSON, engine log, console output, and separate memory
 sample, along with earlier measurements, correctness failures and passes, profiling, rejected patches, and pending

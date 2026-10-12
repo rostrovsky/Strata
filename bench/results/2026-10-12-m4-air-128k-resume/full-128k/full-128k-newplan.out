@@ -1,0 +1,39 @@
+memory: {'free_gib': 3.7, 'file_cache_gib': 15.99, 'apps_gib': 9.37, 'wired_gib': 2.14, 'swap_used_gib': 1.93, 'pressure_level': 1}
+bin/strata: ready in 10.0 s; context 131072, expert cache 2521 experts (4933 MiB), direct reads
+  read 4096/130944 tokens in 38.5 s; swap-outs 0
+  read 8192/130944 tokens in 80.7 s; swap-outs 0
+  read 12288/130944 tokens in 124.8 s; swap-outs 0
+  read 16384/130944 tokens in 177.5 s; swap-outs 0
+  read 20480/130944 tokens in 237.4 s; swap-outs 0
+  read 24576/130944 tokens in 295.9 s; swap-outs 0
+  read 28672/130944 tokens in 354.2 s; swap-outs 0
+  read 32768/130944 tokens in 414.0 s; swap-outs 0
+  read 36864/130944 tokens in 474.9 s; swap-outs 0
+  read 40960/130944 tokens in 536.6 s; swap-outs 0
+  read 45056/130944 tokens in 597.6 s; swap-outs 0
+  read 49152/130944 tokens in 660.7 s; swap-outs 0
+  read 53248/130944 tokens in 724.5 s; swap-outs 0
+  read 57344/130944 tokens in 790.4 s; swap-outs 0
+  read 61440/130944 tokens in 856.7 s; swap-outs 0
+  read 65536/130944 tokens in 922.7 s; swap-outs 0
+  read 69632/130944 tokens in 990.3 s; swap-outs 0
+  read 73728/130944 tokens in 1060.1 s; swap-outs 0
+  read 77824/130944 tokens in 1128.7 s; swap-outs 0
+  read 81920/130944 tokens in 1201.7 s; swap-outs 0
+  read 86016/130944 tokens in 1275.7 s; swap-outs 0
+  read 90112/130944 tokens in 1349.5 s; swap-outs 0
+  read 94208/130944 tokens in 1421.7 s; swap-outs 0
+  read 98304/130944 tokens in 1496.0 s; swap-outs 0
+  read 102400/130944 tokens in 1570.4 s; swap-outs 0
+  read 106496/130944 tokens in 1644.9 s; swap-outs 0
+  read 110592/130944 tokens in 1718.8 s; swap-outs 0
+  read 114688/130944 tokens in 1790.9 s; swap-outs 0
+  read 118784/130944 tokens in 1860.6 s; swap-outs 0
+  read 122880/130944 tokens in 1926.3 s; swap-outs 0
+  read 126976/130944 tokens in 1992.3 s; swap-outs 0
+  read 130937/130944 tokens in 2055.2 s; swap-outs 0
+prefill 130944 tokens:    63.7 tok/s, first token after 2056.18 s, 1399.7 GB from the SSD, 35 passes; 2056.1 s = SSD 52.1 + GPU wait 1807.3 + CPU 196.7 (GPU busy 1920.8; 1279.0 GB read ahead, 1233.1 used); swap-outs 0, 18.1 W
+  decode at 130944 tokens: 4.54 tok/s, 76 tokens; 'STRATA_TEST_RECORD ALPHA = cedar-58317\nSTRATA_TEST_RECORD BRAVO = quartz-92406\nSTRATA_TEST_RECORD CHARLIE = lilac-76183\nSTRATA_TEST_RECORD DELTA = maple-40952\nSTRATA_TEST_RECORD ECHO = coral-63821<|im_end|>'
+  retrieval: 5/5 exact values
+  repeat: 130943 tokens reused, first token after 0.31 s, same output: True
+swap-outs over the whole run: 0

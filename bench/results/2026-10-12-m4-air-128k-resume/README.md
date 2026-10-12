@@ -10,6 +10,11 @@ This continues the [morning's report](../2026-10-12-m4-air-128k/README.md) and t
 are still not reached. Three test runs of the new `--elastic` mode made macOS swap (1,066 MiB in all); no other
 run did.
 
+**Evening of the same day** ([section 8](#8-evening-the-full-context-prompt-with-the-new-plan-and-the-install)): a
+full 130,944-token prompt was read with the corrected plan, without `--elastic`, and macOS did not swap out one page.
+After that the 128k configuration was installed and pi tried against it. Sections 1-7 are the afternoon as it was
+written.
+
 ## In short
 
 - **The memory plan is honest now.** The 442 MiB by which the compute buffer grew during the morning's full-context
@@ -199,7 +204,9 @@ cache stayed (no swap-out then).
 - `metal/tests/optimization_parity_test.py` has the variants default, indexed, elastic and elastic-long;
   `metal/tests/serve_protocol_test.py` three `--elastic` cases; `metal/tests/elastic_shapes_test.py` is new.
 
-## 7. State at the end of the session
+## 7. State at the end of the afternoon
+
+Superseded in the evening for the rows "Production config, pi", "Candidates" and "Git": see section 8.
 
 | | |
 | --- | --- |
@@ -214,3 +221,96 @@ cache stayed (no swap-out then).
 Not run in this session, each because it takes the Mac for half an hour or risks swap, and so is the owner's call:
 a full 130,944-token prompt with the new plan; `--elastic` with a larger reserve; `--prefill 8192` in the Long
 shape (the memory is there in that shape); pi against a 128k server.
+
+## 8. Evening: the full-context prompt with the new plan, and the install
+
+The first of the runs listed above, done at the owner's request. Same binary as the afternoon's final build
+(`build-metal/bin/strata`, SHA-256 `7835bd8c...`), no `--elastic`, nothing built or run on the GPU beside it. A VM,
+Citrix, Brave, VS Code, Ghostty and the Claude app were open. Raw files: [full-128k/](full-128k/).
+
+```sh
+STRATA_METAL_INDEXED_QSA=1 .venv/bin/python -u metal/tools/bench.py --config strata-iq3_s.json \
+  --context 131072 --prefill 130944 --prefill-new 120 --needle --prefill-repeat \
+  --json build-metal/resume-128k/full-128k-newplan.json --log build-metal/resume-128k/full-128k-newplan.log \
+  -- --kv f16 --prefill 4096 --reserve-gib 4
+```
+
+It ran under [run_full.py](full-128k/run_full.py), which read macOS's system-wide `Swapouts` counter every 5 seconds
+from before the engine started until 63 seconds after it had exited, and would have killed the benchmark and the
+engine the moment it moved. It never moved.
+
+| | Morning (`strata-indexed-topk`, old plan) | Evening (`bin/strata`, new plan) |
+| --- | ---: | ---: |
+| Start: free / file cache / swap in use | 11.70 / 7.13 / 1.05 GiB | 3.70 / 15.99 / 1.93 GiB |
+| Plan: context on the GPU, host memory | 5.58 GiB, not counted | 6.02 GiB (2.16 of it for the passes), 0.45 GiB |
+| Expert cache | 2,575 experts, 5,038 MiB | 2,521 experts, 4,933 MiB |
+| Prompt | 130,944 tokens, 35 passes | 130,944 tokens, 35 passes |
+| Prefill | 64.92 tok/s | **63.68 tok/s** |
+| First token after | 2,016.89 s | **2,056.18 s** (34 min 16 s) |
+| Decode at full depth | 4.59 tok/s | **4.54 tok/s** (76 tokens) |
+| Records retrieved | 5/5 | **5/5** |
+| Repeat | 130,943 reused, 0.403 s, same ids | **130,943 reused**, 1 read, 0.309 s, 4.82 tok/s, **same ids** |
+| New swap-outs, whole run | 3,948 pages (61.7 MiB) | **0** |
+| Pressure level | 2 in the one sample taken (at about 94k) | **1 in every sample** |
+| Compute buffer at exit | 2,201 MiB against 1,759 expected | no warning |
+| Power, SSD bytes | 18.45 W, 1,396.8 GB | 18.13 W, 1,399.7 GB |
+
+The two columns are different desktop states and temperatures, not a controlled comparison: the 2% in speed is
+inside what one run shows. What changed is the swap column.
+
+**Swap.** `Swapouts` was 1,586,191 before the start, in every 5-second reading during the 35 minutes, and 3, 13, 33
+and 63 seconds after the engine had exited. `vm.swapusage` stayed at 1,975.69 MiB used. The benchmark's own count
+over the whole run is 0 too. (Swap-ins rose by 236 pages: macOS reading 3.7 MiB of other programs' memory back.)
+
+**Pressure.** `kern.memorystatus_vm_pressure_level` was 1 (normal) in all 70 half-minute rows of
+[the trace](full-128k/full-128k-newplan-watch.jsonl), in the benchmark's 32 samples, and as the peak of the
+5-second readings.
+
+**How close it was.** While the prompt was read, free memory was 0.03-0.07 GiB, wired memory 16.6-17.5 GiB, and the
+file cache fell from 16.0 to 5.5-7.2 GiB. The other programs' memory in the compressor grew from 8.2 GiB (held in
+2.7 GiB) to 13.4-14.9 GiB (held in 5.2-6.3 GiB): as in the afternoon, macOS compressed about 6 GiB of other
+programs' memory and kept about 7 GiB of file cache. It did not have to swap. This is one run on one evening's
+desktop; with the other programs more active during the half hour the same plan could still swap. The plan still
+does not count compressed memory.
+
+**Time.** 2,056.14 s in the engine = GPU wait 1,807.35 + SSD not overlapped 52.12 + the rest 196.68 (GPU busy
+1,920.81 s, overlapping). 1,279.0 GB read ahead, 1,233.1 GB of it used. The first pass took 38.5 s, passes 5 to 16
+58-66 s, passes 17 to 29 68-75 s, passes 30 to 32 63-66 s (the last few tokens go in three short ones). Depth
+reached: 32,768 at 414.0 s, 65,536 at 922.7 s, 98,304 at 1,496.0 s, 126,976 at 1,992.3 s. SoC 37.5 C at the start,
+83.9 C at its hottest sample two minutes in, then a median of 65 C; battery sensor 30.8 -> 35.5 C.
+
+**Answer.** 220.17 ms per token = GPU wait 129.52 + SSD 78.14 + CPU 12.51; 101.2 cache misses and 463.0 MB from the
+SSD per token; 78.2% cache hits. Record positions 6,560 / 32,736 / 65,457 / 98,177 / 124,353.
+
+**Engine log.** [All 20 lines](full-128k/full-128k-newplan-engine.txt); no `compute buffer size ... does not match
+expectation` line at exit, so the 2,209 MiB reserved by `0004` was not exceeded at full depth.
+
+### Installed
+
+Done only because the run above was clean. Evidence: [installed/](installed/).
+
+| Step | Result |
+| --- | --- |
+| `strata-iq3_s.json` | Re-read first: unchanged since 2026-10-11, no setting of the owner's differs from the candidate's base. With `pending/desktop-128k.json` merged in it is that file exactly: `--max-context 131072 --kv f16 --prefill 4096 --reserve-gib 4`, `STRATA_METAL_INDEXED_QSA=1`, alias `qwen3.8-27b-iq3_s`. Before and after: [strata-iq3_s.before.json](installed/strata-iq3_s.before.json), [strata-iq3_s.after.json](installed/strata-iq3_s.after.json) (the live file is not in git) |
+| `~/.pi/agent/models.json` | `contextWindow` of `qwen-local` / `qwen3.8-27b-iq3_s`: 32768 -> 131072. One line; `maxTokens` stays 8192. Backup beside it: `models.json.backup-20261012-165047-32k` |
+| `run-iq3_s.sh` | Engine started 16:51:16, `/health` said `loaded` at 16:51:25: context 6.02 GiB on the GPU and 0.45 GiB of host memory, 2,547 experts cached (4.87 GiB), 15.6 GiB resident |
+| `/health` | `status ok`, `max_context 131072`, `loaded true` |
+| `/v1/models` | `qwen3.8-flash-next-iq3_s` and the alias `qwen3.8-27b-iq3_s`, both `n_ctx 131072` |
+| pi 1.0.2 smoke test (the command in OPTIMIZATION.md) | Exit code 0 after 35 s. Request 1: 891 tokens read in 17.1 s, 50 written at 5.64 tok/s: a `read` tool call for the fixture, which pi executed. Request 2: 940 of 973 tokens reused, 24 written at 4.67 tok/s: the answer contains `STRATA_PI_READ_CONFIRMED_7c4a91e2` |
+| Swap, from before the server start until after its stop | 0 pages (same 5-second watch; pressure level 1) |
+
+The server was stopped again after the test; nothing was left running. `./run-iq3_s.sh` starts it.
+
+Not tested: a long prompt through the HTTP server or pi (the full-context prompt went through `bench.py`, which
+talks to the engine directly, so the server's silence and stall limits have not met 75-second passes); a long pi
+session; the 900-second idle unload, which gives the memory back and with it a 34-minute prefix.
+
+To go back to 32,768:
+
+```sh
+cd /Users/rafal/Projects/strata-air/Strata
+cp bench/results/2026-10-12-m4-air-128k-resume/installed/strata-iq3_s.before.json strata-iq3_s.json
+cp ~/.pi/agent/models.json.backup-20261012-165047-32k ~/.pi/agent/models.json
+```
+
+and start the server again (if `models.json` was edited since, set that one `contextWindow` back by hand instead).

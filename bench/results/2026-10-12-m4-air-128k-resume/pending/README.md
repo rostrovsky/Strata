@@ -1,7 +1,11 @@
-# Not installed
+# Candidates
 
-Both files are the production `strata-iq3_s.json` of 2026-10-12 with the 128k settings added. Neither is in use:
-production Strata and pi's `qwen-local` provider still have a 32,768-token context.
+Both files are the production `strata-iq3_s.json` of 2026-10-12 with the 128k settings added.
+
+**`desktop-128k.json` was installed on the evening of 2026-10-12**, after a full 130,944-token prompt ran with it
+without a swap-out; pi's `qwen-local` provider has a 131,072-token context since then. See section 8 of
+[the report](../README.md) for the run, the checks and how to go back. `desktop-128k-elastic.json` is not in use.
+The table below is the afternoon's.
 
 | File | Adds | Status |
 | --- | --- | --- |

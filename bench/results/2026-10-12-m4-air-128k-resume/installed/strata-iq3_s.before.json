@@ -1,0 +1,20 @@
+{
+  "exe": "/Users/rafal/Projects/strata-air/Strata/build-metal/bin/strata",
+  "args": [
+    "--native",
+    "/Users/rafal/Projects/strata-air/Strata-data/models/IQ3_S/Qwen3.8-Flash-Next-GSQ-RCO-IQ3_S-00001-of-00002.gguf",
+    "--expert-profile",
+    "/Users/rafal/Projects/strata-air/Strata/data/expert-profile.bin",
+    "--expert-cache",
+    "auto",
+    "--max-context",
+    "32768"
+  ],
+  "cwd": "/Users/rafal/Projects/strata-air/Strata",
+  "tokenizer": "/Users/rafal/Projects/strata-air/Strata-data/packs/iq3_s/tokenizer",
+  "model_name": "qwen3.8-flash-next-iq3_s",
+  "log": "/Users/rafal/Projects/strata-air/Strata/strata-iq3_s.log",
+  "port": 8080,
+  "backend": "metal",
+  "idle_unload_s": 900
+}

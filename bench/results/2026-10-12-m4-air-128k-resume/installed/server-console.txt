@@ -1,0 +1,29 @@
+loading the model (the first start takes a minute or two) ...
+[strata] starting the engine: reading the model's weights ...
+[strata] model aliases: qwen3.8-27b-iq3_s
+[strata] the model unloads after 900.0 s without requests
+ready: http://127.0.0.1:8080/v1  (OpenAI: /v1/chat/completions, Anthropic: /v1/messages, context 131072 tokens)
+       open http://127.0.0.1:8080/ in a browser to chat; close this window to stop the model
+[strata] reading the prompt: 891 tokens, 10 s so far
+[strata] reading the prompt: 884 of 891 tokens, 16 s so far
+[strata] reading the prompt: 1 of max 8192 tokens, 246723.8 tok/s, 17 s
+[strata] writing a tool call: read: 7 of max 8192 tokens, 6.7 tok/s, 18 s
+[strata] writing a tool call: read: 13 of max 8192 tokens, 6.1 tok/s, 19 s
+[strata] writing a tool call: read: 19 of max 8192 tokens, 5.9 tok/s, 20 s
+[strata] writing a tool call: read: 26 of max 8192 tokens, 6.1 tok/s, 21 s
+[strata] writing a tool call: read: 33 of max 8192 tokens, 6.2 tok/s, 22 s
+[strata] writing a tool call: read: 40 of max 8192 tokens, 6.2 tok/s, 24 s
+[strata] writing a tool call: read: 44 of max 8192 tokens, 5.9 tok/s, 25 s
+[strata] tool call complete: 49 of max 8192 tokens, 5.8 tok/s, 26 s
+[strata] done: 50 tokens in 26 s (5.8 tok/s) (stop, cancel=False), expert cache 81.1% hit
+[strata] reading the prompt: 955 of 973 tokens, 2 s so far
+[strata] reading the prompt: 965 of 973 tokens, 3 s so far
+[strata] answering: 1 of max 8192 tokens, 322638.8 tok/s, 4 s
+[strata] answering: 7 of max 8192 tokens, 6.1 tok/s, 5 s
+[strata] answering: 11 of max 8192 tokens, 4.9 tok/s, 6 s
+[strata] answering: 16 of max 8192 tokens, 4.7 tok/s, 7 s
+[strata] answering: 22 of max 8192 tokens, 4.9 tok/s, 8 s
+[strata] done: 24 tokens in 9 s (4.9 tok/s) (stop, cancel=False), expert cache 75.8% hit
+
+[strata] stopping (Ctrl+C again to end the engine at once) ...
+[strata] stopped
