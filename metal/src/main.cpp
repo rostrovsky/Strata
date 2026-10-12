@@ -486,6 +486,7 @@ struct Engine {
     uint64_t cache_bulk_bytes_ = 0;
     uint64_t cache_plan_bytes_ = 0;       // the answering cache as planned at the start: it never grows past this
     int short_batch_ = 0;                 // the Short shape's passes (0: there is none)
+    int long_batch_ = 0;                  // the Long shape's passes: --prefill, or the largest half of it the memory has room for
     double short_work_ = 0.0, short_gpu_ = 0.0;   // what it takes on top of the Answer shape: in all, and on the GPU
     double answer_work_ = 0.0;            // the Answer shape's work memory (GPU and host)
     uint64_t answer_footprint_ = 0;       // this process's memory in the Answer shape, when it was last left for the Long one
@@ -735,7 +736,7 @@ struct Engine {
             ballast_ = nullptr;
         }
         const uint64_t cache_was = cache_bytes;
-        const uint32_t batch = to == Shape::Long ? (uint32_t) o.prefill : to == Shape::Short ? (uint32_t) short_batch_ : (uint32_t) kAnswerBatch;
+        const uint32_t batch = to == Shape::Long ? (uint32_t) long_batch_ : to == Shape::Short ? (uint32_t) short_batch_ : (uint32_t) kAnswerBatch;
         // (the Short shape borrows: its work memory is taken as its one pass needs it, and no more)
         if (!llama_context_resize(ctx, batch, to == Shape::Long ? cache_bulk_bytes_ : cache_bytes, cache_goes || cache_comes)) {
             broken_ = true;
@@ -925,6 +926,11 @@ struct Engine {
         double elastic_total = 0.0, elastic_metal = 0.0;   // --elastic: what the passes' work memory and the cache share
         double elastic_work = 0.0;                         // ... and the long passes' work memory of it
         double elastic_answer_gpu = 0.0;                   // the answering shape's work memory on the GPU
+        struct LongShape {
+            int batch;
+            double gpu, host;
+        };
+        std::vector<LongShape> smaller_long;               // long passes smaller than --prefill, and what they take
         if (o.expert_cache != "auto") {
             const bool mib = o.expert_cache.size() > 3 && o.expert_cache.compare(o.expert_cache.size() - 3, 3, "mib") == 0;
             const double v = std::atof(o.expert_cache.c_str());
@@ -958,6 +964,13 @@ struct Engine {
             if (o.elastic && !mtp && o.prefill > 32) {
                 // the other shapes' work memory, measured on this context too: the cache is then allocated once
                 size_t dev = 0, host = 0, sdev = 0, shost = 0;
+                // (and that of long passes of half and a quarter of --prefill, should the whole not fit)
+                for (int b = o.prefill / 2; b >= 1024 && (int) smaller_long.size() < 3; b /= 2) {
+                    size_t d2 = 0, h2 = 0;
+                    if (!llama_context_resize(ctx, (uint32_t) b, 0, false)) break;
+                    llama_get_compute_buffer_sizes(ctx, &d2, &h2);
+                    smaller_long.push_back({b, (double) d2, (double) h2});
+                }
                 short_batch_ = std::min(o.elastic_short, o.prefill);
                 if (short_batch_ <= 32 || !llama_context_resize(ctx, (uint32_t) short_batch_, 0, false)) short_batch_ = 0;
                 else llama_get_compute_buffer_sizes(ctx, &sdev, &shost);
@@ -989,11 +1002,22 @@ struct Engine {
                 // shape: its own (small) work memory and the cache, which gets what is left of the same total.
                 cache_bulk_bytes_ = (uint64_t) (256 * kMiB);
                 const double staging = o.prefill_ahead ? (double) fetch.staging_bytes(true) : 0.0;
-                const double bulk_need = (double) ctx_device + (double) ctx_host + (double) cache_bulk_bytes_ + staging;
                 elastic_work = (double) ctx_device + (double) ctx_host;
-                long_work_ = elastic_work;
                 elastic_total = room + elastic_work;
                 elastic_metal = by_metal + (double) ctx_device;
+                // the long passes are --prefill tokens, or the largest half of that the total has room for
+                long_batch_ = o.prefill;
+                long_work_ = elastic_work;
+                for (size_t i = 0; long_work_ + (double) cache_bulk_bytes_ + staging > elastic_total && i < smaller_long.size(); ++i) {
+                    long_batch_ = smaller_long[i].batch;
+                    long_work_ = smaller_long[i].gpu + smaller_long[i].host;
+                }
+                const double bulk_need = long_work_ + (double) cache_bulk_bytes_ + staging;
+                if (long_batch_ != o.prefill && elastic_total >= bulk_need)
+                    std::fprintf(stderr, "strata metal: --elastic: no room for passes of %d tokens (%.2f GiB with the read-ahead "
+                                         "buffer, of %.2f): long prompts are read in passes of %d\n", o.prefill,
+                                 (elastic_work + (double) cache_bulk_bytes_ + staging) / kGiB, elastic_total / kGiB, long_batch_);
+                short_batch_ = std::min(short_batch_, long_batch_);
                 if (mtp || fixed || o.prefill <= 32 || answer_work_ <= 0.0 || elastic_total < bulk_need) {   // (no room: hardly any memory is free)
                     std::fprintf(stderr, "strata metal: --elastic is off: %s\n",
                                  mtp ? "not with the MTP head" : fixed ? "the expert cache has a set size" : o.prefill <= 32
@@ -1030,7 +1054,7 @@ struct Engine {
             ctx = llama_init_from_model(model, ctx_params(cache_bytes, kAnswerBatch));
             std::fprintf(stderr, "strata metal: --elastic: answers are written with a %.2f GiB expert cache (%.2f GiB of work "
                                  "memory). A long prompt is read in passes of %d with %.2f GiB of work memory in the cache's "
-                                 "place", (double) cache_bytes / kGiB, answer_work_ / kGiB, o.prefill, elastic_work / kGiB);
+                                 "place", (double) cache_bytes / kGiB, answer_work_ / kGiB, long_batch_, long_work_ / kGiB);
             if (short_batch_ > 0)
                 std::fprintf(stderr, "; up to %d new tokens in one pass beside the cache, where %.2f GiB are free for it",
                              short_batch_, short_work_ / kGiB);
@@ -1051,6 +1075,9 @@ struct Engine {
         llama_moe_cache_stats st{};
         if (llama_moe_cache_get_stats(ctx, &st)) {
             pool = std::make_unique<ReadPool>(o.io_threads - 1);
+            // direct reads are block-aligned, or they are not direct (expert_io.hpp); STRATA_ALIGNED_READS=0: as before
+            const char* ar = std::getenv("STRATA_ALIGNED_READS");
+            pool->set_aligned(o.expert_io == "direct" && (ar == nullptr || std::atoi(ar) != 0));
             fetch.pool = pool.get();
             // The GPU is kept at its working clock for the whole of a request (gpu_keepalive.hpp).  Measured on the
             // M4 Air, IQ3_S, 75% cache hits, 120 tokens: 2.93 tok/s without it, 4.19 with it during the SSD reads
@@ -1426,7 +1453,7 @@ struct Engine {
                 // the cache does not serve would be computed on the CPU.
                 const int64_t rem = mark - at;
                 const bool long_pass = o.prefill > 32 && rem >= o.prefill_from && rem > o.chunk;
-                int64_t most = o.prefill;
+                int64_t most = o.elastic ? long_batch_ : o.prefill;
                 if (o.elastic) {
                     // What one short pass reads is read beside the cache, if the memory for that is free; more takes
                     // the cache's memory.  The long-prompt shape is kept for as long as long passes follow.

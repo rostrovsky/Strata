@@ -182,9 +182,21 @@ public:
         const void* fallback = nullptr;   // the same bytes in the mapped file: copied from there if the read fails
     };
 
+    // A read from a file opened with F_NOCACHE goes past the OS file cache only if its offset in the file and its
+    // buffer are both multiples of 4,096; its length does not matter.  Measured on the M4 Air (APFS, 256 MiB in 8 MiB
+    // reads, mincore on the range afterwards): 0 MiB left in the file cache when both are aligned, 224 MiB when
+    // either is off by 32 or 512 bytes.  The experts' offsets in a GGUF and their places in a GPU buffer are aligned
+    // to 32 bytes, so nearly every read went through the cache: 40 GB per pass of a long prompt, which macOS then
+    // has to evict as fast as it comes in (about 1 GiB of page-ins a second for the whole pass) - by compressing
+    // the memory of other programs, and at the edge by swapping.
+    static constexpr size_t kBlock = 4096;
+
     explicit ReadPool(int n_threads) {
         for (int i = 0; i < n_threads; ++i) workers_.emplace_back([this] { loop(); });
     }
+
+    // reads are made block-aligned (set before the first read; for files opened with F_NOCACHE)
+    void set_aligned(bool on) { aligned_ = on; }
 
     ~ReadPool() {
         {
@@ -306,22 +318,82 @@ private:
         return true;
     }
 
+    // a thread's own block-aligned buffer
+    struct Aligned {
+        static constexpr size_t kCap = (2u << 20) + 2 * kBlock;
+        char* p = nullptr;
+        Aligned() {
+            void* q = nullptr;
+            if (::posix_memalign(&q, 16384, kCap) == 0) p = (char*) q;
+        }
+        ~Aligned() { std::free(p); }
+    };
+
+    // n bytes at `at`, or as many as the file has: the count, or -1
+    static ssize_t pread_all(int fd, char* to, size_t n, uint64_t at) {
+        size_t got = 0;
+        while (got < n) {
+            const ssize_t r = ::pread(fd, to + got, n - got, (off_t) (at + got));
+            if (r < 0 && errno == EINTR) continue;
+            if (r < 0) return -1;
+            if (r == 0) break;
+            got += (size_t) r;
+        }
+        return (ssize_t) got;
+    }
+
+    static std::string failed(ssize_t r) {
+        return r < 0 ? std::string("read failed: ") + std::strerror(errno) : std::string("the file ended inside a tensor");
+    }
+
+    // [at, at + n) of the file through the thread's aligned buffer: whole blocks are read, the bytes asked for copied
+    static std::string read_copied(int fd, uint64_t at, char* to, size_t n, Aligned& buf) {
+        while (n > 0) {
+            const uint64_t a0 = at & ~(uint64_t) (kBlock - 1);
+            const size_t skip = (size_t) (at - a0);
+            const size_t take = std::min(n, Aligned::kCap - 2 * kBlock);
+            const size_t want = (skip + take + kBlock - 1) & ~(kBlock - 1);
+            const ssize_t r = pread_all(fd, buf.p, want, a0);
+            if (r < (ssize_t) (skip + take)) return failed(r);
+            std::memcpy(to, buf.p + skip, take);
+            at += take;
+            to += take;
+            n -= take;
+        }
+        return {};
+    }
+
+    // [offs, offs + size) of the file into dst, every read of it block-aligned.  Where dst and offs are off a block
+    // boundary by the same amount (the staging buffer is laid out that way), only the partial blocks at the two ends
+    // are copied and the rest is read in place; otherwise all of it is read through the aligned buffer and copied.
+    static std::string read_aligned(int fd, uint64_t offs, char* dst, size_t size) {
+        thread_local Aligned buf;
+        if (buf.p == nullptr) {
+            const ssize_t r = pread_all(fd, dst, size, offs);
+            return r == (ssize_t) size ? std::string() : failed(r);
+        }
+        if (((uintptr_t) dst - (uintptr_t) offs) % kBlock != 0 || size < 4 * kBlock) return read_copied(fd, offs, dst, size, buf);
+        const size_t head = (size_t) ((kBlock - offs % kBlock) % kBlock);
+        const size_t mid = (size - head) & ~(kBlock - 1);
+        std::string e;
+        if (head > 0 && !(e = read_copied(fd, offs, dst, head, buf)).empty()) return e;
+        if (mid > 0) {
+            const ssize_t r = pread_all(fd, dst + head, mid, offs + head);
+            if (r < (ssize_t) mid) return failed(r);
+        }
+        return size > head + mid ? read_copied(fd, offs + head + mid, dst + head + mid, size - head - mid, buf) : std::string();
+    }
+
     void read(const Item& item) {
         const Job& j = item.job;
         std::string e;
-        size_t got = 0;
         if (j.fd < 0) {   // no file: the bytes are in memory already (a tensor that was read ahead)
             std::memcpy(j.dst, j.fallback, j.size);
-            got = j.size;
-        }
-        while (got < j.size) {
-            const ssize_t r = ::pread(j.fd, (char*) j.dst + got, j.size - got, (off_t) (j.offs + got));
-            if (r < 0 && errno == EINTR) continue;
-            if (r <= 0) {
-                e = r < 0 ? std::string("read failed: ") + std::strerror(errno) : "the file ended inside a tensor";
-                break;
-            }
-            got += (size_t) r;
+        } else if (aligned_) {
+            e = read_aligned(j.fd, j.offs, (char*) j.dst, j.size);
+        } else {
+            const ssize_t r = pread_all(j.fd, (char*) j.dst, j.size, j.offs);
+            if (r != (ssize_t) j.size) e = failed(r);
         }
         if (!e.empty() && j.fallback != nullptr && j.fd >= 0) {
             std::memcpy(j.dst, j.fallback, j.size);
@@ -362,6 +434,7 @@ private:
     uint64_t last_id_ = 0;
     size_t active_ = 0, active_ahead_ = 0, ahead_limit_ = 4;
     bool quit_ = false;
+    bool aligned_ = false;
 };
 
 // The fetch side of the expert cache: llama.cpp's MoE cache hands over the experts a layer routed to and does not
@@ -514,6 +587,15 @@ struct ExpertFetch {
 
     int slot_of(const TensorAt& t) const { return staging.n_slots == 3 ? t.kind : 0; }
 
+    // Where tensor t starts in its staging slot: as far off a block boundary as it starts in its file, so that the
+    // reads into the slot are block-aligned at both ends (ReadPool::read_aligned) and go past the OS file cache.
+    uint8_t* slot_base(const TensorAt& t) const {
+        return staging.buf + staging.offs[slot_of(t)] + (size_t) (t.offs % ReadPool::kBlock);
+    }
+
+    // a slot for a tensor of n bytes: whole pages, with room for that shift
+    static size_t slot_bytes(size_t n) { return (n + ReadPool::kBlock + 16383) & ~(size_t) 16383; }
+
     void drop(Staged& st) {
         if (st.ticket != 0) {
             pool->cancel(st.ticket);
@@ -539,11 +621,12 @@ struct ExpertFetch {
         staging.n_slots = whole_layer ? 3 : 1;
         if (whole_layer) {
             staging.offs[0] = 0;
-            staging.offs[1] = most[0];
-            staging.offs[2] = most[0] + most[1];
-            staging.cap = most[0] + most[1] + most[2];
+            staging.offs[1] = slot_bytes(most[0]);
+            staging.offs[2] = staging.offs[1] + slot_bytes(most[1]);
+            staging.cap = staging.offs[2] + slot_bytes(most[2]);
         } else {
-            staging.cap = std::max({most[0], most[1], most[2]});
+            staging.offs[0] = 0;
+            staging.cap = slot_bytes(std::max({most[0], most[1], most[2]}));
         }
         void* p = ::mmap(nullptr, staging.cap, PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANON, -1, 0);
         if (p == MAP_FAILED) {
@@ -562,7 +645,7 @@ struct ExpertFetch {
         size_t most[3] = {0, 0, 0};
         for (const auto& [name, t] : files->tensors)
             if (t.n_expert > 0 && t.kind >= 0) most[t.kind] = std::max<size_t>(most[t.kind], t.size);
-        return whole_layer ? most[0] + most[1] + most[2] : std::max({most[0], most[1], most[2]});
+        return whole_layer ? slot_bytes(most[0]) + slot_bytes(most[1]) + slot_bytes(most[2]) : slot_bytes(std::max({most[0], most[1], most[2]}));
     }
 
     void end_bulk() {
@@ -587,7 +670,7 @@ struct ExpertFetch {
     void stage(const TensorAt& t, std::vector<std::pair<int32_t, int32_t>> runs, std::vector<int32_t> pads) {
         Staged& st = staging.slot[slot_of(t)];
         const uint64_t each = t.size / (uint64_t) t.n_expert;
-        uint8_t* base = staging.buf + staging.offs[slot_of(t)];
+        uint8_t* base = slot_base(t);
         const size_t pad = (size_t) std::min<uint64_t>(each, kPad);
         std::vector<ReadPool::Job> js;
         std::vector<bool> pad_done(pads.size(), false);
@@ -649,7 +732,7 @@ struct ExpertFetch {
                     pool->wait(st.ticket, true);
                     st.ticket = 0;
                     staged = &st;
-                    staged_base = staging.buf + staging.offs[slot_of(t)];
+                    staged_base = slot_base(t);
                 }
             }
             if (bulk != nullptr && &t != bulk) return false;   // not what the engine was told to expect
@@ -727,7 +810,7 @@ struct ExpertFetch {
                 const size_t room = staging.n_slots == 3 ? (slot_of(*nx) < 2 ? staging.offs[slot_of(*nx) + 1] - staging.offs[slot_of(*nx)]
                                                                                : staging.cap - staging.offs[2])
                                                          : staging.cap;
-                if (nx->size > room) break;
+                if (slot_bytes(nx->size) > room) break;
                 Staged& st = staging.slot[slot_of(*nx)];
                 if (st.t == nx) {   // under way already
                     cur = nx;
