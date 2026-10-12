@@ -1,0 +1,35 @@
+strata metal: Apple M4, 32.0 GiB of unified memory, Metal's working set 21.3 GiB
+strata metal: model: 2 shard(s), 4.2 GiB dense, 46.8 GiB of routed experts (48 layers x 512, 1.95 MiB each on average), 26.8 GiB n-gram table
+strata metal: memory now: 20.3 GiB free or file cache, 9.2 GiB held by other programs, 2.0 GiB wired, 1.9 GiB in swap
+strata metal: loading the dense weights: 10%
+strata metal: loading the dense weights: 20%
+strata metal: loading the dense weights: 30%
+strata metal: loading the dense weights: 40%
+strata metal: loading the dense weights: 50%
+strata metal: loading the dense weights: 60%
+strata metal: loading the dense weights: 100%
+strata metal: weights loaded in 2.1 s, 3.89 GiB on the GPU
+llama_kv_cache:       MTL0 KV buffer size =  3072.00 MiB
+llama_kv_cache: the device maps the cache as it fills: 1024 of 131072 cells now, 24.00 MiB each 1024 more
+llama_kv_cache:       MTL0 KV buffer size =   768.00 MiB
+llama_kv_cache: the device maps the cache as it fills: 1024 of 131072 cells now, 6.00 MiB each 1024 more
+strata metal: context 7.06 GiB on the GPU (3.20 of it for the passes) and 0.89 GiB of host memory; expert cache 3.13 GiB (auto; Metal has room for 10.1, the free memory for 3.1)
+strata metal: other programs hold 5.4 GiB of memory. The expert cache takes only what is free, so that macOS does not have to swap them out; with programs closed before the start it can be up to 7.0 GiB larger (every GiB holds ~525 more experts)
+llama_kv_cache:       MTL0 KV buffer size =  3072.00 MiB
+llama_kv_cache: the device maps the cache as it fills: 1024 of 131072 cells now, 24.00 MiB each 1024 more
+llama_kv_cache:       MTL0 KV buffer size =   768.00 MiB
+llama_kv_cache: the device maps the cache as it fills: 1024 of 131072 cells now, 6.00 MiB each 1024 more
+strata metal: --elastic: answers are written with a 10.61 GiB expert cache (0.27 GiB of work memory). A long prompt is read in passes of 8192 with 4.10 GiB of work memory in the cache's place; up to 1024 new tokens in one pass beside the cache, where 0.94 GiB are free for it
+strata metal: --elastic: the KV cache has its memory for the first 1024 tokens; every 1024 more take 0.03 GiB from the expert cache (6.89 GiB of it at 131072 tokens)
+strata metal: expert cache: 5554 of 24576 experts (23%), 10.60 GiB; missed experts are read from the SSD by 8 threads (past the OS file cache)
+strata metal: expert cache filled with the profile's 5554 most used experts in 3.4 s (10.59 GiB, 3.09 GiB/s; 10.66 GiB came from the SSD)
+strata metal: prefetch: the 10 experts each layer is predicted to route to are read 1 layer(s) ahead
+strata metal: prompts are read 11 tokens per pass (more than 32 new tokens: 8192 per pass, their experts streamed from the SSD)
+strata metal: the context has its short-prompt shape after 0.04 s (0 experts read back): 16104.4 MiB on the GPU, 15233.1 MiB in all, 0.0 MiB of it compressed
+strata metal: pass of 697 tokens to 697: 16105.6 MiB on the GPU, 17549.6 MiB in all, 0.0 MiB of it compressed
+strata metal: conversation checkpoint at 697 tokens, 112.6 MiB
+strata metal: the context has its answering shape after 0.03 s (0 experts read back): 15254.7 MiB on the GPU, 15280.8 MiB in all, 0.0 MiB of it compressed
+strata metal: pass of 2 tokens to 699: 15256.6 MiB on the GPU, 15282.6 MiB in all, 0.0 MiB of it compressed
+strata metal: conversation checkpoint at 699 tokens, 112.6 MiB
+strata metal: pass of 1 tokens to 700: 15256.6 MiB on the GPU, 15395.3 MiB in all, 0.0 MiB of it compressed
+strata metal: the conversation reaches 769 tokens: the KV cache takes its memory for 2048 (0.03 GiB more), the expert cache gives it: 10.61 -> 10.58 GiB (read back), 4.46 s

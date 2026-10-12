@@ -1,0 +1,7 @@
+memory: {'free_gib': 13.35, 'file_cache_gib': 9.19, 'apps_gib': 6.65, 'wired_gib': 2.01, 'swap_used_gib': 1.89, 'pressure_level': 1}
+bin/strata: ready in 4.0 s; context 32768, expert cache 1529 experts (2997 MiB), direct reads
+chat      identical (32 ids), 4.49 tok/s, reported logits identical
+code      identical (32 ids), 4.39 tok/s, reported logits identical
+doc8k     identical (32 ids), 5.12 tok/s, reported logits identical
+GATE PASSED: chat identical, code identical, doc8k identical
+swap-outs over the whole run: 0

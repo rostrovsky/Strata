@@ -1,0 +1,4 @@
+22:40:46 BASELINE swapouts 1586587, swap used 1941.88 MiB, pressure 1, free 15.87 + file cache 3.09 GiB, compressor 9.39 in 3.2 GiB, SoC 50.5 C, battery 31.3 C
+22:40:46 STARTED pid 71360: build-metal/resume-128k/plan_kv.sh
+22:40:51 ok +5 s: swap-outs new 0, pressure 1, free 0.6 + file 3.08 GiB, compressor 9.39 in 3.2 GiB, SoC 47.5 C | == STRATA_KV_STEP=16384
+22:42:04 DONE exit code 0, new swap-outs over the whole run 0 pages, swap used 1941.88 MiB (was 1941.88), peak pressure level 1, engine still running: [], stopped: False

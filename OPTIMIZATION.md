@@ -19,6 +19,8 @@ has the numbers.
 
 - **Installed:** `--max-context 131072 --kv f16 --prefill 8192 --reserve-gib 3 --elastic on`, indexed QSA
   (`strata-iq3_s.json`; the plain one is `bench/results/2026-10-12-m4-air-128k-resume/installed/strata-iq3_s.before-elastic.json`).
+  Through the server at the end of the night: 7.7-8.2 tok/s written, a 5,077-token document read and answered
+  in 67 s.
 - **8 GiB of the Mac's memory was this model, in the OS file cache**: the dense weights a second time (the loader
   reads them through a mapping) and every n-gram row ever looked up. macOS kept those pages and compressed other
   programs instead. The engine gives them back now (`msync(MS_INVALIDATE)`; `ModelFiles::map` in
@@ -39,14 +41,28 @@ has the numbers.
   cache (decode +5% and +11% in the two comparisons) for 0.44 GiB of compression in one run and none in the
   next; 2 buys nothing more and costs (no room for the read-ahead buffer). `--elastic`'s back-off also reacts to
   compression now, before it comes to swap; both of its signs have only fired on the tiny model.
-- **No run of the night wrote to swap** (the counter is where it was: 1,586,587).
-- **Next, largest first:** the KV cache reserves 3,072 MiB for all 131,072 tokens from the first one. The same
-  plan at `--max-context 16384` has a 10.6 GiB expert cache instead of 7.1. A Metal buffer cannot be left
-  partly untouched (it is resident as a whole from its first use: `file-cache/kvlazy.m`), so this needs one Metal
-  buffer per stretch of cells over the same host memory, in `ggml-metal-device.m` (a set of views per buffer,
-  like the ones `ggml_metal_buffer_map` makes), `llama_kv_cache` (no clear of the whole buffer; map more cells
-  when a slot beyond the mapped ones is taken) and the engine's plan (the cache shrinks before the KV grows).
-  Not started. After that: a full-context prompt on this build (not repeated tonight).
+- **No run of the night wrote to swap** (the counter is where it was: 1,586,587), the later ones with the KV
+  change included.
+- **The KV cache takes its memory as the conversation grows** (`metal/patches/0008`, `make_room_for_kv` in
+  `metal/src/main.cpp`; with `--elastic` only; section 11 of the report). It reserved 3.84 GiB (attention and
+  index) for all 131,072 tokens from the first one; now 0.47 GiB per 16,384 tokens, when the conversation gets
+  there, and the expert cache has the rest until then: **9.95 GiB instead of 6.72** for a conversation of up to
+  16,000 tokens, the same as before at full depth. A B B A at the installed settings: **8.5-8.7 against 7.1-7.5
+  tok/s written** (+17-20%), a 500-token prompt's first token 8% sooner, a 2,000-token prompt's 1.8 s later (a
+  larger cache takes longer to read back after a long prompt). Identical IDs and logits against the KV cache
+  mapped at once, on every path by which the cache gives memory. Things learned on the way, both in the patch's
+  comments: a Metal buffer is resident as a whole from its first use, so the parts are separate Metal buffers
+  over one host allocation; and Metal returns a released buffer's memory only 0.5-1.5 s later, after more GPU
+  work, so a large buffer must never be freed and made again in another size back to back (the KV buffer is
+  allocated unmapped; the buffer that holds the cache's place during a long prompt is sized once: a first
+  version re-made it and macOS compressed 1.4 GiB of other programs' memory in that second).
+  `STRATA_KV_STEP=0`: as before. A 24,000-token prompt on the final build: 85 tok/s read, 7.5 tok/s written at
+  that depth (5.6 before), five records of five, no swap-out.
+- **Next, in order of likely value:** (1) after a long prompt the cache is read back whole before the first
+  token (3.6 s for 11 GiB): read back the most used part and let the rest fill as it is asked for; (2) passing a
+  KV step outside a long prompt reads the whole cache back (4 s) where only 0.47 GiB had to go; (3) a
+  full-context prompt on this build (not repeated tonight); (4) both back-off signs have only fired on the tiny
+  model.
 - The targets (120 and 10 tok/s at full depth) are still not reached; a warm Air reads at about 77 tok/s.
 
 **Late evening, 2026-10-12.** The largest finding of the day came last, and it changes
@@ -130,8 +146,8 @@ Mac with the apps open: the GPU alone takes 82-126 ms per written token, and a w
 | Production Strata configuration | **131,072** context. Since the night of 2026-10-12: `--kv f16 --prefill 8192 --reserve-gib 3 --elastic on`, indexed QSA, the alias pi asks for (`pending/desktop-128k-elastic.json`). The evening's plain one (`--prefill 4096 --reserve-gib 4`, no `--elastic`) is `installed/strata-iq3_s.before-elastic.json`. The 32,768 file is kept as `bench/results/2026-10-12-m4-air-128k-resume/installed/strata-iq3_s.before.json` |
 | pi local-provider configuration | `contextWindow` **131,072** (backup: `~/.pi/agent/models.json.backup-20261012-165047-32k`). The smoke test against the 128k server passed: a real `read` tool call and the marker. A long pi session was not tested |
 | Completed full-context run | Two: the morning's (`build-metal/lowlevel-128k/strata-indexed-topk`, old plan, 61.7 MiB swapped) and the evening's (`build-metal/bin/strata`, new plan, **0 swap-outs**) |
-| Repository source | Seven patches (`0001`-`0007`), engine with `--elastic`; built and tested (kernel tests, tiny-model parity, protocol suite, shape test). Applied once more to a clean checkout of the pin at the end of the night: 26 files, none differs |
-| `build-metal/bin/strata` | Built from the current source (SHA-256 `42045d8f...` at the end of the night) |
+| Repository source | Eight patches (`0001`-`0008`), engine with `--elastic`; built and tested (kernel tests, tiny-model parity, protocol suite, shape test). Applied once more to a clean checkout of the pin at the end of the night |
+| `build-metal/bin/strata` | Built from the current source (SHA-256 `f3f16987...` at the end of the night) |
 | Default path | Same arithmetic as before; **not** the same memory plan: 450 MiB more reserved at 131,072 context with 4,096-token passes, host buffer subtracted |
 | Real-model exact gate on the final build | Passed again at the end of the night against `strata-reference` (re-recorded) at 32,768 context with a 3,000 MiB cache: chat, code, 7,900-token document, identical ids and reported logits on the default, indexed and `--elastic` paths, and with `--elastic --prefill 8192` |
 | Swap | The afternoon's `--elastic` tests wrote 1,066 MiB to swap (68,248 pages). macOS had 0.92 GiB in swap before, 1.95 GiB after. The evening's full-context run, server start and pi test wrote none (1,975.69 MiB in use before and after). The late evening's experiments before the reads were aligned wrote 6.2 MiB; nothing since (1,941.88 MiB in use at the end of the night) |

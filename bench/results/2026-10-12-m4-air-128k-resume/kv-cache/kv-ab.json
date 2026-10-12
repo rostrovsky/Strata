@@ -1,0 +1,570 @@
+{
+ "when": "2026-10-12 22:53",
+ "args": [
+  "--native",
+  "/Users/rafal/Projects/strata-air/Strata-data/models/IQ3_S/Qwen3.8-Flash-Next-GSQ-RCO-IQ3_S-00001-of-00002.gguf",
+  "--expert-profile",
+  "/Users/rafal/Projects/strata-air/Strata/data/expert-profile.bin",
+  "--expert-cache",
+  "auto",
+  "--max-context",
+  "131072",
+  "--kv",
+  "f16",
+  "--prefill",
+  "8192",
+  "--reserve-gib",
+  "3",
+  "--elastic",
+  "on",
+  "--verbose"
+ ],
+ "memory_before": {
+  "free_gib": 17.77,
+  "file_cache_gib": 2.41,
+  "apps_gib": 9.01,
+  "wired_gib": 2.02,
+  "swap_used_gib": 1.9,
+  "pressure_level": 1
+ },
+ "ab": {
+  "STRATA_KV_STEP=0 build-metal/bin/strata": [
+   {
+    "info": {
+     "context": "131072",
+     "kv": "f16",
+     "kv_resident": "0",
+     "expert_slots": "3677",
+     "expert_cache_mib": "7189",
+     "expert_slots_primary": "3677",
+     "expert_cache_primary_mib": "7189",
+     "spec": "0",
+     "mtp_max": "0",
+     "lookup": "0",
+     "prefetch": "10",
+     "vram_free_mib": "6444",
+     "arena_mib": "0",
+     "pool_workers": "8",
+     "backend": "metal",
+     "expert_io": "direct",
+     "engine": "0.1.42-metal"
+    },
+    "therm": null,
+    "temps_before": [
+     47.8,
+     33.7
+    ],
+    "memory_before": {
+     "free_gib": 17.62,
+     "file_cache_gib": 2.44,
+     "apps_gib": 9.09,
+     "wired_gib": 2.04,
+     "swap_used_gib": 1.9,
+     "pressure_level": 1
+    },
+    "ready_s": 5.668060064315796,
+    "prefill": {
+     "500": {
+      "tokens": 500,
+      "tps": 47.641734159123395,
+      "ttft_s": 10.495410919189453,
+      "ssd_gb": 49.4011,
+      "swapouts": 0,
+      "gpu_wait_s": 4.0548,
+      "ssd_s": 5.1152,
+      "gpu_busy_s": 8.0628,
+      "wall_s": 10.495,
+      "passes": 3.0,
+      "read_ahead_gb": 21.527,
+      "read_ahead_used_gb": 17.456400000000002,
+      "watts": 7.2401333333333335,
+      "decode_tps": 7.0411516194648724,
+      "generated": 64,
+      "output": "<think>\nThe user wants me to summarize a document about \"Strata\" - which appears to be a technical documentation page for a local AI/LLM inference engine. Let me analyze the content and provide a concise summary.\n\nThe document is a technical reference page for Strata, covering:\n- Speed benchmarks (",
+      "progress": [
+       {
+        "tokens": 497,
+        "total": 500,
+        "elapsed_s": 9.821
+       },
+       {
+        "tokens": 499,
+        "total": 500,
+        "elapsed_s": 10.333
+       }
+      ],
+      "decode_per_token": {
+       "total_ms": 142.5079365079365,
+       "gpu_wait_ms": 80.13015873015873,
+       "ssd_ms": 53.56666666666666,
+       "cpu_ms": 8.811111111111117,
+       "encode_ms": 3.0936507936507938,
+       "gpu_busy_ms": 83.35714285714286,
+       "sample_ms": 0.12222222222222222,
+       "misses": 51.523809523809526,
+       "ssd_mb": 305.94920634920635,
+       "waits": 49.0,
+       "ahead": 98.88888888888889,
+       "ahead_used": 66.61904761904762,
+       "ahead_waits": 17.650793650793652,
+       "predict_ms": 3.966666666666667
+      }
+     },
+     "2000": {
+      "tokens": 2000,
+      "tps": 80.9035306300767,
+      "ttft_s": 24.721258401870728,
+      "ssd_gb": 65.607,
+      "swapouts": 0,
+      "gpu_wait_s": 14.0473,
+      "ssd_s": 9.330200000000001,
+      "gpu_busy_s": 26.2686,
+      "wall_s": 24.7208,
+      "passes": 3.0,
+      "read_ahead_gb": 25.0038,
+      "read_ahead_used_gb": 22.9546,
+      "watts": null,
+      "decode_tps": 7.344112469836682,
+      "generated": 64,
+      "output": "<think>\nThe user wants me to summarize a document that appears to be a benchmark/performance report for a software called \"Strata\" (or similar), covering model inference performance across different quantization levels, hardware configurations, and engine versions. Let me organize the key information and provide a clear summary.\n\nThe document covers",
+      "progress": [
+       {
+        "tokens": 1997,
+        "total": 2000,
+        "elapsed_s": 21.478
+       },
+       {
+        "tokens": 1999,
+        "total": 2000,
+        "elapsed_s": 24.578
+       }
+      ],
+      "decode_per_token": {
+       "total_ms": 136.66349206349204,
+       "gpu_wait_ms": 82.23968253968255,
+       "ssd_ms": 45.62222222222222,
+       "cpu_ms": 8.801587301587286,
+       "encode_ms": 3.1142857142857143,
+       "gpu_busy_ms": 87.29206349206349,
+       "sample_ms": 0.12222222222222222,
+       "misses": 45.63492063492063,
+       "ssd_mb": 249.8111111111111,
+       "waits": 49.0,
+       "ahead": 76.71428571428571,
+       "ahead_used": 57.301587301587304,
+       "ahead_waits": 12.095238095238095,
+       "predict_ms": 3.9571428571428573
+      }
+     }
+    },
+    "swapouts": 0,
+    "temps_after": [
+     66.4,
+     33.6
+    ]
+   },
+   {
+    "info": {
+     "context": "131072",
+     "kv": "f16",
+     "kv_resident": "0",
+     "expert_slots": "3940",
+     "expert_cache_mib": "7703",
+     "expert_slots_primary": "3940",
+     "expert_cache_primary_mib": "7703",
+     "spec": "0",
+     "mtp_max": "0",
+     "lookup": "0",
+     "prefetch": "10",
+     "vram_free_mib": "5930",
+     "arena_mib": "0",
+     "pool_workers": "8",
+     "backend": "metal",
+     "expert_io": "direct",
+     "engine": "0.1.42-metal"
+    },
+    "therm": null,
+    "temps_before": [
+     48.9,
+     33.7
+    ],
+    "memory_before": {
+     "free_gib": 18.45,
+     "file_cache_gib": 2.31,
+     "apps_gib": 8.45,
+     "wired_gib": 1.99,
+     "swap_used_gib": 1.9,
+     "pressure_level": 1
+    },
+    "ready_s": 5.84879994392395,
+    "prefill": {
+     "500": {
+      "tokens": 500,
+      "tps": 48.373208981937445,
+      "ttft_s": 10.336796998977661,
+      "ssd_gb": 47.712199999999996,
+      "swapouts": 0,
+      "gpu_wait_s": 4.0402,
+      "ssd_s": 4.8875,
+      "gpu_busy_s": 7.285,
+      "wall_s": 10.3363,
+      "passes": 3.0,
+      "read_ahead_gb": 21.0321,
+      "read_ahead_used_gb": 16.9986,
+      "watts": null,
+      "decode_tps": 7.128470886419698,
+      "generated": 64,
+      "output": "<think>\nThe user wants me to summarize a document about \"Strata\" - which appears to be a technical documentation page for a local AI/LLM inference engine. Let me analyze the content and provide a concise summary.\n\nThe document is a technical reference page for Strata, covering:\n- Speed benchmarks (",
+      "progress": [
+       {
+        "tokens": 497,
+        "total": 500,
+        "elapsed_s": 9.671
+       },
+       {
+        "tokens": 499,
+        "total": 500,
+        "elapsed_s": 10.172
+       }
+      ],
+      "decode_per_token": {
+       "total_ms": 140.7888888888889,
+       "gpu_wait_ms": 80.0047619047619,
+       "ssd_ms": 51.834920634920636,
+       "cpu_ms": 8.94920634920636,
+       "encode_ms": 3.157142857142857,
+       "gpu_busy_ms": 84.1920634920635,
+       "sample_ms": 0.1238095238095238,
+       "misses": 48.61904761904762,
+       "ssd_mb": 288.4793650793651,
+       "waits": 49.0,
+       "ahead": 93.34920634920636,
+       "ahead_used": 62.25396825396825,
+       "ahead_waits": 16.253968253968253,
+       "predict_ms": 3.9619047619047616
+      }
+     },
+     "2000": {
+      "tokens": 2000,
+      "tps": 79.87858455148175,
+      "ttft_s": 25.038443088531494,
+      "ssd_gb": 65.1942,
+      "swapouts": 0,
+      "gpu_wait_s": 14.1005,
+      "ssd_s": 9.496799999999999,
+      "gpu_busy_s": 28.1316,
+      "wall_s": 25.038,
+      "passes": 3.0,
+      "read_ahead_gb": 24.5287,
+      "read_ahead_used_gb": 22.486,
+      "watts": 15.006542372881357,
+      "decode_tps": 7.559667374635516,
+      "generated": 64,
+      "output": "<think>\nThe user wants me to summarize a document that appears to be a benchmark/performance report for a software called \"Strata\" (or similar), covering model inference performance across different quantization levels, hardware configurations, and engine versions. Let me organize the key information and provide a clear summary.\n\nThe document covers",
+      "progress": [
+       {
+        "tokens": 1997,
+        "total": 2000,
+        "elapsed_s": 21.602
+       },
+       {
+        "tokens": 1999,
+        "total": 2000,
+        "elapsed_s": 24.902
+       }
+      ],
+      "decode_per_token": {
+       "total_ms": 132.77619047619046,
+       "gpu_wait_ms": 82.67619047619048,
+       "ssd_ms": 41.34285714285714,
+       "cpu_ms": 8.757142857142847,
+       "encode_ms": 3.085714285714286,
+       "gpu_busy_ms": 90.52698412698412,
+       "sample_ms": 0.11904761904761904,
+       "misses": 43.53968253968254,
+       "ssd_mb": 238.4904761904762,
+       "waits": 49.0,
+       "ahead": 73.36507936507937,
+       "ahead_used": 54.57142857142857,
+       "ahead_waits": 10.587301587301587,
+       "predict_ms": 3.963492063492063
+      }
+     }
+    },
+    "swapouts": 0,
+    "temps_after": [
+     67.9,
+     33.6
+    ]
+   }
+  ],
+  "build-metal/bin/strata": [
+   {
+    "info": {
+     "context": "131072",
+     "kv": "f16",
+     "kv_resident": "0",
+     "expert_slots": "5693",
+     "expert_cache_mib": "11123",
+     "expert_slots_primary": "5693",
+     "expert_cache_primary_mib": "11123",
+     "spec": "0",
+     "mtp_max": "0",
+     "lookup": "0",
+     "prefetch": "10",
+     "vram_free_mib": "5870",
+     "arena_mib": "0",
+     "pool_workers": "8",
+     "backend": "metal",
+     "expert_io": "direct",
+     "engine": "0.1.42-metal"
+    },
+    "therm": null,
+    "temps_before": [
+     48.3,
+     33.7
+    ],
+    "memory_before": {
+     "free_gib": 17.98,
+     "file_cache_gib": 2.33,
+     "apps_gib": 8.87,
+     "wired_gib": 2.01,
+     "swap_used_gib": 1.9,
+     "pressure_level": 1
+    },
+    "ready_s": 6.7546350955963135,
+    "prefill": {
+     "500": {
+      "tokens": 500,
+      "tps": 52.174094518589634,
+      "ttft_s": 9.583720922470093,
+      "ssd_gb": 37.254,
+      "swapouts": 0,
+      "gpu_wait_s": 4.0149,
+      "ssd_s": 3.5768,
+      "gpu_busy_s": 5.860600000000001,
+      "wall_s": 9.5833,
+      "passes": 3.0,
+      "read_ahead_gb": 17.7592,
+      "read_ahead_used_gb": 13.9657,
+      "watts": null,
+      "decode_tps": 8.548980228786995,
+      "generated": 64,
+      "output": "<think>\nThe user wants me to summarize a document about \"Strata\" - which appears to be a technical documentation page for a local AI/LLM inference engine. Let me analyze the content and provide a concise summary.\n\nThe document is a technical reference page for Strata, covering:\n- Speed benchmarks (",
+      "progress": [
+       {
+        "tokens": 497,
+        "total": 500,
+        "elapsed_s": 9.016
+       }
+      ],
+      "decode_per_token": {
+       "total_ms": 117.46190476190476,
+       "gpu_wait_ms": 80.13015873015873,
+       "ssd_ms": 28.7,
+       "cpu_ms": 8.631746031746042,
+       "encode_ms": 3.0396825396825395,
+       "gpu_busy_ms": 74.69047619047619,
+       "sample_ms": 0.12063492063492062,
+       "misses": 30.6984126984127,
+       "ssd_mb": 179.6015873015873,
+       "waits": 49.0,
+       "ahead": 58.19047619047619,
+       "ahead_used": 34.77777777777778,
+       "ahead_waits": 6.428571428571429,
+       "predict_ms": 3.9539682539682537
+      }
+     },
+     "2000": {
+      "tokens": 2000,
+      "tps": 74.78089198647962,
+      "ttft_s": 26.745330810546875,
+      "ssd_gb": 62.824,
+      "swapouts": 0,
+      "gpu_wait_s": 14.1836,
+      "ssd_s": 10.8191,
+      "gpu_busy_s": 22.7505,
+      "wall_s": 26.744799999999998,
+      "passes": 3.0,
+      "read_ahead_gb": 21.5074,
+      "read_ahead_used_gb": 19.4852,
+      "watts": null,
+      "decode_tps": 8.713090381024825,
+      "generated": 64,
+      "output": "<think>\nThe user wants me to summarize a document that appears to be a benchmark/performance report for a software called \"Strata\" (or similar), covering model inference performance across different quantization levels, hardware configurations, and engine versions. Let me organize the key information and provide a clear summary.\n\nThe document covers",
+      "progress": [
+       {
+        "tokens": 1997,
+        "total": 2000,
+        "elapsed_s": 22.202
+       },
+       {
+        "tokens": 1999,
+        "total": 2000,
+        "elapsed_s": 26.619
+       }
+      ],
+      "decode_per_token": {
+       "total_ms": 115.25396825396825,
+       "gpu_wait_ms": 82.11111111111111,
+       "ssd_ms": 24.601587301587305,
+       "cpu_ms": 8.54126984126984,
+       "encode_ms": 3.0380952380952384,
+       "gpu_busy_ms": 76.51904761904761,
+       "sample_ms": 0.12222222222222222,
+       "misses": 27.555555555555557,
+       "ssd_mb": 149.8095238095238,
+       "waits": 49.0,
+       "ahead": 46.19047619047619,
+       "ahead_used": 32.142857142857146,
+       "ahead_waits": 4.412698412698413,
+       "predict_ms": 3.938095238095238
+      }
+     }
+    },
+    "swapouts": 0,
+    "temps_after": [
+     66.8,
+     33.6
+    ]
+   },
+   {
+    "info": {
+     "context": "131072",
+     "kv": "f16",
+     "kv_resident": "0",
+     "expert_slots": "5661",
+     "expert_cache_mib": "11061",
+     "expert_slots_primary": "5661",
+     "expert_cache_primary_mib": "11061",
+     "spec": "0",
+     "mtp_max": "0",
+     "lookup": "0",
+     "prefetch": "10",
+     "vram_free_mib": "5931",
+     "arena_mib": "0",
+     "pool_workers": "8",
+     "backend": "metal",
+     "expert_io": "direct",
+     "engine": "0.1.42-metal"
+    },
+    "therm": null,
+    "temps_before": [
+     47.6,
+     33.7
+    ],
+    "memory_before": {
+     "free_gib": 18.43,
+     "file_cache_gib": 2.31,
+     "apps_gib": 8.45,
+     "wired_gib": 2.01,
+     "swap_used_gib": 1.9,
+     "pressure_level": 1
+    },
+    "ready_s": 6.7619688510894775,
+    "prefill": {
+     "500": {
+      "tokens": 500,
+      "tps": 52.15015071393556,
+      "ttft_s": 9.591017961502075,
+      "ssd_gb": 37.401900000000005,
+      "swapouts": 0,
+      "gpu_wait_s": 4.032,
+      "ssd_s": 3.5245,
+      "gpu_busy_s": 7.0805,
+      "wall_s": 9.5878,
+      "passes": 3.0,
+      "read_ahead_gb": 17.8145,
+      "read_ahead_used_gb": 14.0139,
+      "watts": null,
+      "decode_tps": 8.478682170542635,
+      "generated": 64,
+      "output": "<think>\nThe user wants me to summarize a document about \"Strata\" - which appears to be a technical documentation page for a local AI/LLM inference engine. Let me analyze the content and provide a concise summary.\n\nThe document is a technical reference page for Strata, covering:\n- Speed benchmarks (",
+      "progress": [
+       {
+        "tokens": 497,
+        "total": 500,
+        "elapsed_s": 9.024
+       }
+      ],
+      "decode_per_token": {
+       "total_ms": 118.42857142857143,
+       "gpu_wait_ms": 80.08095238095238,
+       "ssd_ms": 29.765079365079366,
+       "cpu_ms": 8.582539682539677,
+       "encode_ms": 3.0428571428571427,
+       "gpu_busy_ms": 121.72698412698414,
+       "sample_ms": 0.12063492063492062,
+       "misses": 30.936507936507937,
+       "ssd_mb": 180.9047619047619,
+       "waits": 49.0,
+       "ahead": 58.58730158730159,
+       "ahead_used": 35.01587301587302,
+       "ahead_waits": 6.507936507936508,
+       "predict_ms": 3.958730158730159
+      }
+     },
+     "2000": {
+      "tokens": 2000,
+      "tps": 75.05732503199319,
+      "ttft_s": 26.65764880180359,
+      "ssd_gb": 62.964,
+      "swapouts": 0,
+      "gpu_wait_s": 14.1105,
+      "ssd_s": 10.809,
+      "gpu_busy_s": 27.3086,
+      "wall_s": 26.6463,
+      "passes": 3.0,
+      "read_ahead_gb": 21.557,
+      "read_ahead_used_gb": 19.5349,
+      "watts": 18.838983333333335,
+      "decode_tps": 8.655629594009755,
+      "generated": 64,
+      "output": "<think>\nThe user wants me to summarize a document that appears to be a benchmark/performance report for a software called \"Strata\" (or similar), covering model inference performance across different quantization levels, hardware configurations, and engine versions. Let me organize the key information and provide a clear summary.\n\nThe document covers",
+      "progress": [
+       {
+        "tokens": 1997,
+        "total": 2000,
+        "elapsed_s": 22.122
+       },
+       {
+        "tokens": 1999,
+        "total": 2000,
+        "elapsed_s": 26.52
+       }
+      ],
+      "decode_per_token": {
+       "total_ms": 116.03174603174604,
+       "gpu_wait_ms": 82.24603174603175,
+       "ssd_ms": 25.24126984126984,
+       "cpu_ms": 8.544444444444444,
+       "encode_ms": 3.026984126984127,
+       "gpu_busy_ms": 76.8047619047619,
+       "sample_ms": 0.1253968253968254,
+       "misses": 28.158730158730158,
+       "ssd_mb": 153.45873015873016,
+       "waits": 49.0,
+       "ahead": 47.38095238095238,
+       "ahead_used": 33.142857142857146,
+       "ahead_waits": 4.587301587301587,
+       "predict_ms": 3.942857142857143
+      }
+     }
+    },
+    "swapouts": 0,
+    "temps_after": [
+     67.0,
+     33.6
+    ]
+   }
+  ]
+ },
+ "memory_after": {
+  "free_gib": 18.47,
+  "file_cache_gib": 2.26,
+  "apps_gib": 8.47,
+  "wired_gib": 2.01,
+  "swap_used_gib": 1.9,
+  "pressure_level": 1
+ }
+}

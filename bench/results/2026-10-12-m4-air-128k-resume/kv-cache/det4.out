@@ -1,0 +1,7 @@
+all-at-once: ready in 5.6 s; context 131072, expert cache 3463 experts (6772 MiB), direct reads
+all-at-once, prompt read: 10000 tokens, 24 written; this is what the others are compared with
+step-2048: ready in 6.6 s; context 131072, expert cache 5458 experts (10665 MiB), direct reads
+step-2048, prompt read: identical IDs and logits
+step-16384: ready in 6.5 s; context 131072, expert cache 5170 experts (10103 MiB), direct reads
+step-16384, prompt read: identical IDs and logits
+all identical

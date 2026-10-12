@@ -1,0 +1,6 @@
+plain: shapes taken: none
+elastic: shapes taken: long-prompt, answering, long-prompt, answering, short-prompt, answering, short-prompt, answering
+elastic-long: shapes taken: long-prompt, answering, long-prompt, answering, long-prompt, answering, long-prompt, answering
+elastic: identical ids and logits, the same reuse over 6 requests
+elastic-long: identical ids and logits, the same reuse over 6 requests
+all passed

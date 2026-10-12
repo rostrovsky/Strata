@@ -1,0 +1,4 @@
+23:31:32 BASELINE swapouts 1586587, swap used 1933.88 MiB, pressure 1, free 17.85 + file cache 2.48 GiB, compressor 11.7 in 4.2 GiB, SoC 47.6 C, battery 35.2 C
+23:31:32 STARTED pid 76574: .venv/bin/python -u build-metal/resume-128k/server_smoke.py build-metal/resume-128k/server3
+23:31:37 ok +5 s: swap-outs new 0, pressure 1, free 1.38 + file 2.52 GiB, compressor 11.62 in 4.14 GiB, SoC 50.6 C | 
+23:34:11 DONE exit code 0, new swap-outs over the whole run 0 pages, swap used 1933.88 MiB (was 1933.88), peak pressure level 1, engine still running: [], stopped: False

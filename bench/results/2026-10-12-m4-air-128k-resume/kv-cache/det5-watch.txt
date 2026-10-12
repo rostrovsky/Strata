@@ -1,0 +1,5 @@
+22:49:41 BASELINE swapouts 1586587, swap used 1941.88 MiB, pressure 1, free 16.7 + file cache 2.37 GiB, compressor 9.58 in 3.23 GiB, SoC 45.9 C, battery 33.4 C
+22:49:41 STARTED pid 71922: build-metal/resume-128k/det5.sh
+22:49:46 ok +5 s: swap-outs new 0, pressure 1, free 2.17 + file 2.29 GiB, compressor 9.58 in 3.23 GiB, SoC 49.0 C | == 900 tokens in one short pass; with a step of 1,024 cells the cache gives memory before it
+22:51:47 ok +126 s: swap-outs new 0, pressure 1, free 19.28 + file 2.21 GiB, compressor 11.65 in 4.08 GiB, SoC 62.9 C | all identical
+22:52:50 DONE exit code 0, new swap-outs over the whole run 0 pages, swap used 1941.88 MiB (was 1941.88), peak pressure level 1, engine still running: [], stopped: False

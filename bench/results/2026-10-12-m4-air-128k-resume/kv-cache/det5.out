@@ -1,0 +1,12 @@
+== 900 tokens in one short pass; with a step of 1,024 cells the cache gives memory before it
+all-at-once: ready in 5.2 s; context 131072, expert cache 3022 experts (5911 MiB), direct reads
+all-at-once, prompt read: 900 tokens, 24 written; this is what the others are compared with
+step-1024: ready in 6.2 s; context 131072, expert cache 4908 experts (9592 MiB), direct reads
+step-1024, prompt read: identical IDs and logits
+all identical
+== 700 tokens, then 120 written; with a step of 1,024 cells the cache gives memory in the middle of the answer
+all-at-once: ready in 5.8 s; context 131072, expert cache 3740 experts (7312 MiB), direct reads
+all-at-once, prompt read: 700 tokens, 120 written; this is what the others are compared with
+step-1024: ready in 6.6 s; context 131072, expert cache 5554 experts (10852 MiB), direct reads
+step-1024, prompt read: identical IDs and logits
+all identical

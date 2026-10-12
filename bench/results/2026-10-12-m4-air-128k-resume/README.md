@@ -679,3 +679,128 @@ Not done, in order of likely value:
 3. Both back-off signs have only ever fired on the tiny model.
 4. The targets (120 tok/s read, 10 tok/s written at full depth) are not reached. A cool pass of 8,192 tokens
    reads at 114 tok/s; five minutes in, the fanless Air reads at 77.
+
+## 11. Late night: the KV cache takes its memory as the conversation grows
+
+The step that section 10 measured and left unbuilt. With `--elastic`, the KV cache (attention: 3,072 MiB at
+131,072 context; the block-sparse attention's index: 768 MiB) is now mapped on the GPU 16,384 cells at a time
+(0.47 GiB), as the conversation reaches them, and what it has not taken is the expert cache's. When the
+conversation is about to pass the cells that are paid for, the cache gives the memory for the next ones first.
+
+### How
+
+- A Metal buffer is resident as a whole, so the parts are separate Metal buffers over the same host memory
+  (`ggml_backend_buffer_set_views`; `metal/patches/0008-kv-cache-mapped-as-it-fills.patch`). A tensor is found by
+  where it starts; the graph only ever reads the cache up to the cells in use (padded to 256), and
+  `llama_kv_cache` maps more by itself if a slot beyond the mapped cells is taken, so the engine's bookkeeping
+  decides who pays, not whether the result is right.
+- The buffer is allocated without any Metal buffer (`ggml_backend_alloc_unmapped`) and gets its first part
+  directly. Making it whole first and cutting it down does not work: Metal lets go of a released buffer's memory
+  only after the GPU has done more work, 0.5-1.5 s later ([kvrel.m, kvviews2.m](kv-cache/),
+  [metal-buffer-release.txt](kv-cache/metal-buffer-release.txt)), and for that long the whole 3.8 GiB would be
+  wired beside a cache that had already been given them. A first version did exactly that (in a `--load-only`
+  run; no swap-out), which is how it was found.
+- The engine (`make_room_for_kv` in `metal/src/main.cpp`): at the first pass of a request, for the whole prompt.
+  Before a long prompt the cache is about to be given up anyway: the buffer that holds its place is made that
+  much smaller from the start, and the cache comes back smaller (0.03 s). Otherwise the cache is made smaller and
+  read back (4 s, once per 16,384 tokens of a conversation that grows in short turns or in the middle of an
+  answer).
+- The KV cache never gives memory back while the engine runs (the server's idle unload starts it afresh).
+  `STRATA_KV_STEP=N`: another step; `0`: all at the start, as before. Without `--elastic` nothing changes.
+
+### The plan
+
+[plan-kv2.out](kv-cache/plan-kv2.out), the installed configuration, same minute:
+
+| | KV cache all at the start | as it fills |
+| --- | ---: | ---: |
+| Expert cache while answering, conversation up to 16,128 tokens | 6.72 GiB | **9.95 GiB** |
+| ... at 131,072 tokens | 6.72 GiB | 6.67 GiB |
+| Long passes | 8,192 tokens | 8,192 tokens |
+
+### Same output
+
+`metal/tools/determinism.py` on the real model, each run a fresh start ([det4.out](kv-cache/det4.out),
+[det5.out](kv-cache/det5.out)); the reference is the KV cache mapped all at once:
+
+| Prompt | KV step | What happened | Verdict |
+| --- | ---: | --- | --- |
+| 10,000 tokens (8,192 + 1,805) | 2,048 | the place-holder gave 0.29 GiB during the long prompt, cache 10.42 -> 10.13 GiB | identical IDs and logits |
+| 10,000 tokens | 16,384 | nothing to give yet | identical |
+| 900 tokens (one short pass) | 1,024 | the cache gave memory before the pass: 9.37 -> 9.34 GiB, read back in 3.8 s | identical |
+| 700 tokens, 120 written | 1,024 | the cache gave memory at token 769 of the answer: 10.61 -> 10.58 GiB, 4.5 s | identical |
+
+Tiny model, with `STRATA_KV_STEP=256` so that every request grows the cache several times: the shape test and its
+two back-off variants, parity on eight paths, the protocol suite ([kv-cache/](kv-cache/)).
+
+### Speed, A B B A
+
+The installed configuration (`--reserve-gib 3`), `--prefill 500,2000 --prefill-new 64`, A = `STRATA_KV_STEP=0`
+([kv-ab.out](kv-cache/kv-ab.out)):
+
+| | A | B | B | A |
+| --- | ---: | ---: | ---: | ---: |
+| Expert cache | 7,189 MiB | 11,123 MiB | 11,061 MiB | 7,703 MiB |
+| Written after 500 tokens | 7.04 tok/s | **8.55** | **8.48** | 7.13 |
+| Written after 2,000 tokens | 7.34 tok/s | **8.71** | **8.66** | 7.56 |
+| First token, 500 tokens | 10.50 s | 9.58 s | 9.59 s | 10.34 s |
+| ... read from the SSD for it | 49.4 GB | 37.3 GB | 37.4 GB | 47.7 GB |
+| First token, 2,000 tokens | 24.72 s | 26.75 s | 26.66 s | 25.04 s |
+
+Answers are written **20% and 17% faster**, and a prompt that is read beside the cache starts 8% sooner. A
+prompt of more than 1,024 new tokens starts 1.8 s later: the cache is given up for it and read back afterwards,
+and a larger cache takes longer to read back (which about 95 written tokens make up for). In the 209 s the
+engines were loaded macOS compressed 0.02 GiB and wrote nothing to swap.
+
+### A long prompt past the first step
+
+`--prefill 2000,24000 --prefill-new 96 --needle`, the installed configuration, per-second `vm_stat` beside it:
+
+| | Before the KV change ([final-r3](final-late/final-r3.out)) | First version ([final-kv](kv-cache/final-kv.out)) | As committed ([final-kv2](kv-cache/final-kv2.out)) |
+| --- | ---: | ---: | ---: |
+| Expert cache at the start | 7.52 GiB | 10.21 GiB | 10.87 GiB |
+| 24,000 tokens read | 77.4 tok/s (310 s) | 86.7 tok/s (277 s) | 85.4 tok/s (281 s) |
+| Written at 2,000 / 24,000 tokens | 7.04 / 5.58 tok/s | 7.79 / 7.46 tok/s | 7.91 / 7.52 tok/s |
+| Records found | (answer cut at 64 tokens) | 5/5, 5/5 | 5/5, 5/5 |
+| The KV cache's second step | | 0.46 s | 0.03 s |
+| Cache after the long prompt | 6.05 GiB | 9.75 GiB | 10.14 GiB |
+| Compressed while loaded | 0.00 GiB | 1.38 GiB, all in one second | 0.32 GiB |
+| Free + file cache, minimum | 3.25 GiB | 2.73 GiB | 3.71 GiB |
+| Swap-outs | 0 | 0 | 0 |
+
+The first version freed the buffer that holds the cache's place and made a smaller one when the KV cache took its
+step. Metal returns freed memory late, both were there for a moment, free memory fell to 0.25 GiB and macOS
+compressed 1.38 GiB of other programs' memory in that one second (23:03:44 in the trace). The committed version
+makes that buffer the right size once. The read speeds are not a comparison (the three runs started at different
+temperatures); the written speeds at 24,000 tokens are the larger cache.
+
+### The final build
+
+`build-metal/bin/strata`, SHA-256 `f3f16987...`: eight patch files (applied to a clean checkout of the pin: 32
+files, none differs from the build tree).
+
+- **Tests** ([tests-final/](tests-final/)): kernel tests 2/2 and the top-k operator test; the protocol suite,
+  parity on eight paths, the shape test and both back-off variants, each as it is and with `STRATA_KV_STEP=256`;
+  the protocol suite with `STRATA_VERIFY_CACHE=1`.
+- **Real-model gate** ([kv-cache/gate/](kv-cache/gate/)): identical IDs and reported logits against
+  `strata-reference` on the default, indexed and `--elastic` paths and with `--elastic --prefill 8192` (the two
+  `--elastic` ones with the KV cache mapped as it fills).
+- **Through the server** ([kv-cache/server-smoke3.out](kv-cache/server-smoke3.out)): the three requests of
+  section 10 again: 11.5 s, 66.8 s, 9.4 s; 7.7-8.2 tok/s written where they were 6.5-7.0; expert cache hits
+  88-92% where they were 84-89%; no swap-out.
+
+Installed: unchanged file (`--max-context 131072 --kv f16 --prefill 8192 --reserve-gib 3 --elastic on`); the
+engine it points at now does the above. `STRATA_KV_STEP=0` in the config's `env` turns the KV change off.
+
+No run of the night wrote to swap: the system's counter is at 1,586,587, where it was at 20:35.
+
+Not done, in order of likely value:
+
+1. After a long prompt the whole cache is read back before the first token (3.6 s for 11 GiB): read back the
+   most used part and let the rest come as it is asked for.
+2. Passing a KV step outside a long prompt reads the whole cache back (4 s) where 0.47 GiB had to go.
+3. A full-context prompt on this build. The last one (section 9: 70.1 tok/s read, 5.27 written) predates the
+   top-k change, the row read-ahead and the KV change; at full depth the cache is the size it was then.
+4. Both back-off signs have only fired on the tiny model.
+5. The targets (120 tok/s read, 10 tok/s written at full depth) are not reached. Written: 8.5-8.7 tok/s up to
+   16,000 tokens, 7.5 at 24,000. Read: 114 tok/s for a cool first pass, 77-87 once the Air is warm.

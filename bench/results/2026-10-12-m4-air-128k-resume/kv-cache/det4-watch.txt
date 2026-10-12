@@ -1,0 +1,6 @@
+22:42:14 BASELINE swapouts 1586587, swap used 1941.88 MiB, pressure 1, free 15.99 + file cache 3.12 GiB, compressor 9.39 in 3.2 GiB, SoC 39.6 C, battery 31.2 C
+22:42:14 STARTED pid 71411: .venv/bin/python -u metal/tools/determinism.py --config strata-iq3_s.json --out build-metal/resume-128k/det4-kv --tokens 10000 --once all-at-once:STRATA_KV_STEP=0 --verbose step-2048:STRATA_KV_STEP=20
+22:42:20 ok +5 s: swap-outs new 0, pressure 1, free 0.52 + file 3.13 GiB, compressor 9.39 in 3.2 GiB, SoC 42.0 C | 
+22:44:20 ok +126 s: swap-outs new 0, pressure 1, free 0.23 + file 3.46 GiB, compressor 9.83 in 3.36 GiB, SoC 78.9 C | step-2048: ready in 6.6 s; context 131072, expert cache 5458 experts (10665 MiB), direct reads
+22:46:21 ok +247 s: swap-outs new 0, pressure 1, free 0.08 + file 3.5 GiB, compressor 9.64 in 3.25 GiB, SoC 70.5 C | step-16384: ready in 6.5 s; context 131072, expert cache 5170 experts (10103 MiB), direct reads
+22:49:20 DONE exit code 0, new swap-outs over the whole run 0 pages, swap used 1941.88 MiB (was 1941.88), peak pressure level 1, engine still running: [], stopped: False

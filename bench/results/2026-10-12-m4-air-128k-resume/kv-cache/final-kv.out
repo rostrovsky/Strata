@@ -1,0 +1,13 @@
+memory: {'free_gib': 17.68, 'file_cache_gib': 2.42, 'apps_gib': 9.07, 'wired_gib': 2.03, 'swap_used_gib': 1.9, 'pressure_level': 1}
+temperature before the run: SoC 43.6 C, battery 33.7 C
+bin/strata: ready in 6.5 s; context 131072, expert cache 5348 experts (10450 MiB), direct reads
+prefill   2000 tokens:    76.9 tok/s, first token after 26.00 s, 73.4 GB from the SSD, 3 passes; 26.0 s = SSD 10.1 + GPU wait 14.2 + CPU 1.8 (GPU busy 26.4; 37.2 GB read ahead, 33.2 used); swap-outs 0
+  decode at 2000 tokens: 7.79 tok/s, 76 tokens; 'STRATA_TEST_RECORD ALPHA = cedar-58317\nSTRATA_TEST_RECORD BRAVO = quartz-92406\nSTRATA_TEST_RECORD CHARLIE = lilac-76183\nSTRATA_TEST_RECORD DELTA = maple-40952\nSTRATA_TEST_RECORD ECHO = coral-63821<|im_end|>'
+  retrieval: 5/5 exact values
+  read 8192/24000 tokens in 74.0 s; swap-outs 0
+  read 16384/24000 tokens in 179.2 s; swap-outs 0
+  read 23993/24000 tokens in 272.5 s; swap-outs 0
+prefill  24000 tokens:    86.7 tok/s, first token after 276.89 s, 165.7 GB from the SSD, 5 passes; 276.9 s = SSD 7.7 + GPU wait 258.8 + CPU 10.4 (GPU busy 351.6; 131.2 GB read ahead, 127.1 used); swap-outs 0, 19.0 W
+  decode at 24000 tokens: 7.46 tok/s, 76 tokens; 'STRATA_TEST_RECORD ALPHA = cedar-58317\nSTRATA_TEST_RECORD BRAVO = quartz-92406\nSTRATA_TEST_RECORD CHARLIE = lilac-76183\nSTRATA_TEST_RECORD DELTA = maple-40952\nSTRATA_TEST_RECORD ECHO = coral-63821<|im_end|>'
+  retrieval: 5/5 exact values
+swap-outs over the whole run: 0

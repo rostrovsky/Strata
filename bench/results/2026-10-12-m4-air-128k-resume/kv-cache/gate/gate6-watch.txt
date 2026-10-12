@@ -1,0 +1,9 @@
+23:18:55 BASELINE swapouts 1586587, swap used 1933.88 MiB, pressure 1, free 18.04 + file cache 2.57 GiB, compressor 10.99 in 3.82 GiB, SoC 49.1 C, battery 34.6 C
+23:18:55 STARTED pid 75589: build-metal/resume-128k/gate.sh
+23:19:00 ok +5 s: swap-outs new 0, pressure 1, free 10.69 + file 5.66 GiB, compressor 10.98 in 3.82 GiB, SoC 51.3 C | 
+23:21:01 ok +126 s: swap-outs new 0, pressure 1, free 1.17 + file 9.0 GiB, compressor 14.31 in 5.36 GiB, SoC 68.0 C | 
+23:23:01 ok +247 s: swap-outs new 0, pressure 1, free 7.88 + file 2.57 GiB, compressor 12.72 in 4.72 GiB, SoC 66.0 C | record rc=0 swapouts=0
+23:25:02 ok +368 s: swap-outs new 0, pressure 1, free 6.08 + file 2.86 GiB, compressor 12.23 in 4.49 GiB, SoC 66.0 C | default rc=0 swapouts=0
+23:27:03 ok +488 s: swap-outs new 0, pressure 1, free 9.11 + file 2.85 GiB, compressor 12.09 in 4.41 GiB, SoC 66.5 C | indexed rc=0 swapouts=0
+23:29:04 ok +609 s: swap-outs new 0, pressure 1, free 6.68 + file 3.54 GiB, compressor 12.04 in 4.39 GiB, SoC 64.7 C | elastic rc=0 swapouts=0
+23:31:27 DONE exit code 0, new swap-outs over the whole run 0 pages, swap used 1933.88 MiB (was 1933.88), peak pressure level 1, engine still running: [], stopped: False

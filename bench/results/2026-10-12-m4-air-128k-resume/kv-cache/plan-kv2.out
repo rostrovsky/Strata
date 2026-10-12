@@ -1,0 +1,25 @@
+== STRATA_KV_STEP=16384
+strata metal: memory now: 20.0 GiB free or file cache, 10.3 GiB held by other programs, 2.1 GiB wired, 1.9 GiB in swap
+llama_kv_cache:       MTL0 KV buffer size =  3072.00 MiB
+llama_kv_cache: the device maps the cache as it fills: 16384 of 131072 cells now, 384.00 MiB each 16384 more
+llama_kv_cache:       MTL0 KV buffer size =   768.00 MiB
+llama_kv_cache: the device maps the cache as it fills: 16384 of 131072 cells now, 96.00 MiB each 16384 more
+strata metal: context 7.06 GiB on the GPU (3.20 of it for the passes) and 0.89 GiB of host memory; expert cache 2.91 GiB (auto; Metal has room for 10.1, the free memory for 2.9)
+llama_kv_cache:       MTL0 KV buffer size =  3072.00 MiB
+llama_kv_cache: the device maps the cache as it fills: 16384 of 131072 cells now, 384.00 MiB each 16384 more
+llama_kv_cache:       MTL0 KV buffer size =   768.00 MiB
+llama_kv_cache: the device maps the cache as it fills: 16384 of 131072 cells now, 96.00 MiB each 16384 more
+strata metal: --elastic: answers are written with a 9.95 GiB expert cache (0.27 GiB of work memory). A long prompt is read in passes of 8192 with 4.10 GiB of work memory in the cache's place; up to 1024 new tokens in one pass beside the cache, where 
+strata metal: --elastic: the KV cache has its memory for the first 16384 tokens; every 16384 more take 0.47 GiB from the expert cache (6.67 GiB of it at 131072 tokens)
+strata metal: expert cache: 5211 of 24576 experts (21%), 9.95 GiB; missed experts are read from the SSD by 8 threads (past the OS file cache)
+strata metal: expert cache filled with the profile's 5211 most used experts in 3.3 s (9.93 GiB, 3.04 GiB/s; 10.01 GiB came from the SSD)
+== STRATA_KV_STEP=0
+strata metal: memory now: 20.0 GiB free or file cache, 10.1 GiB held by other programs, 2.3 GiB wired, 1.9 GiB in swap
+llama_kv_cache:       MTL0 KV buffer size =  3072.00 MiB
+llama_kv_cache:       MTL0 KV buffer size =   768.00 MiB
+strata metal: context 7.06 GiB on the GPU (3.20 of it for the passes) and 0.89 GiB of host memory; expert cache 2.96 GiB (auto; Metal has room for 10.1, the free memory for 3.0)
+llama_kv_cache:       MTL0 KV buffer size =  3072.00 MiB
+llama_kv_cache:       MTL0 KV buffer size =   768.00 MiB
+strata metal: --elastic: answers are written with a 6.72 GiB expert cache (0.27 GiB of work memory). A long prompt is read in passes of 8192 with 4.10 GiB of work memory in the cache's place; up to 1024 new tokens in one pass beside the cache, where 
+strata metal: expert cache: 3514 of 24576 experts (14%), 6.71 GiB; missed experts are read from the SSD by 8 threads (past the OS file cache)
+strata metal: expert cache filled with the profile's 3514 most used experts in 2.2 s (6.70 GiB, 3.08 GiB/s; 6.75 GiB came from the SSD)

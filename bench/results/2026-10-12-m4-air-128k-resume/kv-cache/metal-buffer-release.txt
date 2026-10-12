@@ -1,0 +1,31 @@
+Console output of kvrel.m and kvviews2.m, 2026-10-12 22:40, M4 MacBook Air, macOS 15.7.9, nothing else on the GPU.
+A 1,024 MiB Metal buffer over vm_allocate memory, in a residency set; "system wired" and "free + file cache" are
+the whole system's, relative to the program's start.
+
+== kvrel 1024 4: the buffer and its set released (endResidency, removeAllAllocations, commit, release), its
+   memory remapped, then nothing but waiting
+  whole buffer in a residency set                    system wired  +1025.0 MiB
+  released, pool drained                             system wired  +1025.0 MiB
+  mmap(MAP_FIXED) over 7/8                           system wired  +1025.0 MiB
+  1.0 s later ... 8.5 s later                        system wired  +1025.0 to +1042.6 MiB
+=> an idle process does not get a released Metal buffer's memory back within 8.5 s.
+
+== kvviews2 1024 0: a view of the first eighth made resident, the whole buffer released, the rest remapped,
+   then command buffers that write to the view
+  whole buffer in a residency set                    system wired  +1025.1 MiB
+  whole buffer and its set released                  system wired  +1025.3 MiB
+  the rest remapped                                  system wired  +1025.3 MiB
+  after 20 command buffers on the view               system wired   +173.3 MiB
+  after 40 / 60 / 80                                 system wired   +155.5 / +173.0 / +155.5 MiB
+  2 s later                                          system wired   +128.0 MiB
+
+== kvviews2 1024 1: the whole buffer released and remapped first, then the view made
+  the view made, in its own set                      system wired  +1007.8 MiB
+  after 20 / 40 command buffers on the view          system wired  +1007.8 MiB
+  after 60 command buffers on the view               system wired   +173.4 MiB
+  2 s later                                          system wired   +111.0 MiB
+
+=> the memory of a released buffer comes back, but only once the GPU has done more work, half a second to a
+   second and a half later. A buffer that is first made whole and then cut down holds all of its memory for that
+   long. The KV cache is therefore allocated without any Metal buffer (ggml_backend_alloc_unmapped) and gets its
+   first part directly.

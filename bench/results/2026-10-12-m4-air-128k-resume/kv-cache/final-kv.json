@@ -1,0 +1,217 @@
+{
+ "when": "2026-10-12 23:02",
+ "args": [
+  "--native",
+  "/Users/rafal/Projects/strata-air/Strata-data/models/IQ3_S/Qwen3.8-Flash-Next-GSQ-RCO-IQ3_S-00001-of-00002.gguf",
+  "--expert-profile",
+  "/Users/rafal/Projects/strata-air/Strata/data/expert-profile.bin",
+  "--expert-cache",
+  "auto",
+  "--max-context",
+  "131072",
+  "--kv",
+  "f16",
+  "--prefill",
+  "8192",
+  "--reserve-gib",
+  "3",
+  "--elastic",
+  "on",
+  "--verbose"
+ ],
+ "memory_before": {
+  "free_gib": 17.68,
+  "file_cache_gib": 2.42,
+  "apps_gib": 9.07,
+  "wired_gib": 2.03,
+  "swap_used_gib": 1.9,
+  "pressure_level": 1
+ },
+ "info": {
+  "context": "131072",
+  "kv": "f16",
+  "kv_resident": "0",
+  "expert_slots": "5348",
+  "expert_cache_mib": "10450",
+  "expert_slots_primary": "5348",
+  "expert_cache_primary_mib": "10450",
+  "spec": "0",
+  "mtp_max": "0",
+  "lookup": "0",
+  "prefetch": "10",
+  "vram_free_mib": "6543",
+  "arena_mib": "0",
+  "pool_workers": "8",
+  "backend": "metal",
+  "expert_io": "direct",
+  "engine": "0.1.42-metal"
+ },
+ "prefill": {
+  "2000": {
+   "tokens": 2000,
+   "tps": 76.91538538453847,
+   "ttft_s": 26.00320601463318,
+   "ssd_gb": 73.35860000000001,
+   "swapouts": 0,
+   "gpu_wait_s": 14.1545,
+   "ssd_s": 10.0705,
+   "gpu_busy_s": 26.4067,
+   "wall_s": 26.002599999999997,
+   "passes": 3.0,
+   "read_ahead_gb": 37.2157,
+   "read_ahead_used_gb": 33.2409,
+   "watts": null,
+   "decode_tps": 7.792531637678448,
+   "generated": 76,
+   "output": "STRATA_TEST_RECORD ALPHA = cedar-58317\nSTRATA_TEST_RECORD BRAVO = quartz-92406\nSTRATA_TEST_RECORD CHARLIE = lilac-76183\nSTRATA_TEST_RECORD DELTA = maple-40952\nSTRATA_TEST_RECORD ECHO = coral-63821<|im_end|>",
+   "progress": [
+    {
+     "tokens": 1993,
+     "total": 2000,
+     "elapsed_s": 21.323
+    },
+    {
+     "tokens": 1999,
+     "total": 2000,
+     "elapsed_s": 25.878
+    }
+   ],
+   "decode_per_token": {
+    "total_ms": 128.75466666666668,
+    "gpu_wait_ms": 83.20666666666666,
+    "ssd_ms": 36.946666666666665,
+    "cpu_ms": 8.601333333333338,
+    "encode_ms": 3.130666666666667,
+    "gpu_busy_ms": 114.068,
+    "sample_ms": 0.12666666666666668,
+    "misses": 42.053333333333335,
+    "ssd_mb": 208.07066666666665,
+    "waits": 49.0,
+    "ahead": 59.986666666666665,
+    "ahead_used": 22.68,
+    "ahead_waits": 3.6533333333333333,
+    "predict_ms": 3.974666666666667
+   },
+   "needle_positions": {
+    "ALPHA": 112,
+    "BRAVO": 500,
+    "CHARLIE": 985,
+    "DELTA": 1469,
+    "ECHO": 1857
+   },
+   "needle_found": {
+    "ALPHA": true,
+    "BRAVO": true,
+    "CHARLIE": true,
+    "DELTA": true,
+    "ECHO": true
+   }
+  },
+  "24000": {
+   "tokens": 24000,
+   "tps": 86.67761453092423,
+   "ttft_s": 276.89144587516785,
+   "ssd_gb": 165.66670000000002,
+   "swapouts": 0,
+   "gpu_wait_s": 258.7593,
+   "ssd_s": 7.695600000000001,
+   "gpu_busy_s": 351.5525,
+   "wall_s": 276.88809999999995,
+   "passes": 5.0,
+   "read_ahead_gb": 131.2157,
+   "read_ahead_used_gb": 127.1156,
+   "watts": 18.992848484848484,
+   "decode_tps": 7.461721369375106,
+   "generated": 76,
+   "output": "STRATA_TEST_RECORD ALPHA = cedar-58317\nSTRATA_TEST_RECORD BRAVO = quartz-92406\nSTRATA_TEST_RECORD CHARLIE = lilac-76183\nSTRATA_TEST_RECORD DELTA = maple-40952\nSTRATA_TEST_RECORD ECHO = coral-63821<|im_end|>",
+   "progress": [
+    {
+     "tokens": 8192,
+     "total": 24000,
+     "elapsed_s": 73.957,
+     "memory": {
+      "free_gib": 3.11,
+      "file_cache_gib": 2.34,
+      "apps_gib": 9.63,
+      "wired_gib": 16.13,
+      "swap_used_gib": 1.9,
+      "pressure_level": 1
+     },
+     "swapouts": 0
+    },
+    {
+     "tokens": 16384,
+     "total": 24000,
+     "elapsed_s": 179.162,
+     "memory": {
+      "free_gib": 2.92,
+      "file_cache_gib": 2.5,
+      "apps_gib": 9.65,
+      "wired_gib": 16.13,
+      "swap_used_gib": 1.9,
+      "pressure_level": 1
+     },
+     "swapouts": 0
+    },
+    {
+     "tokens": 23993,
+     "total": 24000,
+     "elapsed_s": 272.531,
+     "memory": {
+      "free_gib": 2.82,
+      "file_cache_gib": 2.57,
+      "apps_gib": 9.68,
+      "wired_gib": 16.13,
+      "swap_used_gib": 1.9,
+      "pressure_level": 1
+     },
+     "swapouts": 0
+    },
+    {
+     "tokens": 23999,
+     "total": 24000,
+     "elapsed_s": 276.771
+    }
+   ],
+   "decode_per_token": {
+    "total_ms": 134.53199999999998,
+    "gpu_wait_ms": 98.69866666666667,
+    "ssd_ms": 26.977333333333334,
+    "cpu_ms": 8.856,
+    "encode_ms": 3.1626666666666665,
+    "gpu_busy_ms": 145.52133333333333,
+    "sample_ms": 0.132,
+    "misses": 33.57333333333333,
+    "ssd_mb": 119.90933333333334,
+    "waits": 49.0,
+    "ahead": 24.933333333333334,
+    "ahead_used": 12.413333333333334,
+    "ahead_waits": 0.8,
+    "predict_ms": 4.166666666666667
+   },
+   "needle_positions": {
+    "ALPHA": 1212,
+    "BRAVO": 6000,
+    "CHARLIE": 11985,
+    "DELTA": 17969,
+    "ECHO": 22757
+   },
+   "needle_found": {
+    "ALPHA": true,
+    "BRAVO": true,
+    "CHARLIE": true,
+    "DELTA": true,
+    "ECHO": true
+   }
+  }
+ },
+ "swapouts": 0,
+ "memory_after": {
+  "free_gib": 18.83,
+  "file_cache_gib": 2.57,
+  "apps_gib": 7.8,
+  "wired_gib": 2.0,
+  "swap_used_gib": 1.9,
+  "pressure_level": 1
+ }
+}
