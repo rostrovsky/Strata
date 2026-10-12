@@ -1,0 +1,158 @@
+--- a/ggml/src/ggml-metal/ggml-metal-common.h
++++ b/ggml/src/ggml-metal/ggml-metal-common.h
+@@ -13,6 +13,9 @@
+ 
+ struct ggml_tensor;
+ struct ggml_cgraph;
++
++// Opt-in dispatch over occupied expert tiles; arithmetic stays unchanged.
++bool ggml_metal_compact_moe(void);
+ 
+ enum ggml_mem_range_type {
+     MEM_RANGE_TYPE_SRC = 0,
+--- a/ggml/src/ggml-metal/ggml-metal-common.cpp
++++ b/ggml/src/ggml-metal/ggml-metal-common.cpp
+@@ -6,6 +6,15 @@
+ #include "ggml-backend-impl.h"
+ 
+ #include <vector>
++#include <cstdlib>
++
++bool ggml_metal_compact_moe(void) {
++    static const bool enabled = [] {
++        const char * value = std::getenv("STRATA_METAL_COMPACT_MOE");
++        return value && std::atoi(value) != 0;
++    }();
++    return enabled;
++}
+ 
+ // must stay in sync with the kernel_fwht_<type>_<N> templates in misc.metal. Widths up to
+ // 512 run on the simdgroup kernel and need no threadgroup memory. The wider ones allocate
+--- a/ggml/src/ggml-metal/ggml-metal-ops.cpp
++++ b/ggml/src/ggml-metal/ggml-metal-ops.cpp
+@@ -2777,7 +2777,7 @@
+ 
+     const int64_t ne02 = op->src[0]->ne[2]; // n_expert
+ 
+-    return ggml_type_size(GGML_TYPE_I32)*ne02;
++    return ggml_type_size(GGML_TYPE_I32)*(ggml_metal_compact_moe() ? GGML_PAD(2*ne02 + 1, 4) : ne02);
+ }
+ 
+ size_t ggml_metal_op_mul_mat_id_extra_ids(const ggml_tensor * op) {
+@@ -2962,7 +2962,14 @@
+ 
+             ggml_metal_encoder_set_threadgroup_memory_size(enc, smem, 0);
+ 
+-            ggml_metal_encoder_dispatch_threadgroups(enc, (ne21 + 31)/32, (ne01 + 63)/64, ne02, 128, 1, 1);
++            if (ggml_metal_compact_moe()) {
++                // Sum ceil(tokens_for_expert/32) <= ceil(total_routes/32) + n_expert - 1.
++                // The map kernel supplies exact tile offsets; excess groups exit before matrix work.
++                const int ntiles_max = (ne21*ne20 + 31)/32 + ne02 - 1;
++                ggml_metal_encoder_dispatch_threadgroups(enc, ntiles_max, (ne01 + 63)/64, 1, 128, 1, 1);
++            } else {
++                ggml_metal_encoder_dispatch_threadgroups(enc, (ne21 + 31)/32, (ne01 + 63)/64, ne02, 128, 1, 1);
++            }
+         }
+     } else {
+         auto pipeline = ggml_metal_library_get_pipeline_mul_mv_id(lib, op);
+--- a/ggml/src/ggml-metal/ggml-metal-device.cpp
++++ b/ggml/src/ggml-metal/ggml-metal-device.cpp
+@@ -1264,14 +1264,19 @@
+     char name[256];
+ 
+     snprintf(base, 256, "kernel_mul_mm_id_map0_ne20_%d", ne20);
+-    snprintf(name, 256, "%s_ne02=%d", base, ne02);
+-
+-    ggml_metal_pipeline_with_params res = ggml_metal_library_get_pipeline(lib, name);
+-    if (!res.pipeline) {
+-        res = ggml_metal_library_compile_pipeline(lib, base, name, nullptr);
++    const bool compact = ggml_metal_compact_moe();
++    snprintf(name, 256, "%s_ne02=%d_compact=%d", base, ne02, compact);
++
++    ggml_metal_pipeline_with_params res = ggml_metal_library_get_pipeline(lib, name);
++    if (!res.pipeline) {
++        ggml_metal_cv_t cv = ggml_metal_cv_init();
++        ggml_metal_cv_set_bool(cv, compact, FC_MUL_MM + 7);
++        res = ggml_metal_library_compile_pipeline(lib, base, name, cv);
++        ggml_metal_cv_free(cv);
+     }
+ 
+     res.smem = (size_t) ne02*ne20*sizeof(uint16_t);
++    if (compact) res.smem = std::max(res.smem, (size_t) ne02*sizeof(uint32_t));
+     res.smem = GGML_PAD(res.smem, 16);
+ 
+     return res;
+@@ -1290,7 +1295,8 @@
+     const bool amax = ggml_get_op_params_i32(op, 3) == GGML_PREC_F32;
+ 
+     snprintf(base, 256, "kernel_mul_mm_id_%s_%s", ggml_type_name(tsrc0), ggml_type_name(tsrc1));
+-    snprintf(name, 256, "%s_bci=%d_amax=%d", base, bc_inp, amax);
++    const bool compact = ggml_metal_compact_moe();
++    snprintf(name, 256, "%s_bci=%d_amax=%d_compact=%d", base, bc_inp, amax, compact);
+ 
+     ggml_metal_pipeline_with_params res = ggml_metal_library_get_pipeline(lib, name);
+     if (!res.pipeline) {
+@@ -1298,6 +1304,7 @@
+ 
+         ggml_metal_cv_set_bool(cv, bc_inp, FC_MUL_MM + 0);
+         ggml_metal_cv_set_bool(cv, amax,   FC_MUL_MM + 6);
++        ggml_metal_cv_set_bool(cv, compact, FC_MUL_MM + 7);
+ 
+         res = ggml_metal_library_compile_pipeline(lib, base, name, cv);
+ 
+--- a/ggml/src/ggml-metal/kernels/mul_mm.metal
++++ b/ggml/src/ggml-metal/kernels/mul_mm.metal
+@@ -8,6 +8,7 @@
+ constant short FC_mul_mm_r2    [[function_constant(FC_MUL_MM + 4)]];
+ constant short FC_mul_mm_r3    [[function_constant(FC_MUL_MM + 5)]];
+ constant bool FC_mul_mm_id_amax [[function_constant(FC_MUL_MM + 6)]];
++constant bool FC_mul_mm_id_compact [[function_constant(FC_MUL_MM + 7)]];
+ 
+ // each block_q contains 16*nl weights
+ #ifdef GGML_METAL_HAS_TENSOR
+@@ -412,6 +413,16 @@
+ 
+     device uint32_t * tpe_u32 = (device uint32_t *) (htpe);
+     tpe_u32[ide] = n_all;
++    if (FC_mul_mm_id_compact) {
++        // The token map no longer needs shmem. Reuse it for integer tile counts.
++        threadgroup uint32_t * counts = (threadgroup uint32_t *) shmem;
++        counts[ide] = (n_all + 31)/32;
++        threadgroup_barrier(mem_flags::mem_threadgroup);
++        uint32_t start = 0;
++        for (short e = 0; e < ide; ++e) start += counts[e];
++        tpe_u32[args.ne02 + ide] = start;
++        if (ide + 1 == args.ne02) tpe_u32[2*args.ne02] = start + counts[ide];
++    }
+ }
+ 
+ kernel void kernel_mul_mm_id_amax_part_f32(
+@@ -533,12 +544,24 @@
+     constexpr int NL0 = NK/16;
+     constexpr int NL1 = NK/8;
+ 
+-    const int im = tgpig.z; // expert
+-    const int r0 = tgpig.y*NR0;
+-    const int r1 = tgpig.x*NR1;
+-
+     device const uint32_t * tpe_u32 = (device const uint32_t *) (htpe);
+     device const int32_t  * ids_i32 = (device const int32_t  *) (hids);
++
++    int im = tgpig.z;
++    int r1 = tgpig.x*NR1;
++    const int r0 = tgpig.y*NR0;
++    if (FC_mul_mm_id_compact) {
++        if (tgpig.x >= tpe_u32[2*args.ne02]) return;
++        device const uint32_t * starts = tpe_u32 + args.ne02;
++        int lo = 0, hi = args.ne02;
++        while (lo + 1 < hi) {
++            const int mid = (lo + hi)/2;
++            if (starts[mid] <= tgpig.x) lo = mid;
++            else hi = mid;
++        }
++        im = lo;
++        r1 = (tgpig.x - starts[im])*NR1;
++    }
+ 
+     const int32_t neh1 = tpe_u32[im];
+ 

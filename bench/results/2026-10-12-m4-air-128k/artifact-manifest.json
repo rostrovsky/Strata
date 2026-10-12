@@ -1,0 +1,86 @@
+{
+  "date": "2026-10-12",
+  "repository_head_when_handoff_started": "29c52020c42045a500fa67b69543513cff68c40e",
+  "llama_cpp_pin": "23b0202a189c44a54625aadcb37a946dd1d6278d",
+  "note": "Hashes identify local artifacts at the user-requested stop. The source tree and build-metal/bin/strata are NOT equivalent; see OPTIMIZATION.md. Model weights were not copied. Pending scripts and configurations were not executed or installed.",
+  "artifacts": [
+    {
+      "path": "build-metal/tuning-128k/strata-before",
+      "bytes": 10452760,
+      "sha256": "d78f1437d96422e3bcd70691194421aa632cb62ba1040cf6e6c590d887c43fa8"
+    },
+    {
+      "path": "build-metal/lowlevel-128k/strata-reference",
+      "bytes": 10452760,
+      "sha256": "cfc7074d2adbbc5103f0aca334b884b586ac4fabed3bd90fc33f32c9ec34d8a9"
+    },
+    {
+      "path": "build-metal/lowlevel-128k/strata-full-outputs",
+      "bytes": 10452968,
+      "sha256": "c15602bd0b0c3f586074e8b2bfca831c873e2074381ffeee5c58f66d14f82126"
+    },
+    {
+      "path": "build-metal/lowlevel-128k/strata-before-indexed",
+      "bytes": 10452968,
+      "sha256": "170fb056023011a60f8a39e3fc2b3ebbd13f8e10ee8c52c523efddd5c81f69f2"
+    },
+    {
+      "path": "build-metal/lowlevel-128k/strata-indexed-topk",
+      "bytes": 10453032,
+      "sha256": "0042ff3104c34217af3cc8bd84fac4f42030c48b0b5c3c888f749c8e77f0a236"
+    },
+    {
+      "path": "build-metal/bin/strata",
+      "bytes": 10453288,
+      "sha256": "dbb7ed3f2a4d49b7d225b8c6f190e9589c98d81e6d8614228c89bd57bf08c8c5"
+    },
+    {
+      "path": "build-metal/tuning-128k/tiny/qwen4exp-moe.gguf",
+      "bytes": 19242848,
+      "sha256": "7aed752c623f086c344368740cc7951641ecdadbafae5934b728a764094d816a"
+    },
+    {
+      "path": "data/expert-profile.bin",
+      "bytes": 196632,
+      "sha256": "8f59b4aa8873209dff11c11e37bcda9529a1335b724a1afeea37bf6388975baf"
+    }
+  ],
+  "preserved_files": [
+    "full-128k.json",
+    "full-128k-engine.txt",
+    "full-128k-console.txt",
+    "full-128k-memory.jsonl",
+    "correctness/indexed-gate-ref.json",
+    "correctness/indexed-gate.json",
+    "correctness/indexed-gate-reference-engine.txt",
+    "correctness/indexed-gate-candidate-engine.txt",
+    "correctness/indexed-chat-reference-engine.txt",
+    "correctness/indexed-chat-candidate-engine.txt",
+    "correctness/indexed-parity.txt",
+    "correctness/topk-parity.txt",
+    "correctness/relaxed-parity.txt",
+    "correctness/outputs-protocol.txt",
+    "profiling/prefill-profile.json",
+    "profiling/prefill-profile-engine.txt",
+    "rejected-experiments/compact-ab.json",
+    "rejected-experiments/chunked-experiment.patch",
+    "rejected-experiments/outputs-limited-engine.txt",
+    "rejected-experiments/outputs-limited-console.txt",
+    "pending/validate-final.py",
+    "pending/desktop-128k.json",
+    "pending/pi-smoke.txt",
+    "rejected-experiments/archived-patches/0002-metal-prefill-workspace.patch",
+    "rejected-experiments/archived-patches/0004-metal-indexed-qsa.patch",
+    "rejected-experiments/archived-patches/0003-metal-compact-expert-dispatch.patch",
+    "rejected-experiments/archived-patches/0006-metal-relaxed-matrix-sync.patch",
+    "rejected-experiments/archived-patches/0005-metal-topk-workspace.patch",
+    "rejected-experiments/relaxed-perf-dense-3-0.txt",
+    "rejected-experiments/relaxed-perf-dense-1-1.txt",
+    "rejected-experiments/relaxed-perf-moe-0-0.txt",
+    "rejected-experiments/relaxed-perf-moe-2-1.txt",
+    "rejected-experiments/relaxed-perf-dense-0-0.txt",
+    "rejected-experiments/relaxed-perf-dense-2-1.txt",
+    "rejected-experiments/relaxed-perf-moe-3-0.txt",
+    "rejected-experiments/relaxed-perf-moe-1-1.txt"
+  ]
+}

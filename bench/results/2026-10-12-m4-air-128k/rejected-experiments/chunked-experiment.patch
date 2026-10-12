@@ -1,0 +1,77 @@
+--- a/src/models/qwen4exp.cpp
++++ b/src/models/qwen4exp.cpp
+@@ -5,6 +5,7 @@
+ 
+ #include <algorithm>
+ #include <cinttypes>
++#include <cstdlib>
+ 
+ // bad metadata must be catchable: GGML_ASSERT aborts the whole process
+ static void qwen4exp_require_nonzero(const llama_model_loader & ml, llm_kv kid, uint32_t value) {
+@@ -824,7 +825,9 @@
+ 
+     ggml_build_forward_expand(gf, sel_idx);
+ 
+-    // TODO: figure out to reduce the large copmute buffer that this creates
++    // Reuse the selection mask after its last reader; no rounding or selection changes.
++    const char * compact_env = std::getenv("STRATA_METAL_COMPACT_QSA");
++    const bool compact_mask = cparams.flash_attn && compact_env && std::atoi(compact_env) != 0;
+ 
+     // scatter zeros for the selected cells into an all -inf row, each dead slot into its own dump row n_kv + slot
+     // seeding from sel_idx ties the scatter storage lifetime to this layer
+@@ -864,7 +867,7 @@
+     const size_t row = sel->nb[2];
+     sel = ggml_view_4d(ctx0, sel, n_kv, kq_mask->ne[1], kq_mask->ne[2], kq_mask->ne[3],
+             row, row*kq_mask->ne[1], row*kq_mask->ne[1]*kq_mask->ne[2], 0);
+-    sel = ggml_add(ctx0, sel, kq_mask);
++    sel = compact_mask ? ggml_add_inplace(ctx0, sel, kq_mask) : ggml_add(ctx0, sel, kq_mask);
+     cb(sel, "indexer_sel", il);
+ 
+     return sel;
+@@ -911,7 +914,10 @@
+ 
+     // the selection mask already carries the causal mask
+     ggml_tensor * kq_mask = inp->get_kq_mask();
+-    ggml_tensor * mask    = ggml_reshape_4d(ctx0, sel, kq_mask->ne[0], kq_mask->ne[1], kq_mask->ne[2], kq_mask->ne[3]);
++    GGML_ASSERT(ggml_are_same_shape(sel, kq_mask));
++    ggml_tensor * mask = ggml_is_contiguous(sel)
++        ? ggml_reshape_4d(ctx0, sel, kq_mask->ne[0], kq_mask->ne[1], kq_mask->ne[2], kq_mask->ne[3])
++        : ggml_view_4d(ctx0, sel, sel->ne[0], sel->ne[1], sel->ne[2], sel->ne[3], sel->nb[1], sel->nb[2], sel->nb[3], 0);
+     cb(mask, "kq_mask_qsa", il);
+ 
+     ggml_tensor * q = q_cur;
+--- a/src/llama-context.cpp
++++ b/src/llama-context.cpp
+@@ -17,6 +17,7 @@
+ #include <cinttypes>
+ #include <cmath>
+ #include <cstring>
++#include <cstdlib>
+ #include <limits>
+ #include <stdexcept>
+ #include <string>
+@@ -236,6 +237,12 @@
+     cparams.fused_gdn_ar = true;
+     cparams.fused_gdn_ch = true;
+     cparams.auto_fgdn    = false;
++
++    // Opt-in experiment: use the existing chunkwise graph for prompt GDN.
++    const char * chunked_gdn = std::getenv("STRATA_METAL_CHUNKED_GDN");
++    if (chunked_gdn && std::atoi(chunked_gdn) != 0) {
++        cparams.fused_gdn_ch = false;
++    }
+ 
+     cparams.fused_lid = true;
+     cparams.auto_flid = false;
+--- a/ggml/src/ggml.c
++++ b/ggml/src/ggml.c
+@@ -5521,7 +5521,8 @@
+ 
+     if (mask) {
+         GGML_ASSERT(mask->type == GGML_TYPE_F16);
+-        GGML_ASSERT(ggml_is_contiguous(mask));
++        // Metal and CPU use the mask row strides; QSA keeps padded scatter rows in-place.
++        GGML_ASSERT(ggml_is_contiguous_rows(mask));
+         //GGML_ASSERT(ggml_can_repeat_rows(mask, qk));
+ 
+         GGML_ASSERT(q->ne[2] % mask->ne[2] == 0);

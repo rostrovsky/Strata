@@ -1,0 +1,111 @@
+--- a/ggml/src/ggml-metal/kernels/mul_mm.metal
++++ b/ggml/src/ggml-metal/kernels/mul_mm.metal
+@@ -9,6 +9,7 @@
+ constant short FC_mul_mm_r3    [[function_constant(FC_MUL_MM + 5)]];
+ constant bool FC_mul_mm_id_amax [[function_constant(FC_MUL_MM + 6)]];
+ constant bool FC_mul_mm_id_compact [[function_constant(FC_MUL_MM + 7)]];
++constant bool FC_mul_mm_relaxed [[function_constant(FC_MUL_MM + 8)]];
+ 
+ // each block_q contains 16*nl weights
+ #ifdef GGML_METAL_HAS_TENSOR
+@@ -293,19 +294,19 @@
+         threadgroup const S1 * lsmb = (sb + 2*64*(sgitg/2));
+ 
+         FOR_UNROLL (short ik = 0; ik < NK/8; ik++) {
+-            simdgroup_barrier(mem_flags::mem_none);
++            if (!FC_mul_mm_relaxed) simdgroup_barrier(mem_flags::mem_none);
+ 
+             FOR_UNROLL (short i = 0; i < 4; i++) {
+                 simdgroup_load(ma[i], lsma + 64*i, 8, 0, false);
+             }
+ 
+-            simdgroup_barrier(mem_flags::mem_none);
++            if (!FC_mul_mm_relaxed) simdgroup_barrier(mem_flags::mem_none);
+ 
+             FOR_UNROLL (short i = 0; i < 2; i++) {
+                 simdgroup_load(mb[i], lsmb + 64*i, 8, 0, false);
+             }
+ 
+-            simdgroup_barrier(mem_flags::mem_none);
++            if (!FC_mul_mm_relaxed) simdgroup_barrier(mem_flags::mem_none);
+ 
+             FOR_UNROLL (short i = 0; i < 8; i++){
+                 simdgroup_multiply_accumulate(mc[i], mb[i/4], ma[i%4], mc[i]);
+@@ -782,19 +783,19 @@
+             threadgroup const S1 * lsmb = (sb + 2*64*(sgitg/2));
+ 
+             FOR_UNROLL (short ik = 0; ik < NK/8; ik++) {
+-                simdgroup_barrier(mem_flags::mem_none);
++                if (!FC_mul_mm_relaxed) simdgroup_barrier(mem_flags::mem_none);
+ 
+                 FOR_UNROLL (short i = 0; i < 4; i++) {
+                     simdgroup_load(ma[i], lsma + 64*i, 8, 0, false);
+                 }
+ 
+-                simdgroup_barrier(mem_flags::mem_none);
++                if (!FC_mul_mm_relaxed) simdgroup_barrier(mem_flags::mem_none);
+ 
+                 FOR_UNROLL (short i = 0; i < 2; i++) {
+                     simdgroup_load(mb[i], lsmb + 64*i, 8, 0, false);
+                 }
+ 
+-                simdgroup_barrier(mem_flags::mem_none);
++                if (!FC_mul_mm_relaxed) simdgroup_barrier(mem_flags::mem_none);
+ 
+                 FOR_UNROLL (short i = 0; i < 8; i++){
+                     simdgroup_multiply_accumulate(mc[i], mb[i/4], ma[i%4], mc[i]);
+--- a/ggml/src/ggml-metal/ggml-metal-device.cpp
++++ b/ggml/src/ggml-metal/ggml-metal-device.cpp
+@@ -921,6 +921,14 @@
+     return res;
+ }
+ 
++static bool ggml_metal_relaxed_mm() {
++    static const bool enabled = [] {
++        const char * value = getenv("STRATA_METAL_RELAXED_MM");
++        return value && atoi(value) != 0;
++    }();
++    return enabled;
++}
++
+ ggml_metal_pipeline_with_params ggml_metal_library_get_pipeline_mul_mm(ggml_metal_library_t lib, const ggml_tensor * op) {
+     char base[256];
+     char name[256];
+@@ -946,8 +954,9 @@
+     const int16_t r3   = (int16_t) (ne13 / op->src[0]->ne[3]);
+ 
+     snprintf(base, 256, "kernel_mul_mm_%s_%s", ggml_type_name(tsrc0), ggml_type_name(tsrc1));
+-    snprintf(name, 256, "%s_bci=%d_bco=%d_ne12=%d_ne13=%d_r2=%d_r3=%d",
+-             base, bc_inp, bc_out, ne12, ne13, r2, r3);
++    const bool relaxed = ggml_metal_relaxed_mm();
++    snprintf(name, 256, "%s_bci=%d_bco=%d_ne12=%d_ne13=%d_r2=%d_r3=%d_relaxed=%d",
++             base, bc_inp, bc_out, ne12, ne13, r2, r3, relaxed);
+ 
+     ggml_metal_pipeline_with_params res = ggml_metal_library_get_pipeline(lib, name);
+     if (!res.pipeline) {
+@@ -959,6 +968,7 @@
+         ggml_metal_cv_set_int16(cv, ne13,  FC_MUL_MM + 3);
+         ggml_metal_cv_set_int16(cv, r2,    FC_MUL_MM + 4);
+         ggml_metal_cv_set_int16(cv, r3,    FC_MUL_MM + 5);
++        ggml_metal_cv_set_bool(cv, relaxed, FC_MUL_MM + 8);
+ 
+         res = ggml_metal_library_compile_pipeline(lib, base, name, cv);
+ 
+@@ -1296,7 +1306,8 @@
+ 
+     snprintf(base, 256, "kernel_mul_mm_id_%s_%s", ggml_type_name(tsrc0), ggml_type_name(tsrc1));
+     const bool compact = ggml_metal_compact_moe();
+-    snprintf(name, 256, "%s_bci=%d_amax=%d_compact=%d", base, bc_inp, amax, compact);
++    const bool relaxed = ggml_metal_relaxed_mm();
++    snprintf(name, 256, "%s_bci=%d_amax=%d_compact=%d_relaxed=%d", base, bc_inp, amax, compact, relaxed);
+ 
+     ggml_metal_pipeline_with_params res = ggml_metal_library_get_pipeline(lib, name);
+     if (!res.pipeline) {
+@@ -1305,6 +1316,7 @@
+         ggml_metal_cv_set_bool(cv, bc_inp, FC_MUL_MM + 0);
+         ggml_metal_cv_set_bool(cv, amax,   FC_MUL_MM + 6);
+         ggml_metal_cv_set_bool(cv, compact, FC_MUL_MM + 7);
++        ggml_metal_cv_set_bool(cv, relaxed, FC_MUL_MM + 8);
+ 
+         res = ggml_metal_library_compile_pipeline(lib, base, name, cv);
+ 

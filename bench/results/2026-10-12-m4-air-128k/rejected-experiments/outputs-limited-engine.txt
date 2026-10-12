@@ -1,0 +1,15 @@
+strata metal: Apple M4, 32.0 GiB of unified memory, Metal's working set 21.3 GiB
+strata metal: model: 2 shard(s), 4.2 GiB dense, 46.8 GiB of routed experts (48 layers x 512, 1.95 MiB each on average), 26.8 GiB n-gram table
+strata metal: memory now: 20.2 GiB free or file cache, 10.1 GiB held by other programs, 2.3 GiB wired, 1.4 GiB in swap
+llama_model_loader: tensor overrides to CPU are used with mmap enabled - consider using --load-mode none for better performance
+strata metal: loading the dense weights: 10%
+strata metal: loading the dense weights: 20%
+strata metal: loading the dense weights: 30%
+strata metal: loading the dense weights: 40%
+strata metal: loading the dense weights: 50%
+strata metal: loading the dense weights: 60%
+strata metal: loading the dense weights: 100%
+strata metal: weights loaded in 5.7 s, 3.89 GiB on the GPU
+strata metal: context 12.09 GiB on the GPU; expert cache 0.00 GiB (auto; Metal has room for 5.1, the free memory for 0.0)
+strata metal: other programs hold 3.7 GiB of memory. The expert cache takes only what is free, so that macOS does not have to swap them out; with programs closed before the start it can be up to 5.1 GiB larger (every GiB holds ~525 more experts)
+strata metal: no expert cache: every routed expert is computed from the mapped file

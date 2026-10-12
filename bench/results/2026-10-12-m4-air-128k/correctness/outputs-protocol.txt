@@ -1,0 +1,28 @@
+ok    READY <context> stop
+ok    INFO names the backend and the cache
+ok    a request answers
+ok    DONE has the 15 fields serve/server.py reads
+ok    the same prompt again: reused, same ids
+ok    a prompt that continues the last one: reused, same ids as a fresh engine
+ok    a different prompt, then the first again: same ids
+ok    STOP ends a request
+ok    the request after a STOP is right
+ok    too long for the context: ERR
+ok    an id outside the vocabulary: ERR
+ok    an unknown command: ERR
+ok    sampling keys: accepted, and a seed repeats
+ok    still right after all of it
+ok    a long prompt answers
+ok    --expert-cache 0: same ids
+ok    --expert-io direct: same ids
+ok    --chunk 1: same ids
+ok    --chunk 7: same ids
+ok    --io-threads 1: same ids
+ok    --no-preload: same ids
+ok    --prefetch 2: same ids
+ok    --prefetch 4 --prefetch-depth 2: same ids
+ok    long prompt, --prefill-ahead on: same ids
+ok    long prompt, --prefill-ahead on --io-threads 2: same ids
+ok    long prompt, --prefetch 2: same ids
+
+all passed

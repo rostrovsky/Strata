@@ -1,0 +1,86 @@
+{
+ "when": "2026-10-12 03:59",
+ "args": [
+  "--native",
+  "/Users/rafal/Projects/strata-air/Strata-data/models/IQ3_S/Qwen3.8-Flash-Next-GSQ-RCO-IQ3_S-00001-of-00002.gguf",
+  "--expert-profile",
+  "/Users/rafal/Projects/strata-air/Strata/data/expert-profile.bin",
+  "--expert-cache",
+  "auto",
+  "--max-context",
+  "131072",
+  "--kv",
+  "f16",
+  "--prefill",
+  "2048",
+  "--reserve-gib",
+  "4"
+ ],
+ "memory_before": {
+  "free_gib": 5.63,
+  "file_cache_gib": 10.69,
+  "apps_gib": 12.56,
+  "wired_gib": 2.33,
+  "swap_used_gib": 1.46
+ },
+ "info": {
+  "context": "131072",
+  "kv": "f16",
+  "kv_resident": "0",
+  "expert_slots": "1565",
+  "expert_cache_mib": "3067",
+  "expert_slots_primary": "1565",
+  "expert_cache_primary_mib": "3067",
+  "spec": "0",
+  "mtp_max": "0",
+  "lookup": "0",
+  "prefetch": "10",
+  "vram_free_mib": "8393",
+  "arena_mib": "0",
+  "pool_workers": "8",
+  "backend": "metal",
+  "expert_io": "direct",
+  "engine": "0.1.42-metal"
+ },
+ "prefill": {
+  "2048": {
+   "tokens": 2048,
+   "tps": 83.35164790440608,
+   "ttft_s": 24.571248292922974,
+   "ssd_gb": 42.3649,
+   "swapouts": 0,
+   "gpu_wait_s": 0.5073,
+   "ssd_s": 5.6057,
+   "gpu_busy_s": 0.0,
+   "wall_s": 24.5706,
+   "passes": 3.0,
+   "read_ahead_gb": 32.6372,
+   "read_ahead_used_gb": 28.5031,
+   "watts": null,
+   "decode_tps": 0.0,
+   "generated": 1,
+   "output": "<think>",
+   "progress": [
+    {
+     "tokens": 2045,
+     "total": 2048,
+     "elapsed_s": 22.983
+    },
+    {
+     "tokens": 2047,
+     "total": 2048,
+     "elapsed_s": 23.866
+    }
+   ],
+   "decode_per_token": null
+  }
+ },
+ "swapouts": 0,
+ "memory_after": {
+  "free_gib": 14.94,
+  "file_cache_gib": 7.42,
+  "apps_gib": 6.5,
+  "wired_gib": 2.33,
+  "swap_used_gib": 1.46
+ }
+}

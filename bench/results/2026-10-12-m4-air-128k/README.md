@@ -6,8 +6,10 @@ Strata `c6127518`, with llama.cpp pinned to `23b0202a189c44a54625aadcb37a946dd1d
 Measurements are from 2026-10-12. Brave, Ghostty, the user's VM, and other desktop apps stay open.
 
 This F16 profile supersedes the Q8 KV candidate in the [previous report](../2026-10-11-m4-air-128k/README.md).
-The requested 120 tok/s prefill and 10 tok/s decode have not been reached. Full-context validation is in progress;
-the results below must not be read as a completed 128k-depth test.
+The requested 120 tok/s prefill and 10 tok/s decode have not been reached. The full-context run completed with
+130,944 input tokens, all five records retrieved, 64.9 tok/s prefill, and 4.59 tok/s decode. It incurred 61.7 MiB of
+new swap-outs. Optimization stopped at the user's request. See the [full handoff](../../../OPTIMIZATION.md) for
+source/binary differences, unbuilt experiments, desktop integration status, and proposed next steps.
 
 ## Changes retained
 
@@ -29,16 +31,18 @@ At 131,072-token capacity, F16 KV, and a 4,096-token prefill batch, the context 
 the top-k fix accounts for the remaining 0.79 GiB. The memory planner can use the released space for experts while
 keeping the desktop reserve. Cache size still depends on the apps and existing swap at startup.
 
-## Profile under validation
+## Measured candidate, not installed
 
 ```text
 STRATA_METAL_INDEXED_QSA=1
 --max-context 131072 --kv f16 --prefill 4096 --reserve-gib 4 --expert-cache auto
 ```
 
-The context limit includes input and output. The 4 GiB reserve leaves room for the OS and growing desktop apps;
-it is not an expert cache. No system memory limit is raised. The cache is sized at startup, and the existing
-900-second idle unload returns the model's memory between sessions.
+The context limit includes input and output. The 4 GiB reserve is intended to leave room for the OS and growing
+desktop apps, but the full run still paged and reported warning-level memory pressure in a separate sample. No
+system memory limit was raised. The cache is sized at startup. Production Strata and pi remain configured for
+32,768 context; the 128k candidate was not installed. The existing 900-second idle unload also loses resident
+prefix reuse, which matters when a cold full prefill takes over 33 minutes.
 
 ## Completed measurements
 
@@ -50,14 +54,24 @@ These are individual runs with different app-memory and thermal states, not a co
 | Before indexed attention, 4,096 tokens | 4,096 | 8.39 GiB | 3,350 MiB | 101.9 tok/s | 4.73 tok/s | 0 |
 | Indexed attention, before top-k fix, 8,192 tokens | 8,192 | 9.07 GiB | 2,589 MiB | 103.7 tok/s | 4.14 tok/s | 5,870 pages |
 | Indexed attention and top-k fix, 16,384 tokens | 4,096 | 5.58 GiB | 5,735 MiB | 77.3 tok/s | 4.85 tok/s | 0 |
+| Indexed attention and top-k fix, 130,944 tokens | 4,096 | 5.58 GiB | 5,038 MiB | 64.9 tok/s | 4.59 tok/s | 3,948 pages |
 
 The 8k-batch run caused about 92 MiB of new swap-outs and is not the selected desktop profile. A build ran during
 part of the 16k test, so its throughput is not an isolated performance measurement. Its functional checks passed:
 all five exact records were retrieved, and a repeated request reused 16,383 input tokens, returned the same 76
 output IDs, and produced its first token in 0.38 seconds.
 
-Raw results: [4k baseline](outputs-4096.json), [8k batch](indexed-8192.json), [16k retrieval](topk-16k.json).
-The corresponding `*-engine.txt` files record the memory plans.
+The full run took 2,016.89 seconds to its first token, retrieved all five records, and generated 76 tokens.
+A repeated request reused 130,943 tokens, returned identical IDs, and reached its first token in 0.403 seconds;
+repeat decode was 4.82 tok/s. New swap-outs reached 3,948 pages by the 81,920-token sample and stayed unchanged
+through completion. These are 16 KiB pages, or 61.7 MiB. The engine also logged a compute buffer of 2,201.2842 MiB
+against an expected 1,759.2842 MiB: 442 MiB of growth that remains unexplained. The table gives startup allocation,
+not a guaranteed runtime peak.
+
+Raw results: [4k baseline](outputs-4096.json), [8k batch](indexed-8192.json), [16k retrieval](topk-16k.json), and
+[full-context retrieval and repeat](full-128k.json). The corresponding `*-engine.txt` files record the memory plans.
+[Full-run console output](full-128k-console.txt) and a [separate pressure snapshot](full-128k-memory.jsonl) are also
+preserved. The full-run JSON was produced before numeric pressure instrumentation was added.
 
 ## Correctness
 
@@ -75,6 +89,11 @@ These checks test implementation equivalence and retrieval, not a broad assessme
 the original weight quantization, expert count, and context length remain intact. MTP and speculative lookup are
 not enabled in this profile.
 
+These passes apply to the earlier compiled implementation. The source patches were later consolidated, and an
+opt-in SIMD index-sort experiment plus additional tests were added. That final source state has not been built
+or validated. The successful full-context run used `build-metal/lowlevel-128k/strata-indexed-topk`; neither the
+current source nor `build-metal/bin/strata` should be assumed equivalent to that saved executable.
+
 ## Experiments rejected
 
 - Removing six SIMD-group synchronization barriers from the matrix kernels passed correctness tests but did not
@@ -85,20 +104,24 @@ not enabled in this profile.
 - Chunked DeltaNet was slower in the tested 2k workload: 85.4 versus 88.4 tok/s. See [comparison](chunked-ab.json).
 - Reusing the dense selection-mask allocation in place saved little memory and showed no useful speed gain.
 
-The rejected kernel changes are absent from the final source patches.
+The rejected kernel changes are absent from the current source patches. Historical patches and timing output
+are preserved in `rejected-experiments/`; older indexed-QSA and top-k patch versions there are references, not
+rejected algorithms.
 
 ## Reproduce
 
 Do not run a benchmark while the real-model server is loaded: two copies exceed this machine's memory budget.
-Leave the usual desktop apps open.
+Leave the usual desktop apps open. These commands are for a future requested continuation, not an instruction
+to resume the stopped optimization. A rebuilt current tree needs the validation described in the handoff before
+its results can be compared to the saved executable.
 
 ```sh
 cmake -S metal -B build-metal -DCMAKE_BUILD_TYPE=Release -DSTRATA_METAL_BUILD_TESTS=ON
 cmake --build build-metal -j4
 ctest --test-dir build-metal --output-on-failure
 
-STRATA_METAL_INDEXED_QSA=1 .venv/bin/python metal/tools/bench.py \
-  --config strata-iq3_s.json --context 131072 \
+STRATA_METAL_INDEXED_QSA=1 STRATA_METAL_QSA_SIMD_SORT=0 .venv/bin/python metal/tools/bench.py \
+  --config strata-iq3_s.json --engine build-metal/lowlevel-128k/strata-indexed-topk --context 131072 \
   --prefill 130944 --prefill-new 120 --needle --prefill-repeat \
   --json build-metal/full-128k.json --log build-metal/full-128k.log \
   -- --kv f16 --prefill 4096 --reserve-gib 4

@@ -1,0 +1,19 @@
+strata metal: Apple M4, 32.0 GiB of unified memory, Metal's working set 21.3 GiB
+strata metal: model: 2 shard(s), 4.2 GiB dense, 46.8 GiB of routed experts (48 layers x 512, 1.95 MiB each on average), 26.8 GiB n-gram table
+strata metal: memory now: 21.6 GiB free or file cache, 7.4 GiB held by other programs, 2.4 GiB wired, 1.4 GiB in swap
+llama_model_loader: tensor overrides to CPU are used with mmap enabled - consider using --load-mode none for better performance
+strata metal: loading the dense weights: 10%
+strata metal: loading the dense weights: 20%
+strata metal: loading the dense weights: 30%
+strata metal: loading the dense weights: 40%
+strata metal: loading the dense weights: 50%
+strata metal: loading the dense weights: 60%
+strata metal: loading the dense weights: 100%
+strata metal: weights loaded in 2.1 s, 3.89 GiB on the GPU
+strata metal: context 6.37 GiB on the GPU; expert cache 1.95 GiB (auto; Metal has room for 10.8, the free memory for 5.7)
+strata metal: other programs hold 3.7 GiB of memory. The expert cache takes only what is free, so that macOS does not have to swap them out; with programs closed before the start it can be up to 5.1 GiB larger (every GiB holds ~525 more experts)
+strata metal: expert cache: 1015 of 24576 experts (4%), 1.95 GiB; missed experts are read from the SSD by 8 threads (past the OS file cache)
+strata metal: expert cache filled with the profile's 1015 most used experts in 0.6 s (1.93 GiB, 3.26 GiB/s; 1.85 GiB came from the SSD)
+strata metal: prefetch: the 10 experts each layer is predicted to route to are read 1 layer(s) ahead
+strata metal: prompts are read 2 tokens per pass (more than 32 new tokens: 4096 per pass, their experts streamed from the SSD)
+strata serve: prompt 20 (0 reused, 20 read in 5.18 s), 48 tokens in 13.03 s (3.61 tok/s), length; expert cache 72.7% hits, 8360 fetched in 7.21 s, 44773.2 MB from the SSD

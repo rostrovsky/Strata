@@ -1,0 +1,16 @@
+Testing 3 devices
+
+Backend 1/3: MTL0
+  Device description: Apple M4
+  Device memory: 21845 MB (21844 MB free)
+
+  MUL_MAT(type_a=f16,type_b=f32,m=4096,n=512,k=14336,bs=[1,1],nr=[1,1],per=[0,1,2,3],k_v=0,o=1,src_overlap=0,m_v=0,pad=0):                50 runs - 20212.74 us/run -  60.13 GFLOP/run - [1;34m  2.97 TFLOPS[0m
+  MUL_MAT(type_a=bf16,type_b=f32,m=4096,n=512,k=14336,bs=[1,1],nr=[1,1],per=[0,1,2,3],k_v=0,o=1,src_overlap=0,m_v=0,pad=0):                       48 runs - 20910.29 us/run -  60.13 GFLOP/run - [1;34m  2.88 TFLOPS[0m
+  MUL_MAT(type_a=q6_K,type_b=f32,m=4096,n=512,k=14336,bs=[1,1],nr=[1,1],per=[0,1,2,3],k_v=0,o=1,src_overlap=0,m_v=0,pad=0):                       46 runs - 22701.41 us/run -  60.13 GFLOP/run - [1;34m  2.65 TFLOPS[0m
+  Backend MTL0: [1;32mOK[0m
+Backend 2/3: BLAS
+  Skipping
+Backend 3/3: CPU
+  Skipping
+3/3 backends passed
+[1;32mOK[0m

@@ -1,0 +1,21 @@
+strata metal: Apple M4, 32.0 GiB of unified memory, Metal's working set 21.3 GiB
+strata metal: model: 2 shard(s), 4.2 GiB dense, 46.8 GiB of routed experts (48 layers x 512, 1.95 MiB each on average), 26.8 GiB n-gram table
+strata metal: memory now: 20.7 GiB free or file cache, 10.0 GiB held by other programs, 2.4 GiB wired, 1.0 GiB in swap
+llama_model_loader: tensor overrides to CPU are used with mmap enabled - consider using --load-mode none for better performance
+strata metal: loading the dense weights: 10%
+strata metal: loading the dense weights: 20%
+strata metal: loading the dense weights: 30%
+strata metal: loading the dense weights: 40%
+strata metal: loading the dense weights: 50%
+strata metal: loading the dense weights: 60%
+strata metal: loading the dense weights: 100%
+strata metal: weights loaded in 5.7 s, 3.89 GiB on the GPU
+strata metal: context 5.58 GiB on the GPU; expert cache 4.93 GiB (auto; Metal has room for 11.6, the free memory for 4.9)
+strata metal: other programs hold 5.7 GiB of memory. The expert cache takes only what is free, so that macOS does not have to swap them out; with programs closed before the start it can be up to 6.7 GiB larger (every GiB holds ~525 more experts)
+strata metal: expert cache: 2575 of 24576 experts (10%), 4.92 GiB; missed experts are read from the SSD by 8 threads (past the OS file cache)
+strata metal: expert cache filled with the profile's 2575 most used experts in 1.6 s (4.91 GiB, 3.00 GiB/s; 5.03 GiB came from the SSD)
+strata metal: prefetch: the 10 experts each layer is predicted to route to are read 1 layer(s) ahead
+strata metal: prompts are read 5 tokens per pass (more than 32 new tokens: 4096 per pass, their experts streamed from the SSD)
+strata serve: prompt 130944 (0 reused, 130944 read in 2016.87 s), 76 tokens in 16.33 s (4.59 tok/s), stop; expert cache 78.5% hits, 8274 fetched in 68.34 s, 1396802.7 MB from the SSD
+strata serve: prompt 130944 (130943 reused, 1 read in 0.40 s), 76 tokens in 15.55 s (4.82 tok/s), stop; expert cache 78.5% hits, 7844 fetched in 5.87 s, 28265.2 MB from the SSD
+~llama_context:       MTL0 compute buffer size of 2201.2842 MiB, does not match expectation of 1759.2842 MiB

@@ -1,0 +1,57 @@
+--- a/ggml/src/ggml-metal/ggml-metal-ops.cpp
++++ b/ggml/src/ggml-metal/ggml-metal-ops.cpp
+@@ -5821,19 +5821,20 @@
+     return n_fuse;
+ }
+ 
+-int ggml_metal_op_top_k(ggml_metal_op_t ctx, int idx) {
+-    ggml_tensor * op = ctx->node(idx);
+-
++bool ggml_metal_op_top_k_use_radix(const ggml_tensor * op) {
++    // Keep allocation and execution on the same predicate: radix needs only its output.
+     // radix-select has a fixed single-workgroup-per-row cost (~50-60us) that is only
+     // amortized for long rows, many rows, or a large k; otherwise the bitonic path wins
+     const int ncols = op->src[0]->ne[0];
+     const int k     = op->ne[0];
+     const int nrows = ggml_nrows(op->src[0]);
+ 
+-    const bool use_radix =
+-        ncols > 2048 && (k > 64 || (nrows > 4 && ncols >= 8192));
+-
+-    if (use_radix) {
++    return ncols > 2048 && (k > 64 || (nrows > 4 && ncols >= 8192));
++}
++
++int ggml_metal_op_top_k(ggml_metal_op_t ctx, int idx) {
++    ggml_tensor * op = ctx->node(idx);
++    if (ggml_metal_op_top_k_use_radix(op)) {
+         ggml_metal_op_top_k_radix(ctx, idx);
+     } else {
+         ggml_metal_op_top_k_bitonic(ctx, idx);
+--- a/ggml/src/ggml-metal/ggml-metal-ops.h
++++ b/ggml/src/ggml-metal/ggml-metal-ops.h
+@@ -9,6 +9,9 @@
+ typedef struct ggml_metal_op * ggml_metal_op_t;
+ 
+ struct ggml_metal_fusion; // forward decl (ggml-metal-device.h)
++
++// Shared by the top-k allocator and dispatch to avoid unused radix scratch buffers.
++bool ggml_metal_op_top_k_use_radix(const struct ggml_tensor * op);
+ 
+ ggml_metal_op_t ggml_metal_op_init(
+         ggml_metal_device_t dev,
+--- a/ggml/src/ggml-metal/ggml-metal.cpp
++++ b/ggml/src/ggml-metal/ggml-metal.cpp
+@@ -243,7 +243,11 @@
+             } break;
+         case GGML_OP_TOP_K:
+             {
+-                res = 2*sizeof(int32_t)*ggml_nelements(tensor->src[0]);
++                // Radix writes only k indices per row; the two full-sized merge
++                // buffers are needed solely by the bitonic implementation.
++                if (!ggml_metal_op_top_k_use_radix(tensor)) {
++                    res = 2*sizeof(int32_t)*ggml_nelements(tensor->src[0]);
++                }
+             } break;
+         default:
+             break;

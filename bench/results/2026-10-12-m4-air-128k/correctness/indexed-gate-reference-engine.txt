@@ -1,0 +1,21 @@
+strata metal: Apple M4, 32.0 GiB of unified memory, Metal's working set 21.3 GiB
+strata metal: model: 2 shard(s), 4.2 GiB dense, 46.8 GiB of routed experts (48 layers x 512, 1.95 MiB each on average), 26.8 GiB n-gram table
+strata metal: memory now: 20.2 GiB free or file cache, 9.6 GiB held by other programs, 2.2 GiB wired, 1.4 GiB in swap
+llama_model_loader: tensor overrides to CPU are used with mmap enabled - consider using --load-mode none for better performance
+strata metal: loading the dense weights: 10%
+strata metal: loading the dense weights: 20%
+strata metal: loading the dense weights: 30%
+strata metal: loading the dense weights: 40%
+strata metal: loading the dense weights: 50%
+strata metal: loading the dense weights: 60%
+strata metal: loading the dense weights: 100%
+strata metal: weights loaded in 5.7 s, 3.89 GiB on the GPU
+strata metal: context 8.39 GiB on the GPU; expert cache 2.39 GiB (auto; Metal has room for 8.8, the free memory for 2.4)
+strata metal: other programs hold 5.0 GiB of memory. The expert cache takes only what is free, so that macOS does not have to swap them out; with programs closed before the start it can be up to 6.4 GiB larger (every GiB holds ~525 more experts)
+strata metal: expert cache: 1246 of 24576 experts (5%), 2.39 GiB; missed experts are read from the SSD by 8 threads (past the OS file cache)
+strata metal: expert cache filled with the profile's 1246 most used experts in 0.9 s (2.38 GiB, 2.76 GiB/s; 2.45 GiB came from the SSD)
+strata metal: prefetch: the 10 experts each layer is predicted to route to are read 1 layer(s) ahead
+strata metal: prompts are read 2 tokens per pass (more than 32 new tokens: 4096 per pass, their experts streamed from the SSD)
+strata serve: prompt 20 (0 reused, 20 read in 4.87 s), 48 tokens in 11.75 s (4.00 tok/s), length; expert cache 75.0% hits, 7662 fetched in 7.72 s, 42699.2 MB from the SSD
+strata serve: prompt 37 (0 reused, 37 read in 5.98 s), 48 tokens in 12.91 s (3.64 tok/s), length; expert cache 76.0% hits, 5757 fetched in 7.98 s, 38974.4 MB from the SSD
+strata serve: prompt 7900 (0 reused, 7900 read in 88.94 s), 48 tokens in 9.93 s (4.73 tok/s), length; expert cache 78.2% hits, 5200 fetched in 18.69 s, 110169.2 MB from the SSD
