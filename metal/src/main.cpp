@@ -77,6 +77,8 @@ struct Options {
     int chunk = 0;                       // prompt tokens per pass; 0: the most the expert cache serves (up to 32)
     int prefill = 1024;                  // long prompts: tokens per pass, their experts streamed from the SSD (0: off)
     int prefill_from = 33;               // --prefill-from N: stretches of N or more new tokens go in such passes (33: llama.cpp's own limit)
+    bool elastic = false;                // --elastic on: the long passes' work memory and the expert cache take turns in one budget
+    int elastic_short = 1024;            // --elastic-short N: a stretch of up to N new tokens is read in one pass beside the cache
     bool prefill_ahead = true;           // --prefill-ahead: read the next expert tensors while the GPU computes with this one
     int prefill_ahead_tensors = 3;       // ... a layer's three (STRATA_PREFILL_AHEAD_TENSORS=1: one)
     bool preload = true;
@@ -155,6 +157,9 @@ void usage() {
         "  --threads N              CPU threads (default: the performance cores)\n"
         "  --prefill N              long prompts: tokens per pass, experts streamed from the SSD (default 1024, 0 = off)\n"
         "  --chunk N                short prompts: tokens per pass, 1-32 (default: the most the expert cache serves)\n"
+        "  --elastic on|off         (experiment, default off) answer with the memory of the --prefill passes added to the expert\n"
+        "                           cache, and give it back to them for a long prompt; up to --elastic-short N new tokens (1024)\n"
+        "                           are read in one pass beside the cache, in memory that is free at that moment\n"
         "  --kv f16|q8_0            KV cache type (default f16)\n");
 }
 
@@ -198,6 +203,8 @@ int parse_args(int argc, char** argv, Options& o) {
         }
         else if (a == "--prefill-from") o.prefill_from = std::clamp(std::atoi(next("--prefill-from")), 2, 33);
         else if (a == "--prefill-ahead") o.prefill_ahead = std::string(next("--prefill-ahead")) != "off";
+        else if (a == "--elastic") o.elastic = std::string(next("--elastic")) != "off";
+        else if (a == "--elastic-short") o.elastic_short = std::max(0, std::atoi(next("--elastic-short")));
         else if (a == "--no-preload") o.preload = false;
         else if (a == "--mtp") o.mtp = next("--mtp");
         else if (a == "--spec") o.spec = std::clamp(std::atoi(next("--spec")), 0, 8);
@@ -281,6 +288,7 @@ uint64_t sysctl_u64(const char* name) {
 struct HostMemory {
     uint64_t available = 0, apps = 0, wired = 0;
     uint64_t swapped = 0;   // what macOS has in swap already: memory of open programs that will want to come back
+    uint64_t swapouts = 0;  // pages macOS has written to swap since it started
 
     // what the engine may take: memory in swap is counted as owed to the programs it belongs to
     double usable() const { return std::max(0.0, (double) available - (double) swapped); }
@@ -295,6 +303,7 @@ HostMemory host_memory() {
     m.available = ((uint64_t) vm.free_count + vm.external_page_count + vm.purgeable_count) * page;
     m.apps = ((uint64_t) vm.internal_page_count + vm.compressor_page_count) * page;
     m.wired = (uint64_t) vm.wire_count * page;
+    m.swapouts = vm.swapouts;
     xsw_usage sw{};
     size_t len = sizeof sw;
     if (sysctlbyname("vm.swapusage", &sw, &len, nullptr, 0) == 0) m.swapped = sw.xsu_used;
@@ -378,6 +387,8 @@ struct Input {
                 if (n <= 0) break;
                 buf.append(chunk, (size_t) n);
             }
+            // nobody is left to read the answer: a request that is under way ends at its next pass
+            stop.store(true);
             std::lock_guard<std::mutex> lk(mu);
             if (!buf.empty()) lines.push_back(buf);
             eof = true;
@@ -451,6 +462,32 @@ struct Engine {
     std::FILE* route_trace = nullptr;
     int n_used_ = 10;                     // experts a token routes to in a layer
 
+    // --elastic.  A long prompt's passes need gigabytes of work memory that answering does not, and answering wants
+    // the expert cache, which those passes hardly use.  The context has one of three shapes:
+    //   Answer  passes of up to 16 tokens, and all of the budget in the cache
+    //   Long    --prefill passes, and a token cache that only carries the engine's reads: for a long prompt
+    //   Short   passes of up to --elastic-short tokens beside the whole cache: for a stretch that one such pass reads,
+    //           in memory that is free at that moment (as the read-ahead buffer is), given back after the pass
+    // llama_context_resize changes the shape; the KV cache and the recurrent state stay as they are.
+    // (Answer passes stay below the 32 tokens from which llama.cpp computes a layer the cache does not serve on the GPU,
+    // from copies: the shape's work memory is then the same with and without a cache, and can be measured without one.)
+    enum class Shape { Answer, Short, Long };
+    static constexpr int kAnswerBatch = 16;
+    Shape shape_ = Shape::Answer;
+    bool broken_ = false;                 // a change of shape failed: the context cannot compute
+    uint64_t cache_bulk_bytes_ = 0;
+    uint64_t cache_plan_bytes_ = 0;       // the answering cache as planned at the start: it never grows past this
+    int short_batch_ = 0;                 // the Short shape's passes (0: there is none)
+    double short_work_ = 0.0, short_gpu_ = 0.0;   // what it takes on top of the Answer shape: in all, and on the GPU
+    double answer_work_ = 0.0;            // the Answer shape's work memory (GPU and host)
+    uint64_t long_footprint0_ = 0;        // this process's memory when the Long shape was taken, before its passes
+    uint64_t swapouts_seen_ = 0;          // macOS's count of pages written to swap, at the last look
+    llama_moe_cache_stats stats_gone_{};  // what the caches that were given up had counted
+    std::vector<int32_t> profile_layers_, profile_experts_;   // Strata's expert profile, most used first
+    std::vector<int32_t> kept_layers_, kept_experts_;         // what the answering cache held when it was given up
+    bool verify_cache_ = false;
+    double reshape_ms_ = 0;
+
     std::vector<llama_token> live;        // what the context holds
     std::deque<Checkpoint> checkpoints;   // oldest first
     static constexpr size_t kMaxCheckpoints = 6;
@@ -474,10 +511,10 @@ struct Engine {
         return llama_vocab_is_eog(vocab, t) || std::find(o.eos_ids.begin(), o.eos_ids.end(), (int64_t) t) != o.eos_ids.end();
     }
 
-    llama_context_params ctx_params(uint64_t moe_cache) const {
+    llama_context_params ctx_params(uint64_t moe_cache, int batch = 0) const {
         llama_context_params cp = llama_context_default_params();
         cp.n_ctx = (uint32_t) o.max_context;
-        cp.n_batch = (uint32_t) std::max(32, o.prefill);   // the expert cache serves passes of up to 32 tokens
+        cp.n_batch = (uint32_t) (batch > 0 ? batch : std::max(32, o.prefill));   // the expert cache serves passes of up to 32 tokens
         cp.n_ubatch = cp.n_batch;
         // Normal passes return only the last token's logits. Speculative verification needs every draft's logits.
         // The llama default reserves vocabulary-sized output for every prefill token, even though we never ask for it.
@@ -516,8 +553,190 @@ struct Engine {
         used = tot > fr ? tot - fr : 0;
     }
 
+    // the cache's figures; with --elastic the counters go on over the caches that were given up
+    bool cache_stats(llama_moe_cache_stats& st) const {
+        if (!llama_moe_cache_get_stats(ctx, &st)) return false;
+        st.hits += stats_gone_.hits;
+        st.misses += stats_gone_.misses;
+        st.bytes_uploaded += stats_gone_.bytes_uploaded;
+        st.t_sync_us += stats_gone_.t_sync_us;
+        st.t_fetch_us += stats_gone_.t_fetch_us;
+        st.n_lookups += stats_gone_.n_lookups;
+        st.prefetched += stats_gone_.prefetched;
+        st.prefetch_used += stats_gone_.prefetch_used;
+        st.prefetch_waits += stats_gone_.prefetch_waits;
+        return true;
+    }
+
+    // the engine's side of the expert cache the context has now: its reads, its routing trace, its read-ahead
+    void attach_cache() {
+        llama_moe_cache_set_fetch_callback(ctx, ExpertFetch::callback, &fetch);
+        if (verify_cache_) llama_moe_cache_set_verify_callback(ctx, ExpertFetch::callback_verify, &fetch);
+        llama_moe_cache_set_route_callback(
+            ctx,
+            [](int32_t il, const int32_t* ids, size_t n, void* ud) {
+                Engine* e = static_cast<Engine*>(ud);
+                if (e->route_trace) {
+                    const int32_t h[2] = {il, (int32_t) n};
+                    std::fwrite(h, sizeof(int32_t), 2, e->route_trace);
+                    std::fwrite(ids, sizeof(int32_t), n, e->route_trace);
+                }
+                // the prediction learns from what a one-token pass routed to (router_predict.hpp)
+                if (e->o.prefetch > 0 && e->o.prefetch_learn > 0.0f && n == (size_t) e->n_used_) e->predict.saw(il, ids, n);
+            },
+            this);
+        if (o.prefetch > 0)
+            llama_moe_cache_set_prefetch(
+                ctx,
+                [](int32_t il, const float* x, int64_t ne, int64_t nt, int32_t* l, int32_t* e, size_t cap, void* ud) {
+                    return static_cast<Engine*>(ud)->predict.predict(il, x, ne, nt, l, e, cap);
+                },
+                [](const llama_moe_cache_fill* f, size_t n, bool ahead, void* ud) {
+                    return static_cast<Engine*>(ud)->fetch.fetch_async(f, n, ahead);
+                },
+                [](uint64_t t, int mode, void* ud) { return static_cast<Engine*>(ud)->fetch.fetch_wait(t, mode); },
+                this);
+    }
+
+    static const char* shape_name(Shape x) { return x == Shape::Long ? "long-prompt" : x == Shape::Short ? "short-prompt" : "answering"; }
+
+    // --elastic: is the memory the Short shape adds free now (with 1.5 GiB left over, and within Metal's working set)?
+    bool can_borrow() const {
+        if (short_batch_ <= 0) return false;
+        uint64_t used = 0, ws = 0;
+        gpu_memory(used, ws);
+        return (double) host_memory().available >= short_work_ + 1.5 * kGiB &&
+               (double) used + short_gpu_ <= (double) ws + o.overcommit_gib * kGiB;
+    }
+
+    // which experts the cache holds now
+    void remember_cache() {
+        kept_layers_.clear();
+        kept_experts_.clear();
+        for (int32_t il = 0; il < llama_model_n_layer(model); ++il) {
+            int32_t ne = 0;
+            const int32_t* slots = llama_moe_cache_get_slots(ctx, il, &ne);
+            for (int32_t e = 0; slots != nullptr && e < ne; ++e)
+                if (slots[e] >= 0) {
+                    kept_layers_.push_back(il);
+                    kept_experts_.push_back(e);
+                }
+        }
+    }
+
+    // Reads back into a new cache what the last one held, most used first by the profile (a cache that comes back
+    // smaller keeps the best of it), then the rest of the profile (one that comes back larger is filled up).
+    int64_t refill_cache() {
+        if (!o.preload) return 0;
+        const size_t ne = (size_t) std::max<int64_t>(1, files.n_expert);
+        std::vector<uint8_t> held((size_t) llama_model_n_layer(model) * ne, 0);
+        for (size_t i = 0; i < kept_layers_.size(); ++i) held[(size_t) kept_layers_[i] * ne + (size_t) kept_experts_[i]] = 1;
+        std::vector<int32_t> l, e;
+        const auto take = [&](uint8_t which, uint8_t then) {
+            for (size_t i = 0; i < profile_layers_.size(); ++i) {
+                const size_t k = (size_t) profile_layers_[i] * ne + (size_t) profile_experts_[i];
+                if (profile_layers_[i] < 0 || profile_experts_[i] < 0 || (size_t) profile_experts_[i] >= ne || k >= held.size()) continue;
+                if (held[k] != which) continue;
+                held[k] = then;
+                l.push_back(profile_layers_[i]);
+                e.push_back(profile_experts_[i]);
+            }
+        };
+        take(1, 2);   // held and in the profile
+        for (size_t i = 0; i < kept_layers_.size(); ++i)   // held, and unknown to the profile
+            if (held[(size_t) kept_layers_[i] * ne + (size_t) kept_experts_[i]] == 1) {
+                l.push_back(kept_layers_[i]);
+                e.push_back(kept_experts_[i]);
+            }
+        take(0, 2);   // not held
+        return l.empty() ? 0 : llama_moe_cache_preload(ctx, l.data(), e.data(), l.size());
+    }
+
+    // --elastic, before a request: if macOS has written pages to swap since the last look, the plan was too large for
+    // what the other programs need now.  The cache gives a quarter of itself back (1 GiB at most) and stays at that:
+    // one look per request, so the swapping ends after a request or two instead of going on.
+    // (STRATA_ELASTIC_TEST_BACKOFF: tests, as if macOS had swapped before every request.)
+    bool back_off(std::string& err) {
+        if (!o.elastic || shape_ != Shape::Answer) return true;
+        const uint64_t now = host_memory().swapouts;
+        const bool swapped = now > swapouts_seen_ || std::getenv("STRATA_ELASTIC_TEST_BACKOFF") != nullptr;
+        const uint64_t pages = now > swapouts_seen_ ? now - swapouts_seen_ : 0;
+        swapouts_seen_ = now;
+        const uint64_t floor = std::min<uint64_t>((uint64_t) kGiB, cache_plan_bytes_ / 4);
+        if (!swapped || cache_bytes <= floor) return true;
+        const uint64_t smaller = std::max(floor, cache_bytes - std::min<uint64_t>((uint64_t) kGiB, cache_bytes / 4));
+        pool->drain();
+        llama_moe_cache_stats st{};
+        if (cache_stats(st)) stats_gone_ = st;
+        remember_cache();
+        if (!llama_context_resize(ctx, kAnswerBatch, smaller)) {
+            broken_ = true;
+            err = "the expert cache could not be made smaller";
+            return false;
+        }
+        std::fprintf(stderr, "strata metal: macOS wrote %llu pages to swap since the last request: the expert cache gives memory "
+                             "back, %.2f -> %.2f GiB (a larger --reserve-gib avoids this)\n", (unsigned long long) pages,
+                     (double) cache_bytes / kGiB, (double) smaller / kGiB);
+        cache_bytes = cache_plan_bytes_ = smaller;
+        attach_cache();
+        refill_cache();
+        return true;
+    }
+
+    // --elastic: gives the context another shape.  The cache goes when the Long shape comes; with the Answer shape it
+    // comes back holding the experts it held, read again from the SSD (some GiB: a few seconds).
+    bool reshape(Shape to, std::string& err) {
+        if (!o.elastic || to == shape_) return true;
+        const auto t0 = Clock::now();
+        fetch.end_bulk();   // the read-ahead buffer goes before other memory comes
+        const bool cache_goes = to == Shape::Long, cache_comes = shape_ == Shape::Long;
+        if (cache_goes || cache_comes) {
+            pool->drain();   // reads under way write into the cache that is given up
+            llama_moe_cache_stats st{};
+            if (cache_stats(st)) stats_gone_ = st;
+        }
+        if (cache_goes) remember_cache();
+        if (cache_comes) {
+            // Other programs may have grown into the memory the cache gave up: it comes back only as large as leaves
+            // --reserve-gib free now (and may come back larger the next time, up to the plan).
+            // (what the long passes took is what this process has grown by since the shape was taken)
+            const uint64_t fp = own_footprint();
+            const double gives_back = (double) (fp > long_footprint0_ ? fp - long_footprint0_ : 0) + (double) cache_bulk_bytes_;
+            const double fits = host_memory().usable() + gives_back - answer_work_ - o.reserve_gib * kGiB;
+            const uint64_t floor = (uint64_t) (512 * kMiB);
+            const uint64_t now = std::min(cache_plan_bytes_, (uint64_t) std::max(fits, (double) floor));
+            if (now + (uint64_t) (64 * kMiB) < cache_plan_bytes_)
+                std::fprintf(stderr, "strata metal: less memory is free than at the start: the expert cache comes back with %.2f "
+                                     "GiB of its %.2f\n", (double) now / kGiB, (double) cache_plan_bytes_ / kGiB);
+            cache_bytes = now;
+        }
+        const uint32_t batch = to == Shape::Long ? (uint32_t) o.prefill : to == Shape::Short ? (uint32_t) short_batch_ : (uint32_t) kAnswerBatch;
+        if (!llama_context_resize(ctx, batch, to == Shape::Long ? cache_bulk_bytes_ : cache_bytes)) {
+            broken_ = true;
+            err = std::string("the context could not be given its ") + shape_name(to) +
+                  " shape (is the memory it had taken by other programs now?)";
+            return false;
+        }
+        shape_ = to;
+        int64_t filled = 0;
+        if (cache_goes || cache_comes) attach_cache();
+        if (cache_goes) long_footprint0_ = own_footprint();
+        if (cache_comes) filled = refill_cache();
+        const double ms = ms_since(t0);
+        reshape_ms_ += ms;
+        if (o.verbose) {
+            uint64_t used = 0, ws = 0;
+            gpu_memory(used, ws);
+            std::fprintf(stderr, "strata metal: the context has its %s shape after %.2f s (%lld experts read back): %.1f MiB on "
+                                 "the GPU, %.1f MiB in all\n", shape_name(to), ms / 1000.0, (long long) filled,
+                         (double) used / kMiB, (double) own_footprint() / kMiB);
+        }
+        return true;
+    }
+
     bool load(std::string& err) {
         if (!files.open(o.native, o.expert_io == "direct", err)) return false;
+        fetch.files = &files;
         const uint64_t ram = sysctl_u64("hw.memsize");
         if (o.threads <= 0) o.threads = (int) std::max<uint64_t>(1, sysctl_u64("hw.perflevel0.physicalcpu"));
         if (o.threads <= 0) o.threads = 4;
@@ -669,6 +888,9 @@ struct Engine {
         // its memory.  The context is made twice: once without a cache to see what it takes, then with the cache.
         uint64_t want = 0;
         bool fixed = false;
+        double elastic_total = 0.0, elastic_metal = 0.0;   // --elastic: what the passes' work memory and the cache share
+        double elastic_work = 0.0;                         // ... and the long passes' work memory of it
+        double elastic_answer_gpu = 0.0;                   // the answering shape's work memory on the GPU
         if (o.expert_cache != "auto") {
             const bool mib = o.expert_cache.size() > 3 && o.expert_cache.compare(o.expert_cache.size() - 3, 3, "mib") == 0;
             const double v = std::atof(o.expert_cache.c_str());
@@ -694,7 +916,25 @@ struct Engine {
             // Sample with the context still alive: Metal may release its physical pages later than llama_free.
             const HostMemory hm = host_memory();
             const double ctx_bytes = (double) (used2 - used1);
-            const double by_ram = std::min(before_context.usable() - ctx_bytes, hm.usable()) - o.reserve_gib * kGiB;
+            // The context's compute buffer in host memory (the inputs of a pass: 0.45 GiB for passes of 4,096 tokens)
+            // has no pages yet; the passes of a long prompt touch all of it.
+            size_t ctx_device = 0, ctx_host = 0;
+            llama_get_compute_buffer_sizes(ctx, &ctx_device, &ctx_host);
+            const double by_ram = std::min(before_context.usable() - ctx_bytes, hm.usable()) - (double) ctx_host - o.reserve_gib * kGiB;
+            if (o.elastic && !mtp && o.prefill > 32) {
+                // the other shapes' work memory, measured on this context too: the cache is then allocated once
+                size_t dev = 0, host = 0, sdev = 0, shost = 0;
+                short_batch_ = std::min(o.elastic_short, o.prefill);
+                if (short_batch_ <= 32 || !llama_context_resize(ctx, (uint32_t) short_batch_, 0)) short_batch_ = 0;
+                else llama_get_compute_buffer_sizes(ctx, &sdev, &shost);
+                if (llama_context_resize(ctx, kAnswerBatch, 0)) {
+                    llama_get_compute_buffer_sizes(ctx, &dev, &host);
+                    answer_work_ = (double) dev + (double) host;
+                    short_gpu_ = (double) sdev - (double) dev;
+                    short_work_ = short_gpu_ + (double) shost - (double) host;
+                    elastic_answer_gpu = (double) dev;
+                }
+            }
             if (mtp) mtp->free_context();
             llama_free(ctx);
             ctx = nullptr;
@@ -710,9 +950,27 @@ struct Engine {
                                      "may refuse it)\n",
                              o.expert_cache.c_str(), (double) want / kGiB, room / kGiB);
             want = std::min<uint64_t>(want, files.expert_bytes + (uint64_t) (64 * kMiB));
-            std::fprintf(stderr, "strata metal: context %.2f GiB on the GPU; expert cache %.2f GiB (%s; Metal has room "
-                                 "for %.1f, the free memory for %.1f)\n",
-                         ctx_bytes / kGiB, (double) want / kGiB, fixed ? "as asked" : "auto",
+            if (o.elastic) {
+                // The long-prompt shape: the passes' work memory, a token cache, the read-ahead buffer.  The answering
+                // shape: its own (small) work memory and the cache, which gets what is left of the same total.
+                cache_bulk_bytes_ = (uint64_t) (256 * kMiB);
+                const double staging = o.prefill_ahead ? (double) fetch.staging_bytes(true) : 0.0;
+                const double bulk_need = (double) ctx_device + (double) ctx_host + (double) cache_bulk_bytes_ + staging;
+                elastic_work = (double) ctx_device + (double) ctx_host;
+                elastic_total = room + elastic_work;
+                elastic_metal = by_metal + (double) ctx_device;
+                if (mtp || fixed || o.prefill <= 32 || answer_work_ <= 0.0 || elastic_total < bulk_need) {   // (no room: hardly any memory is free)
+                    std::fprintf(stderr, "strata metal: --elastic is off: %s\n",
+                                 mtp ? "not with the MTP head" : fixed ? "the expert cache has a set size" : o.prefill <= 32
+                                     ? "there are no --prefill passes" : answer_work_ <= 0.0 ? "the context could not change its shape"
+                                     : "the free memory has no room for the long passes");
+                    o.elastic = false;
+                }
+            }
+            std::fprintf(stderr, "strata metal: context %.2f GiB on the GPU (%.2f of it for the passes) and %.2f GiB of host "
+                                 "memory; expert cache %.2f GiB (%s; Metal has room for %.1f, the free memory for %.1f)\n",
+                         ctx_bytes / kGiB, (double) ctx_device / kGiB, (double) ctx_host / kGiB, (double) want / kGiB,
+                         fixed ? "as asked" : "auto",
                          std::max(0.0, by_metal) / kGiB, std::max(0.0, by_ram) / kGiB);
             if (!fixed && by_ram < by_metal - 0.5 * kGiB && (double) files.expert_bytes > room)
                 std::fprintf(stderr, "strata metal: other programs hold %.1f GiB of memory. The expert cache takes only "
@@ -722,8 +980,31 @@ struct Engine {
                              (double) (hm.apps > own_footprint() ? hm.apps - own_footprint() : 0) / kGiB, (std::min(std::max(0.0, by_metal), (double) files.expert_bytes) - std::max(0.0, by_ram)) / kGiB,
                              files.mean_expert_bytes() > 0 ? kGiB / files.mean_expert_bytes() : 0.0);
         }
+        if (elastic_total <= 0.0) o.elastic = false;
         cache_bytes = want;
-        ctx = llama_init_from_model(model, ctx_params(cache_bytes));
+        if (o.elastic) {
+            // A cache that comes back takes gigabytes within a second if it is cleared first; unified memory hands out
+            // zero-filled pages anyway, so it is left to take them as the experts are read back (metal/patches).
+            setenv("LLAMA_MOE_CACHE_NO_CLEAR", "1", 1);
+            // the answering shape: its work memory (64 MiB more than measured, for the cache's own bookkeeping in the
+            // graphs) and the cache, which gets the rest of the total
+            const double margin = 64 * kMiB;
+            double all = std::min(elastic_total - answer_work_ - margin, elastic_metal - elastic_answer_gpu - margin);
+            all = std::min(all, (double) files.expert_bytes + 64 * kMiB);
+            if (o.expert_cache_cap_mib > 0.0) all = std::min(all, o.expert_cache_cap_mib * kMiB);
+            cache_bytes = (uint64_t) std::max(all, (double) want);
+            cache_plan_bytes_ = cache_bytes;
+            ctx = llama_init_from_model(model, ctx_params(cache_bytes, kAnswerBatch));
+            std::fprintf(stderr, "strata metal: --elastic: answers are written with a %.2f GiB expert cache (%.2f GiB of work "
+                                 "memory). A long prompt is read in passes of %d with %.2f GiB of work memory in the cache's "
+                                 "place", (double) cache_bytes / kGiB, answer_work_ / kGiB, o.prefill, elastic_work / kGiB);
+            if (short_batch_ > 0)
+                std::fprintf(stderr, "; up to %d new tokens in one pass beside the cache, where %.2f GiB are free for it",
+                             short_batch_, short_work_ / kGiB);
+            std::fprintf(stderr, "\n");
+        } else {
+            ctx = llama_init_from_model(model, ctx_params(cache_bytes));
+        }
         if (ctx == nullptr && cache_bytes > 0) {
             err = "the expert cache could not be allocated (" + std::to_string(cache_bytes >> 20) +
                   " MiB); a smaller --expert-cache Nmib or a larger --reserve-gib may fit";
@@ -737,7 +1018,6 @@ struct Engine {
         llama_moe_cache_stats st{};
         if (llama_moe_cache_get_stats(ctx, &st)) {
             pool = std::make_unique<ReadPool>(o.io_threads - 1);
-            fetch.files = &files;
             fetch.pool = pool.get();
             // The GPU is kept at its working clock for the whole of a request (gpu_keepalive.hpp).  Measured on the
             // M4 Air, IQ3_S, 75% cache hits, 120 tokens: 2.93 tok/s without it, 4.19 with it during the SSD reads
@@ -751,35 +1031,37 @@ struct Engine {
                 keepalive_always = keepalive && ka == "always";
                 if (keepalive && !keepalive_always) fetch.keepalive = keepalive.get();
             }
-            llama_moe_cache_set_fetch_callback(ctx, ExpertFetch::callback, &fetch);
-            if (std::getenv("STRATA_VERIFY_CACHE")) {
-                llama_moe_cache_set_verify_callback(ctx, ExpertFetch::callback_verify, &fetch);
+            verify_cache_ = std::getenv("STRATA_VERIFY_CACHE") != nullptr;
+            if (verify_cache_)
                 std::fprintf(stderr, "strata metal: STRATA_VERIFY_CACHE: every expert a layer computes from is compared with "
                                      "the model file (slow)\n");
-            }
             // STRATA_ROUTE_TRACE=FILE: every cached pass's routing, as int32 records (layer, n, n expert ids), for
             // metal/tools/cache_sim.py (a few kB per token; nothing of the model is written)
             if (const char* tp = std::getenv("STRATA_ROUTE_TRACE")) route_trace = std::fopen(tp, "wb");
-            llama_moe_cache_set_route_callback(
-                ctx,
-                [](int32_t il, const int32_t* ids, size_t n, void* ud) {
-                    Engine* e = static_cast<Engine*>(ud);
-                    if (e->route_trace) {
-                        const int32_t h[2] = {il, (int32_t) n};
-                        std::fwrite(h, sizeof(int32_t), 2, e->route_trace);
-                        std::fwrite(ids, sizeof(int32_t), n, e->route_trace);
-                    }
-                    // the prediction learns from what a one-token pass routed to (router_predict.hpp)
-                    if (e->o.prefetch > 0 && e->o.prefetch_learn > 0.0f && n == (size_t) e->n_used_) e->predict.saw(il, ids, n);
-                },
-                this);
+            // Prefetch (router_predict.hpp): experts the next layer will probably route to are read while the GPU computes
+            if (o.prefetch > 0) {
+                std::string perr;
+                if (!predict.load(files, perr)) {
+                    std::fprintf(stderr, "strata metal: --prefetch is off: %s\n", perr.c_str());
+                    o.prefetch = 0;
+                } else {
+                    predict.top = o.prefetch;
+                    predict.depth = o.prefetch_depth;
+                    predict.margin = o.prefetch_margin;
+                    predict.learn = o.prefetch_learn;
+                    pool->set_ahead_limit((size_t) std::max(1, o.prefetch_threads));
+                    if (const char* b = std::getenv("STRATA_PREFETCH_BACKLOG")) fetch.max_backlog = (size_t) std::max(0, std::atoi(b));
+                }
+            }
+            attach_cache();
             std::fprintf(stderr, "strata metal: expert cache: %llu of %llu experts (%.0f%%), %.2f GiB; missed experts "
                                  "are read from the SSD by %d threads (%s)\n",
                          (unsigned long long) st.n_slots, (unsigned long long) files.n_pairs,
                          files.n_pairs ? 100.0 * (double) st.n_slots / (double) files.n_pairs : 0.0, (double) st.size / kGiB,
                          o.io_threads, o.expert_io == "direct" ? "past the OS file cache" : "through the OS file cache");
             if (o.preload && !o.profile.empty()) {
-                std::vector<int32_t> pl, pe;
+                std::vector<int32_t>& pl = profile_layers_;
+                std::vector<int32_t>& pe = profile_experts_;
                 std::string perr;
                 if (!read_profile(o.profile, pl, pe, perr)) {
                     std::fprintf(stderr, "strata metal: expert profile: %s; the cache starts empty\n", perr.c_str());
@@ -800,33 +1082,9 @@ struct Engine {
                                  (double) (disk_bytes_read() - d0) / kGiB);
                 }
             }
-            // Prefetch (router_predict.hpp): experts the next layer will probably route to are read while the GPU computes
-            if (o.prefetch > 0) {
-                std::string perr;
-                if (!predict.load(files, perr)) {
-                    std::fprintf(stderr, "strata metal: --prefetch is off: %s\n", perr.c_str());
-                    o.prefetch = 0;
-                } else {
-                    predict.top = o.prefetch;
-                    predict.depth = o.prefetch_depth;
-                    predict.margin = o.prefetch_margin;
-                    predict.learn = o.prefetch_learn;
-                    pool->set_ahead_limit((size_t) std::max(1, o.prefetch_threads));
-                    if (const char* b = std::getenv("STRATA_PREFETCH_BACKLOG")) fetch.max_backlog = (size_t) std::max(0, std::atoi(b));
-                    llama_moe_cache_set_prefetch(
-                        ctx,
-                        [](int32_t il, const float* x, int64_t ne, int64_t nt, int32_t* l, int32_t* e, size_t cap, void* ud) {
-                            return static_cast<Engine*>(ud)->predict.predict(il, x, ne, nt, l, e, cap);
-                        },
-                        [](const llama_moe_cache_fill* f, size_t n, bool ahead, void* ud) {
-                            return static_cast<Engine*>(ud)->fetch.fetch_async(f, n, ahead);
-                        },
-                        [](uint64_t t, int mode, void* ud) { return static_cast<Engine*>(ud)->fetch.fetch_wait(t, mode); },
-                        this);
-                    std::fprintf(stderr, "strata metal: prefetch: the %d experts each layer is predicted to route to are read "
-                                         "%d layer(s) ahead\n", o.prefetch, o.prefetch_depth);
-                }
-            }
+            if (o.prefetch > 0)
+                std::fprintf(stderr, "strata metal: prefetch: the %d experts each layer is predicted to route to are read "
+                                     "%d layer(s) ahead\n", o.prefetch, o.prefetch_depth);
             llama_moe_cache_get_stats(ctx, &cache0);
             // A pass of T tokens can route a layer to 10 T different experts, and a layer whose share of the cache
             // has fewer slots than that is computed without the cache for that pass (on the CPU, over the mapped
@@ -837,6 +1095,7 @@ struct Engine {
             if (st.n_layers < (uint64_t) files.n_layer)
                 std::fprintf(stderr, "strata metal: the expert cache is too small for %d of the %d layers: they are computed "
                                      "on the CPU from the mapped file (slow)\n", files.n_layer - (int) st.n_layers, files.n_layer);
+            if (o.elastic) o.chunk = std::min(o.chunk == 0 ? fit : o.chunk, (int) kAnswerBatch);
             if (o.chunk == 0) o.chunk = fit;
             else if (o.chunk > fit)
                 std::fprintf(stderr, "strata metal: --chunk %d is more than the expert cache serves for every layer (%d): "
@@ -845,8 +1104,10 @@ struct Engine {
                                  "their experts streamed from the SSD)\n", o.chunk, o.prefill > 32 ? o.prefill : o.chunk);
         } else if (files.expert_bytes > 0) {
             std::fprintf(stderr, "strata metal: no expert cache: every routed expert is computed from the mapped file\n");
+            o.elastic = false;
         }
         if (o.chunk == 0) o.chunk = 32;
+        swapouts_seen_ = host_memory().swapouts;
         if (drafting()) spec_batch = llama_batch_init(o.spec + 1, 0, 1);
         if (o.lookup > 0 && o.spec > 0)
             std::fprintf(stderr, "strata metal: lookup: where the last %d tokens stood before in the context, what followed is drafted "
@@ -909,7 +1170,7 @@ struct Engine {
     Mark mark_now() {
         Mark m;
         m.t = Clock::now();
-        llama_moe_cache_get_stats(ctx, &m.st);
+        cache_stats(m.st);
         ggml_backend_metal_get_perf(&m.gp);
         m.disk = disk_bytes_read();
         m.fetch_bytes = fetch.bytes;
@@ -1066,7 +1327,7 @@ struct Engine {
         const Mark m0 = mark_now();
         r.prompt_tokens = n;
         llama_moe_cache_stats s0{}, s1{};
-        const bool cached = llama_moe_cache_get_stats(ctx, &s0);
+        const bool cached = cache_stats(s0);
         const uint64_t disk0 = disk_bytes_read();
         const uint64_t fetched0 = fetch.n_experts, fetch_bytes0 = fetch.bytes;
         const double fetch_ms0 = fetch.ms;
@@ -1077,6 +1338,7 @@ struct Engine {
             ~Busy() { if (k) k->end(); }
         } busy(keepalive_always ? keepalive.get() : nullptr);
         const auto tp = Clock::now();
+        if (!back_off(err)) return false;
         const size_t live0 = live.size();
         int64_t at = resume(ids);
         r.resume = at;
@@ -1107,14 +1369,17 @@ struct Engine {
             ~Bulk() { finish(); }
         } bulk{fetch};
         if (const char* w = std::getenv("STRATA_PREFILL_AHEAD_TENSORS")) o.prefill_ahead_tensors = std::atoi(w);
-        if (o.prefill_ahead && o.prefill > 32 && n - at >= o.prefill_from && pool) {
-            const double free_now = (double) host_memory().available;
+        const auto stage = [&](double spoken_for) {   // spoken_for: memory that is free now and about to be used
+            if (bulk.on || !o.prefill_ahead || !pool) return;
+            const double free_now = (double) host_memory().available - spoken_for;
             if (const char* w = std::getenv("STRATA_PREFILL_AHEAD_FROM")) fetch.ahead_from = std::atof(w);
             fetch.ctx = ctx;
             const bool layer = o.prefill_ahead_tensors >= 3 && free_now >= (double) fetch.staging_bytes(true) + 1.5 * kGiB;
             if (layer || free_now >= (double) fetch.staging_bytes(false) + 1.5 * kGiB) bulk.on = fetch.begin_bulk(layer);
             else std::fprintf(stderr, "strata metal: %.1f GiB of memory are free: this prompt is read without read-ahead\n", free_now / kGiB);
-        }
+        };
+        // (--elastic: the buffer is taken once the context has the shape for long passes)
+        if (!o.elastic && o.prefill > 32 && n - at >= o.prefill_from) stage(0.0);
         for (int64_t mark : marks) {
             while (at < mark) {
                 if (stop.load()) {
@@ -1127,12 +1392,32 @@ struct Engine {
                 // short stretch goes in passes the cache serves.  Nothing in between: a pass of 12-32 tokens that
                 // the cache does not serve would be computed on the CPU.
                 const int64_t rem = mark - at;
-                const int32_t take = (int32_t) (o.prefill > 32 && rem >= o.prefill_from && rem > o.chunk ? std::min<int64_t>(o.prefill, rem)
-                                                                                                 : std::min<int64_t>(o.chunk, rem));
+                const bool long_pass = o.prefill > 32 && rem >= o.prefill_from && rem > o.chunk;
+                int64_t most = o.prefill;
+                if (o.elastic) {
+                    // What one short pass reads is read beside the cache, if the memory for that is free; more takes
+                    // the cache's memory.  The long-prompt shape is kept for as long as long passes follow.
+                    const Shape want = !long_pass ? Shape::Answer
+                                     : shape_ == Shape::Long ? Shape::Long
+                                     : rem <= short_batch_ && (shape_ == Shape::Short || can_borrow()) ? Shape::Short : Shape::Long;
+                    if (want != shape_) {
+                        bulk.finish();
+                        if (!reshape(want, err)) return false;
+                        if (want != Shape::Answer) stage(want == Shape::Short ? short_work_ : 0.0);
+                    }
+                    if (shape_ == Shape::Short) most = short_batch_;
+                }
+                const int32_t take = (int32_t) (long_pass ? std::min<int64_t>(most, rem) : std::min<int64_t>(o.chunk, rem));
                 fetch.more_passes = bulk.on && mark - (at + take) >= o.prefill_from;
                 if (!decode(ids.data() + at, take, err)) return false;
                 live.insert(live.end(), ids.begin() + at, ids.begin() + at + take);
                 at += take;
+                if (o.verbose) {   // where the context's memory grows as it fills (the plan measures an empty one)
+                    uint64_t used = 0, ws = 0;
+                    gpu_memory(used, ws);
+                    std::fprintf(stderr, "strata metal: pass of %d tokens to %lld: %.1f MiB on the GPU, %.1f MiB in all\n", (int) take,
+                                 (long long) at, (double) used / kMiB, (double) own_footprint() / kMiB);
+                }
                 if (ms_since(last_pp) >= 500.0 && at < n) {
                     on_progress(at, n, ms_since(tp));
                     last_pp = Clock::now();
@@ -1146,6 +1431,7 @@ struct Engine {
             llama_synchronize(ctx);
         }
         bulk.finish();   // release prompt staging before decoding an answer or waiting for the next request
+        if (!reshape(Shape::Answer, err)) return false;
         r.prompt_ms = ms_since(tp);
         const Mark m1 = mark_now();
 
@@ -1239,7 +1525,7 @@ struct Engine {
         const Mark m2 = mark_now();
         r.prompt = phase_between(m0, m1);
         r.answer = phase_between(m1, m2);
-        if (cached && llama_moe_cache_get_stats(ctx, &s1)) {
+        if (cached && cache_stats(s1)) {
             r.hits = s1.hits - s0.hits;
             r.lookups = r.hits + (s1.misses - s0.misses);
         }
@@ -1527,11 +1813,12 @@ int serve(Engine& e) {
             r, err);
         if (!ok) {
             // the context is in an unknown state after a failed pass: the next request reads its prompt from the start
-            llama_memory_clear(llama_get_memory(e.ctx), true);
+            if (!e.broken_) llama_memory_clear(llama_get_memory(e.ctx), true);
             e.live.clear();
             e.checkpoints.clear();
             std::printf("ERR %s\n", err.c_str());
             std::fflush(stdout);
+            if (e.broken_) return 1;   // serve/server.py starts the engine again for the next request
             continue;
         }
         // DONE <generated> <prompt> <prompt ms> <decode ms> <finish> <drafts accepted> <offered> <reused> <cache hits>

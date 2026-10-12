@@ -14,8 +14,8 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "tools"))
 from bench import Engine
 
 
-def run(exe, model, env, log, speculative=False):
-    args = ["--native", model, "--max-context", "1024", "--prefill", "256", "--kv", "f16"]
+def run(exe, model, env, log, speculative=False, extra=()):
+    args = ["--native", model, "--max-context", "1024", "--prefill", "256", "--kv", "f16", *extra]
     if speculative:
         args += ["--lookup", "1", "--spec", "3"]
     engine = Engine(exe, args, log, env)
@@ -42,17 +42,20 @@ def main():
     parser.add_argument("--engine", required=True)
     parser.add_argument("--model", required=True)
     args = parser.parse_args()
+    # (env, engine options).  --elastic keeps the passes those of the other variants: only the memory changes shape.
+    # "elastic-long": no short shape, so that every long pass takes the cache's memory and the cache is read back.
     variants = {
-        "default": {"STRATA_METAL_INDEXED_QSA": "0", "STRATA_METAL_QSA_SIMD_SORT": "0"},
-        "indexed": {"STRATA_METAL_INDEXED_QSA": "1", "STRATA_METAL_QSA_SIMD_SORT": "0"},
-        "simd": {"STRATA_METAL_INDEXED_QSA": "1", "STRATA_METAL_QSA_SIMD_SORT": "1"},
+        "default": ({"STRATA_METAL_INDEXED_QSA": "0"}, ()),
+        "indexed": ({"STRATA_METAL_INDEXED_QSA": "1"}, ()),
+        "elastic": ({"STRATA_METAL_INDEXED_QSA": "1"}, ("--elastic", "on")),
+        "elastic-long": ({"STRATA_METAL_INDEXED_QSA": "1"}, ("--elastic", "on", "--elastic-short", "0")),
     }
     with tempfile.TemporaryDirectory(prefix="strata-parity-") as temp:
         for speculative in (False, True):
-            reference = run(args.reference, args.model, variants["default"],
+            reference = run(args.reference, args.model, variants["default"][0],
                             Path(temp) / "reference.log", speculative)
-            for label, env in variants.items():
-                candidate = run(args.engine, args.model, env, Path(temp) / (label + ".log"), speculative)
+            for label, (env, extra) in variants.items():
+                candidate = run(args.engine, args.model, env, Path(temp) / (label + ".log"), speculative, extra)
                 for index, (want, got) in enumerate(zip(reference, candidate)):
                     assert got["ids"] == want["ids"], (label, speculative, index, "token mismatch")
                     # Probe rows contain the fed-token logit and the three largest logits, printed to six decimals.

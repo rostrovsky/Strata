@@ -11,8 +11,8 @@ fine: every check here compares the engine with itself):
 
 What is checked: READY and INFO; the same prompt gives the same ids with the expert cache on, off (llama.cpp's own
 path over the mapped file), with direct reads, with every prompt chunk size, with prefetch and (a long prompt) with
-read-ahead; a prompt asked again and a prompt
-that continues the last one reuse the context (RESUME) and give the ids a fresh engine gives; STOP ends a request;
+read-ahead, and with --elastic (the context changing its shape for the long prompt and back); a prompt asked again
+and a prompt that continues the last one reuse the context (RESUME) and give the ids a fresh engine gives; STOP ends a request;
 bad requests are answered with ERR and the engine goes on.
 """
 from __future__ import annotations
@@ -132,12 +132,15 @@ def main():
     check("a long prompt answers", err is None and len(long_ref) == 10, f"{long_ref} {err}")
 
     for extra in (["--expert-cache", "0"], ["--expert-io", "direct"], ["--chunk", "1"], ["--chunk", "7"],
-                  ["--io-threads", "1"], ["--no-preload"], ["--prefetch", "2"], ["--prefetch", "4", "--prefetch-depth", "2"]):
+                  ["--io-threads", "1"], ["--no-preload"], ["--prefetch", "2"], ["--prefetch", "4", "--prefetch-depth", "2"],
+                  ["--elastic", "on"]):
         x = Engine(a.engine, a.model, *extra)
         got, _, _, err = x.gen(10, PROMPT)
         x.close()
         check(f"{' '.join(extra)}: same ids", got == ref, f"{got} {err}")
-    for extra in (["--prefill-ahead", "on"], ["--prefill-ahead", "on", "--io-threads", "2"], ["--prefetch", "2"]):
+    # (--elastic: the long prompt is read beside the cache; --elastic-short 0: in the cache's place, which is read back)
+    for extra in (["--prefill-ahead", "on"], ["--prefill-ahead", "on", "--io-threads", "2"], ["--prefetch", "2"],
+                  ["--elastic", "on"], ["--elastic", "on", "--elastic-short", "0"]):
         x = Engine(a.engine, a.model, "--prefill", "48", *extra)
         got, _, _, err = x.gen(10, long_prompt)
         again, _, _, _ = x.gen(10, long_prompt.replace("1,", "2,", 1))

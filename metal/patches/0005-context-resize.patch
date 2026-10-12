@@ -1,0 +1,126 @@
+--- a/include/llama.h
++++ b/include/llama.h
+@@ -1205,6 +1205,13 @@
+     // the slot of every expert of layer il in the cache (-1 = not cached), NULL if the cache does not serve the layer
+     LLAMA_API const int32_t * llama_moe_cache_get_slots(const struct llama_context * ctx, int32_t il, int32_t * n_expert);
+ 
++    // Give the context another largest pass (n_batch tokens) and another MoE cache (moe_cache_size bytes, 0: none).
++    // Its compute buffers and the cache are freed first and then made anew: the cache comes back empty and without
++    // its callbacks, unless its size stays the same - then the cache is kept as it is.
++    // The context's memory (KV cache, recurrent state) is not touched.
++    // returns false if the context cannot be resized or the new buffers could not be allocated
++    LLAMA_API bool llama_context_resize(struct llama_context * ctx, uint32_t n_batch, size_t moe_cache_size);
++
+     // the compute buffers the context has reserved, in bytes: on its devices, and in host memory (which the
+     // system only backs with pages as passes touch it)
+     LLAMA_API void llama_get_compute_buffer_sizes(const struct llama_context * ctx, size_t * device, size_t * host);
+--- a/src/llama-context.cpp
++++ b/src/llama-context.cpp
+@@ -495,7 +495,8 @@
+     synchronize();
+ 
+     // when training, ggml_opt allocates extra buffers through the scheduler, so the sizes no longer match the expectation
+-    if (!model.hparams.no_alloc && !opt_ctx) {
++    // (no scheduler: a resize failed)
++    if (!model.hparams.no_alloc && !opt_ctx && sched) {
+         for (size_t i = 0; i < backend_ptrs.size(); ++i) {
+             ggml_backend_t             backend = backend_ptrs[i];
+             ggml_backend_buffer_type_t buft    = backend_buft[i];
+@@ -512,6 +513,51 @@
+         }
+     }
+     ggml_opt_free(opt_ctx);
++}
++
++bool llama_context::resize(uint32_t n_batch, size_t moe_cache_size) {
++    // the memory of a sliding-window model is sized with the ubatch
++    if (model.hparams.vocab_only || n_batch == 0 || model.hparams.swa_type != LLAMA_SWA_TYPE_NONE) {
++        return false;
++    }
++
++    synchronize();
++
++    // a cache that keeps its size keeps its experts and its callbacks
++    const bool keep_cache = moe_cache && moe_cache_size == cparams.moe_cache_size;
++
++    // the old buffers go before the new ones come
++    for (auto & res : gf_res_prev) {
++        res.reset();
++    }
++    gf_res_reserve.reset();
++    gf_res_prev_active = nullptr;
++    sched.reset();
++    if (!keep_cache) {
++        moe_cache.reset();
++    }
++
++    cparams.n_batch        = cparams.causal_attn ? std::min(cparams.n_ctx, n_batch) : n_batch;
++    cparams.n_ubatch       = cparams.n_batch;
++    cparams.moe_cache_size = moe_cache_size;
++
++    // one entry per token of a batch (output_reserve sizes it only once); the last batch's outputs stay readable
++    if (!output_ids.empty() && output_ids.size() < cparams.n_batch) {
++        output_ids.resize(cparams.n_batch, -1);
++    }
++
++    try {
++        if (moe_cache_size > 0 && !keep_cache) {
++            moe_cache = std::make_unique<llama_moe_cache>(model, backend_ptrs, backend_buft, moe_cache_size);
++        }
++        sched_need_reserve = true;
++        sched_reserve();
++    } catch (const std::exception & err) {
++        LLAMA_LOG_ERROR("%s: failed to resize the context: %s\n", __func__, err.what());
++        return false;
++    }
++
++    return true;
+ }
+ 
+ void llama_context::resolve_fused_ops(const llama_memory_context_i * mctx, uint32_t n_seqs) {
+@@ -4164,6 +4210,10 @@
+     return ctx->get_moe_cache() ? ctx->get_moe_cache()->get_slots(il, n_expert) : nullptr;
+ }
+ 
++bool llama_context_resize(llama_context * ctx, uint32_t n_batch, size_t moe_cache_size) {
++    return ctx->resize(n_batch, moe_cache_size);
++}
++
+ void llama_get_compute_buffer_sizes(const llama_context * ctx, size_t * device, size_t * host) {
+     size_t n_device = 0;
+     size_t n_host   = 0;
+--- a/src/llama-context.h
++++ b/src/llama-context.h
+@@ -264,6 +264,9 @@
+ 
+     llama_moe_cache * get_moe_cache() const { return moe_cache.get(); }
+ 
++    // see llama_context_resize
++    bool resize(uint32_t n_batch, size_t moe_cache_size);
++
+ private:
+     llm_graph_result * get_gf_res_prev();
+ 
+--- a/src/llama-moe-cache.cpp
++++ b/src/llama-moe-cache.cpp
+@@ -6,6 +6,7 @@
+ #include "ggml-cpp.h"
+ 
+ #include <algorithm>
++#include <cstdlib>
+ #include <stdexcept>
+ #include <unordered_map>
+ #include <vector>
+@@ -508,7 +509,11 @@
+                 if (!d.buf) {
+                     throw std::runtime_error("failed to allocate the MoE cache buffers");
+                 }
+-                ggml_backend_buffer_clear(d.buf.get(), 0);
++                // LLAMA_MOE_CACHE_NO_CLEAR: for a device that hands out zero-filled pages on first use (Metal on macOS
++                // allocates with vm_allocate). The banks then take their memory as their slots are filled, not at once.
++                if (std::getenv("LLAMA_MOE_CACHE_NO_CLEAR") == nullptr) {
++                    ggml_backend_buffer_clear(d.buf.get(), 0);
++                }
+                 d.buf_size = ggml_backend_buffer_get_size(d.buf.get());
+             }
+             buf_host.reset(ggml_backend_alloc_ctx_tensors_from_buft(ctx_host.get(), buft_host));
