@@ -7,7 +7,8 @@ Six requests in one engine: a long prompt, a short continuation (read through th
 continuation that one short pass reads, the first prompt again (back to a checkpoint), an unrelated prompt.  Run
 with the short shape (`--elastic-short 128`) and without it (`--elastic-short 0`: every long pass takes the cache's
 memory and the cache is read back).  STRATA_ELASTIC_TEST_BACKOFF=1 in the environment makes the cache give memory
-back before every request, as it does when macOS has swapped.
+back before every request, as it does when macOS has swapped; =tight, as it does when macOS has compressed other
+programs' memory and little is free.
 """
 from __future__ import annotations
 
