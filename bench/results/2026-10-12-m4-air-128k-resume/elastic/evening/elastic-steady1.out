@@ -1,0 +1,2 @@
+memory: {'free_gib': 12.92, 'file_cache_gib': 7.95, 'apps_gib': 8.02, 'wired_gib': 2.32, 'swap_used_gib': 1.91, 'pressure_level': 1}
+bin/strata: ready in 9.2 s; context 131072, expert cache 3563 experts (6966 MiB), direct reads

@@ -1,0 +1,7 @@
+memory: {'free_gib': 14.18, 'file_cache_gib': 7.68, 'apps_gib': 7.05, 'wired_gib': 2.29, 'swap_used_gib': 1.91, 'pressure_level': 1}
+bin/strata: ready in 8.2 s; context 131072, expert cache 2039 experts (3992 MiB), direct reads
+  read 4096/8192 tokens in 37.7 s; swap-outs 0
+  read 8189/8192 tokens in 77.8 s; swap-outs 0
+prefill   8192 tokens:   104.4 tok/s, first token after 78.47 s, 90.4 GB from the SSD, 4 passes; 78.5 s = SSD 5.5 + GPU wait 63.2 + CPU 9.7 (GPU busy 64.1; 71.7 GB read ahead, 65.0 used); swap-outs 0, 27.6 W
+  decode at 8192 tokens: 5.59 tok/s, 24 tokens; '<think>\nThe user wants me to summarize a technical document about "Strata" - which appears to be a local L'
+swap-outs over the whole run: 0

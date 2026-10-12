@@ -1,0 +1,21 @@
+strata metal: the context has its long-prompt shape after 0.41 s (0 experts read back): 13274.4 MiB on the GPU, 14962.6 MiB in all, 82.2 MiB of it compressed
+strata metal: pass of 8192 tokens to 8192: 13275.6 MiB on the GPU, 16441.5 MiB in all, 993.2 MiB of it compressed
+strata metal: pass of 8192 tokens to 16384: 13275.6 MiB on the GPU, 16449.5 MiB in all, 1285.0 MiB of it compressed
+strata metal: pass of 8192 tokens to 24576: 13275.6 MiB on the GPU, 16454.6 MiB in all, 1708.3 MiB of it compressed
+strata metal: pass of 8192 tokens to 32768: 13275.6 MiB on the GPU, 16458.1 MiB in all, 1282.0 MiB of it compressed
+strata metal: pass of 8192 tokens to 40960: 13275.6 MiB on the GPU, 16459.4 MiB in all, 1450.4 MiB of it compressed
+strata metal: pass of 8192 tokens to 49152: 13275.6 MiB on the GPU, 16460.7 MiB in all, 1253.8 MiB of it compressed
+strata metal: pass of 8192 tokens to 57344: 13275.6 MiB on the GPU, 16461.5 MiB in all, 1403.9 MiB of it compressed
+strata metal: pass of 8192 tokens to 65536: 13275.6 MiB on the GPU, 16463.7 MiB in all, 1226.0 MiB of it compressed
+strata metal: pass of 8192 tokens to 73728: 13275.6 MiB on the GPU, 16464.9 MiB in all, 1165.2 MiB of it compressed
+strata metal: pass of 8192 tokens to 81920: 13275.6 MiB on the GPU, 16467.2 MiB in all, 1199.9 MiB of it compressed
+strata metal: pass of 8192 tokens to 90112: 13275.6 MiB on the GPU, 16468.5 MiB in all, 1627.5 MiB of it compressed
+strata metal: pass of 8192 tokens to 98304: 13275.6 MiB on the GPU, 16471.3 MiB in all, 1049.1 MiB of it compressed
+strata metal: pass of 8192 tokens to 106496: 13275.6 MiB on the GPU, 16472.8 MiB in all, 1006.1 MiB of it compressed
+strata metal: pass of 8192 tokens to 114688: 13275.6 MiB on the GPU, 16474.7 MiB in all, 1238.6 MiB of it compressed
+strata metal: pass of 8192 tokens to 122880: 13275.6 MiB on the GPU, 16476.0 MiB in all, 1189.0 MiB of it compressed
+strata metal: pass of 8057 tokens to 130937: 13275.6 MiB on the GPU, 16477.2 MiB in all, 971.4 MiB of it compressed
+strata metal: the context has its answering shape after 2.79 s (3730 experts read back): 15505.0 MiB on the GPU, 16071.2 MiB in all, 266.1 MiB of it compressed
+strata metal: pass of 6 tokens to 130943: 15506.9 MiB on the GPU, 16089.1 MiB in all, 140.9 MiB of it compressed
+strata metal: pass of 1 tokens to 130944: 15506.9 MiB on the GPU, 16201.7 MiB in all, 139.9 MiB of it compressed
+strata metal: pass of 1 tokens to 130944: 15506.9 MiB on the GPU, 16201.7 MiB in all, 123.2 MiB of it compressed

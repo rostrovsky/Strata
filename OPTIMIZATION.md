@@ -12,6 +12,43 @@ afternoon's). Sections below that describe the morning are marked where the afte
 
 ## Read this first
 
+**Late evening, 2026-10-12 — read this before the rest.** The largest finding of the day came last, and it changes
+how the sections below should be read:
+
+- **The engine's "direct" SSD reads were not direct.** A `F_NOCACHE` read goes past the OS file cache only if its
+  file offset and its buffer are both multiples of 4,096 bytes. The experts' were not, so about 40 GB per pass of
+  a long prompt went through the file cache (1 GiB of page-ins a second), and macOS made room by compressing the
+  other programs' memory, and at the edge by swapping. Reads are block-aligned now (`metal/src/expert_io.hpp`;
+  `STRATA_ALIGNED_READS=0` gives the old ones). One 8,192-token prompt: page-ins 41.5 -> 1.6 GiB, other programs'
+  memory compressed 16.5 -> 2.6 GiB. Output is bit-identical (real-model exact gate, three paths).
+- **That was what made `--elastic` swap**, and the plain engine too (4 pages in one guarded run with the old
+  reads). With aligned reads `--elastic` ran the test that had swapped three times, an A B B A against the plain
+  engine, and an A B B A of pass sizes: no swap-out in any of them, 7.71 against 6.38 tok/s written (+21%).
+- **Every speed figure below from before this point was measured with the unaligned reads**, on a kernel that was
+  compressing gigabytes a minute beside the engine. The plain engine now reads the 12,288-token prompt at 95.5
+  and 101.7 tok/s where the afternoon's six runs gave 63.7-79.3 (a warmer afternoon; not a controlled pair).
+- **Passes of 8,192 tokens** read a 16,384-token prompt 9% faster than 4,096 (86.0 against 78.9 tok/s) with 44%
+  less read from the SSD. They need `--elastic`: only the Long shape has the memory for them.
+- **The full-context prompt once more**, with aligned reads, `--elastic` and 8,192-token passes: **70.14 tok/s**
+  (31 min 7 s to the first token; 63.68 and 34 min 16 s earlier in the evening), **5.27 tok/s** written at full
+  depth (4.54), five of five records, an identical repeat in 0.25 s, 805 GB read from the SSD instead of 1,400,
+  **zero swap-outs**, pressure level 1, other programs keeping 2.3-4.3 GiB in RAM. That configuration is
+  `pending/desktop-128k-elastic.json`; it is **not installed** (the owner's call; its swap back-off has only run
+  on the tiny model).
+- **Heat is what is left.** In that run the first 8,192 tokens took 72 s (114 tok/s) and every later pass
+  102-142 s; 94% of the time was spent waiting for the GPU. The targets of 120 and 10 tok/s are still far, and
+  on a fanless Air with these programs open nothing measured here points to a way there.
+- Open, in order of likely value: the owner's decision on installing the elastic configuration; the n-gram
+  table's rows, which still go through the file cache (about 0.9 GiB of page-ins per 8,192-token pass);
+  `--prefill 8192` against a reference for near-ties; a long session through the server and pi; whether the
+  measures that keep `--elastic`'s memory level (ballast, touching at once) are still needed with aligned reads.
+- Tools: `metal/tools/swapwatch.py` runs any benchmark under a 5-second watch on the system's swap-out counter
+  and kills the engine the moment it moves. **Use it for every real-model run.** Section 9 of the
+  [report](bench/results/2026-10-12-m4-air-128k-resume/README.md) has the traces and the test programs.
+
+What is installed did not change by hand: the production config is still the plain 128k one of the evening, but
+it points at `build-metal/bin/strata`, which now reads aligned. `--elastic` and `--prefill 8192` are not in it.
+
 The original goal was a usable **131,072-token total context** with the highest prefill and decode throughput this
 machine can sustain while a browser, Ghostty, pi, and other normal desktop apps remain open. The later target was
 **above 120 tok/s prefill and above 10 tok/s generation, without sacrificing quality**.
@@ -265,7 +302,11 @@ F16 KV cache. Skipping it changed the reserved size by 0 MiB.
 
 ### `--elastic` — `metal/patches/0005-context-resize.patch`, `metal/src/main.cpp` (afternoon)
 
-Opt-in, off by default, **experimental, and it swapped on this desktop** (see "Read this first").
+Opt-in, off by default, experimental. **It swapped on this desktop until the reads were aligned** (see "Read this
+first"); the description below is the afternoon's form, and the late evening's changes are in section 9 of the
+report: memory is taken at once on a change to or from the Long shape, the idle part of the cache's memory is
+held, the long passes fall back to half or a quarter of `--prefill` if the whole does not fit, and
+`LLAMA_MOE_CACHE_NO_CLEAR` is gone.
 
 `llama_context_resize(ctx, n_batch, moe_cache_size)` frees the scheduler's compute buffers and the MoE cache and
 makes them anew for another pass size and cache size; a cache whose size does not change is kept with its

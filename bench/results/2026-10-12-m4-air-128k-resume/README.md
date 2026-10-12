@@ -314,3 +314,170 @@ cp ~/.pi/agent/models.json.backup-20261012-165047-32k ~/.pi/agent/models.json
 ```
 
 and start the server again (if `models.json` was edited since, set that one `contextWindow` back by hand instead).
+
+## 9. Later that evening: the engine's "direct" reads were not direct
+
+Asked to go on, the work went back to why `--elastic` swapped. Holding the cache's idle memory across a change of
+shape did not help (32 pages swapped), nor did taking every byte at once so that the engine's memory stayed level
+(360 pages); the swap guard, now `metal/tools/swapwatch.py`, stopped both runs within seconds. A `vm_stat 1` trace
+beside the second one showed what was going on: the engine's wired memory was steady, and **the system was paging
+in about 1 GiB a second for the whole of every long pass**, growing the file cache by 1.6 GiB in four seconds and
+compressing other programs' memory down to 0.5 GiB in RAM to make room.
+
+**Cause.** The engine opens the model with `F_NOCACHE` and calls its reads direct. On this Mac such a read goes
+past the file cache only if its offset in the file *and* its buffer are both multiples of 4,096 bytes (the length
+does not matter). [direct-read-test.txt](aligned-reads/direct-read-test.txt): 256 MiB read in 8 MiB pieces leave
+0 MiB in the file cache when both are aligned, and 224 MiB when either is off by 8, 32 or 512 bytes. Of the
+model's 144 expert tensors, 6 start on a 4,096-byte boundary, and the places they are read to (GPU buffers, the
+read-ahead buffer) are aligned to 32 bytes. So nearly every expert read went through the file cache and most of
+it stayed there: about 40 GB per pass of a long prompt, 1.4 TB for a full context, which macOS then has to evict
+as fast as it arrives.
+
+**Fix** (`metal/src/expert_io.hpp`). Every read is now block-aligned. Where the destination can be laid out to
+match the file (the read-ahead buffer: each tensor now sits as far off a block boundary as it does in its file),
+only the partial blocks at the two ends go through a small aligned buffer and the rest is read in place. Reads
+into GPU memory go through a 2 MiB aligned buffer per reader thread and are copied (the copy the kernel used to
+make from its cache). `STRATA_ALIGNED_READS=0` gives the old reads.
+
+One 8,192-token prompt each, 131,072 context, cache capped at 4,000 MiB, the old reads first
+([reads-old](aligned-reads/reads-old.out), [reads-aligned](aligned-reads/reads-aligned.out), per-second traces
+beside them, summed by [vmsum.py](aligned-reads/vmsum.py) over the seconds the engine was loaded):
+
+| | Old reads | Aligned reads |
+| --- | ---: | ---: |
+| System page-ins | 41.5 GiB (511 MiB/s) | **1.6 GiB** (21 MiB/s) |
+| Other programs' memory compressed meanwhile | 16.5 GiB | **2.6 GiB** |
+| ... and decompressed again | 14.7 GiB | 1.4 GiB |
+| Other programs' memory left in RAM | 1.1-3.0 GiB | 2.8-4.2 GiB |
+| Prompt read | 101.7 tok/s | 104.4 tok/s |
+| Written (24 tokens) | 5.28 tok/s | 5.59 tok/s |
+| Read from the SSD | 94.6 GB | 90.4 GB |
+
+**Output is unchanged.** Against `strata-reference`, as in section 5: identical ids and logits for chat, code and
+the 7,900-token document on the default path, with indexed attention, and with `--elastic`
+([gate2-*.txt](aligned-reads/)); the tiny-model tests pass, among them the protocol suite with
+`STRATA_VERIFY_CACHE=1`, which compares every expert a layer computes from with the file.
+
+**The old reads swapped once more, without `--elastic`.** An A B B A of old against aligned reads was stopped by
+the guard 35 seconds in: the first leg, old reads on the plain engine, wrote 4 pages (64 KiB) to swap in its first
+pass ([watch](aligned-reads/old-reads-swapped-4-pages-watch.txt)). The old reads were not run again, so there is
+no interleaved speed comparison beyond the pair above.
+
+**Speed.** The plain engine with aligned reads, the 12,288-token prompt of section 4, twice, each from below 45 C
+([aligned-plain.out](aligned-reads/aligned-plain.out)): **95.5 and 101.7 tok/s**, the three passes taking 40, 43,
+45 s and 36, 37, 47 s; 6.03 and 5.91 tok/s written (48 tokens, 4.9 and 5.7 GiB of cache); no swap-out. The six
+runs of that prompt in the afternoon, with the old reads, gave 63.7 to 79.3 tok/s with a third pass of 70-93 s.
+The afternoon was warmer (battery sensor 35 C against 33 C), so this is not a controlled comparison; the likely
+link is that a kernel no longer compressing 16 GiB a run leaves the fanless SoC cooler.
+
+### `--elastic` again, with aligned reads
+
+The three evening runs of `--elastic` before the reads were aligned, for the record
+([elastic/evening/](elastic/evening/)): with the cache's idle memory held, 32 pages swapped; a clean run of three
+long prompts (the trace that showed other programs taking freed memory within three seconds); with all memory
+taken at once, 360 pages. In every one the guard killed the engine within five seconds of the first swap-out.
+
+With aligned reads, the same build:
+
+| Run | `--elastic` cache | Swap-outs | |
+| --- | ---: | ---: | --- |
+| Five prompts of 2,000-2,400 tokens (the test that swapped 41 MiB in the afternoon) | 6.58 GiB | **0** | page-ins 0.8 GiB in 153 s; other programs kept 3.2-5.3 GiB in RAM |
+| A B B A against the plain engine, prompts of 64-2,000 tokens, twice each | 7.67, 7.81 GiB | **0** | below |
+
+A B B A, both engines with aligned reads, 131,072 context, 4 GiB reserve, 24 tokens written after each prompt,
+order plain, elastic, elastic, plain, each from below 45 C ([elastic-ab2.json](elastic/evening/elastic-ab2.json)):
+
+| | Plain | `--elastic` |
+| --- | ---: | ---: |
+| Expert cache (two runs) | 4,763 / 5,694 MiB | 7,667 / 7,812 MiB |
+| Writing, mean of 12 requests | 6.38 tok/s | **7.71 tok/s** (+21%) |
+| Per written token | 157 ms = GPU 82 + SSD 66 + CPU 9; 61 misses | 130 ms = GPU 81 + SSD 41 + CPU 8; 41 misses |
+| First token, 64-token prompt | 7.26, 6.61 s | 6.52, 6.62 s |
+| First token, 250 tokens | 9.78, 9.46 s | 8.75, 8.70 s |
+| First token, 1,000 tokens | 13.35, 13.23 s | 13.11, 12.96 s |
+| First token, 2,000 tokens (Long shape) | 20.14, 20.09 s | 24.63, 24.43 s (+4.4 s) |
+| Swap-outs | 0, 0 | **0, 0** |
+
+What `--elastic` is now (it changed during the evening; section 5 describes the afternoon's form): a change to or
+from the Long shape takes its memory at once (the compute buffers and the read-ahead buffer are written to when
+they are made, the read-ahead buffer is wired, the cache is cleared when it is made), and what the long passes do
+not need of the cache's memory is held in an idle buffer, so that the engine's memory is the same in the Long
+shape as in the Answer shape. The gentler allocation of section 5 (`LLAMA_MOE_CACHE_NO_CLEAR`) is gone: it made
+the window in which other programs take the memory longer. Whether these measures matter now that the reads are
+aligned was not tested separately.
+
+Three clean runs are not a proof for every evening's desktop. `--elastic` stays off by default.
+
+### Passes of 8,192 tokens
+
+In the Long shape the cache's memory is free, so passes of 8,192 tokens fit there (3.28 GiB on the GPU and 0.92 GiB
+of host memory, against 2.21 and 0.46 for 4,096); without `--elastic` they would take 1.5 GiB from the cache for
+good. A B B A, `--elastic on`, a 16,384-token prompt, each run from below 45 C
+([pass8k-ab.json](aligned-reads/pass8k-ab.json)):
+
+| Passes of | Prompt read | Read from the SSD | Written after it (24 tokens) | Swap-outs |
+| ---: | ---: | ---: | ---: | ---: |
+| 4,096 | 78.7, 79.1 tok/s | 197 GB | 5.97, 5.43 tok/s | 0, 0 |
+| 8,192 | **87.1, 85.0 tok/s** (+9%) | 110-112 GB | 5.58, 5.26 tok/s | 0, 0 |
+
+Both throttle: the first 8,192 tokens take 70-72 s and the second 113-119 s; with 4,096-token passes the four take
+36-39, 40, 55-62 and 69-71 s. A pass of another size is not bit-identical to two of half the size (the kernels'
+sums are ordered differently), so `--prefill 8192` was not put through the exact gate; it is the same kind of
+change as `--prefill 2048` against 1,024, which this engine has always offered.
+
+### The full-context prompt again: aligned reads, `--elastic`, 8,192-token passes
+
+The 130,944-token prompt of section 8, the same evening, under the guard, from 42 C
+([full-128k-night/](full-128k-night/)):
+
+```sh
+.venv/bin/python metal/tools/swapwatch.py full-128k-elastic8k --out build-metal/resume-128k -- \
+  .venv/bin/python -u metal/tools/bench.py --config strata-iq3_s.json --context 131072 --prefill 130944 \
+    --prefill-new 120 --needle --prefill-repeat --cool 42 --json ... --log ... -- --elastic on --prefill 8192 --verbose
+```
+
+| | Section 8: plain, 4,096, old reads | Now: `--elastic`, 8,192, aligned reads |
+| --- | ---: | ---: |
+| Expert cache while answering | 2,521 experts, 4,933 MiB | 3,730 experts, 7,293 MiB |
+| Prefill | 63.68 tok/s | **70.14 tok/s** |
+| First token after | 2,056.18 s (34 min 16 s) | **1,866.83 s (31 min 7 s)** |
+| Decode at full depth (76 tokens) | 4.54 tok/s | **5.27 tok/s** |
+| Per written token | 220 ms = GPU 130 + SSD 78 + CPU 13; 101 misses | 190 ms = GPU 135 + SSD 45 + CPU 10; 54 misses |
+| Records retrieved | 5/5 | 5/5 |
+| Repeat | 130,943 reused, 0.309 s, same ids | 130,943 reused, 0.251 s, 5.25 tok/s, same ids |
+| Read from the SSD | 1,399.7 GB | 804.8 GB |
+| Time not waiting for the GPU | SSD 52 s + rest 197 s | SSD 22 s + rest 94 s |
+| System page-ins during the run | not traced | 15.7 GiB (9 MiB/s) |
+| Other programs' memory left in RAM | not traced (free memory 0.03-0.07 GiB) | 2.3-4.3 GiB |
+| Swap-outs, whole run | 0 | **0** |
+| Pressure level | 1 | 1 |
+| Power | 18.13 W | 16.95 W |
+
+The cache came back from the Long shape at its planned size, 3,730 experts read back in 2.8 s; no compute-buffer
+warning at exit. Different hours of one evening, not a controlled pair.
+
+**What holds it at 70 tok/s is heat.** The first pass of 8,192 tokens took 72 s (114 tok/s). The second took
+102 s, the third to the fourteenth 112-124 s, the last two 130 and 142 s. 1,751 of the 1,867 seconds were spent
+waiting for the GPU. A cool Air reads this model at 114 tok/s; the fanless one settles at 58-70.
+
+### State at the end of the night
+
+- `build-metal/bin/strata` is the current source: aligned reads on by default, `--elastic` (off by default) with
+  its long passes falling back to half and a quarter of `--prefill` when the memory has no room for the whole
+  (the first attempt at the run above started with `--elastic` switched off for that reason and a 1.4 GiB cache;
+  it was stopped after one pass).
+- The production config is unchanged since section 8 (plain, 4,096-token passes, no `--elastic`); through the
+  binary it now reads aligned.
+- [pending/desktop-128k-elastic.json](pending/desktop-128k-elastic.json) is the configuration of the run above
+  (`--elastic on --prefill 8192 --reserve-gib 4`). It has had one full-context run and nine shorter ones
+  with aligned reads without a swap-out. It was not installed: whether to run the newer mode on the daily desktop
+  is the owner's call. Its swap back-off has still only run on the tiny model.
+- Swap written this evening by the experiments before the reads were aligned: 396 pages (6.2 MiB).
+- Tests on this binary (SHA-256 `2f29cc14...`): [tests-night/](tests-night/) - kernel tests 28/28 and 533/533,
+  parity (default, indexed, elastic, elastic-long), the shape test and its back-off variant, the protocol suite on
+  both attention paths, with `STRATA_VERIFY_CACHE=1`, and with `STRATA_ALIGNED_READS=0`; the real-model exact gate
+  with `--elastic` ([gate3-final-elastic.txt](aligned-reads/gate3-final-elastic.txt)). The five patch files were
+  applied to a clean checkout of the pin once more and give the build tree byte for byte.
+- Not done: `--prefill 8192` against a reference for near-ties; a long session through the HTTP server or pi;
+  the n-gram table's rows, which are still read through the file cache (113 KiB per distinct token; the 15.7 GiB
+  of page-ins above are probably mostly these, 0.9 GiB a pass).

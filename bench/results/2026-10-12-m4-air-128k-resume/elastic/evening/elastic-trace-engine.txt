@@ -1,0 +1,19 @@
+strata metal: memory now: 22.2 GiB free or file cache, 7.5 GiB held by other programs, 2.4 GiB wired, 1.9 GiB in swap
+strata metal: context 6.02 GiB on the GPU (2.16 of it for the passes) and 0.45 GiB of host memory; expert cache 5.31 GiB (auto; Metal has room for 11.2, the free memory for 5.3)
+strata metal: --elastic: answers are written with a 7.58 GiB expert cache (0.27 GiB of work memory). A long prompt is read in passes of 4096 with 2.61 GiB of work memory in the cache's place; up to 1024 new tokens in one pass beside the cache, where 0.94 GiB are free for it
+strata metal: expert cache: 3967 of 24576 experts (16%), 7.57 GiB; missed experts are read from the SSD by 8 threads (past the OS file cache)
+strata metal: the context has its long-prompt shape after 0.38 s (0 experts read back): 14191.8 MiB on the GPU, 12294.2 MiB in all, 148.5 MiB of it compressed
+strata metal: pass of 1997 tokens to 1997: 14193.0 MiB on the GPU, 14381.8 MiB in all, 661.8 MiB of it compressed
+strata metal: the context has its answering shape after 2.25 s (3853 experts read back): 15744.9 MiB on the GPU, 15953.9 MiB in all, 229.6 MiB of it compressed
+strata metal: pass of 2 tokens to 1999: 15746.9 MiB on the GPU, 15971.9 MiB in all, 108.7 MiB of it compressed
+strata metal: pass of 1 tokens to 2000: 15746.9 MiB on the GPU, 16084.7 MiB in all, 108.2 MiB of it compressed
+strata metal: the context has its long-prompt shape after 0.35 s (0 experts read back): 13968.7 MiB on the GPU, 12117.2 MiB in all, 92.0 MiB of it compressed
+strata metal: pass of 2097 tokens to 2097: 13969.6 MiB on the GPU, 14092.8 MiB in all, 711.2 MiB of it compressed
+strata metal: the context has its answering shape after 2.34 s (3967 experts read back): 15968.2 MiB on the GPU, 16188.3 MiB in all, 249.4 MiB of it compressed
+strata metal: pass of 2 tokens to 2099: 15969.1 MiB on the GPU, 16205.3 MiB in all, 128.1 MiB of it compressed
+strata metal: pass of 1 tokens to 2100: 15969.1 MiB on the GPU, 16317.9 MiB in all, 128.1 MiB of it compressed
+strata metal: the context has its long-prompt shape after 0.38 s (0 experts read back): 14193.1 MiB on the GPU, 12345.3 MiB in all, 116.0 MiB of it compressed
+strata metal: pass of 2197 tokens to 2197: 14194.0 MiB on the GPU, 14326.3 MiB in all, 669.2 MiB of it compressed
+strata metal: the context has its answering shape after 2.36 s (3967 experts read back): 15968.2 MiB on the GPU, 16192.6 MiB in all, 257.5 MiB of it compressed
+strata metal: pass of 2 tokens to 2199: 15969.1 MiB on the GPU, 16197.6 MiB in all, 116.5 MiB of it compressed
+strata metal: pass of 1 tokens to 2200: 15969.1 MiB on the GPU, 16309.1 MiB in all, 125.0 MiB of it compressed

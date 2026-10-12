@@ -1,18 +1,22 @@
 # Candidates
 
-Both files are the production `strata-iq3_s.json` of 2026-10-12 with the 128k settings added.
+`desktop-128k.json` was installed on the evening of 2026-10-12 (section 8 of the report): it is the production
+`strata-iq3_s.json` now. `desktop-128k-elastic.json` is not installed.
 
-**`desktop-128k.json` was installed on the evening of 2026-10-12**, after a full 130,944-token prompt ran with it
-without a swap-out; pi's `qwen-local` provider has a 131,072-token context since then. See section 8 of
-[the report](../README.md) for the run, the checks and how to go back. `desktop-128k-elastic.json` is not in use.
-The table below is the afternoon's.
-
-| File | Adds | Status |
+| File | Settings | Status |
 | --- | --- | --- |
-| `desktop-128k.json` | `--max-context 131072 --kv f16 --prefill 4096 --reserve-gib 4`, `STRATA_METAL_INDEXED_QSA=1`, the alias pi asks for | Prompts up to 16,200 tokens ran with this build and these settings without a swap-out. A full 131,072-token prompt was last read by the morning's build, whose plan was 0.89 GiB less careful, and swapped 61.7 MiB. Not repeated with the new plan |
-| `desktop-128k-elastic.json` | the same with `--elastic on` and `--reserve-gib 6` | Experimental. `--elastic` swapped at `--reserve-gib 4` (see the report). 6 is a guess: it was not run |
+| `desktop-128k.json` | `--max-context 131072 --kv f16 --prefill 4096 --reserve-gib 4`, `STRATA_METAL_INDEXED_QSA=1`, the alias pi asks for | Installed. A full 130,944-token prompt ran with it without a swap-out (with the old, unaligned reads: 63.7 tok/s read, 4.54 written). The engine it points at reads aligned since later that evening |
+| `desktop-128k-elastic.json` | the production file with `--prefill 8192` and `--elastic on` | Not installed. With aligned reads: one full-context run (70.1 tok/s read, 5.27 written, no swap-out) and nine shorter runs without a swap-out. Before the reads were aligned `--elastic` swapped in five runs. Its swap back-off has only run on the tiny model |
 
-To try one: stop the server, copy the file over `strata-iq3_s.json` (keep the old one), start `run-iq3_s.sh`, and
-watch `vm_stat | grep Swapouts` before and after. For pi, `contextWindow` of the `qwen-local` model in
-`~/.pi/agent/models.json` goes to 131072; `pi-smoke.txt` and the smoke command are in
-[OPTIMIZATION.md](../../../../OPTIMIZATION.md).
+To switch: stop the server, then
+
+```sh
+cd /Users/rafal/Projects/strata-air/Strata
+cp strata-iq3_s.json strata-iq3_s.json.before-elastic
+cp bench/results/2026-10-12-m4-air-128k-resume/pending/desktop-128k-elastic.json strata-iq3_s.json
+./run-iq3_s.sh
+```
+
+and watch it for a while with `vm_stat | grep Swapouts` before and after a session (the counter should not move).
+To go back, copy `strata-iq3_s.json.before-elastic` over it. pi needs no change (its `contextWindow` is already
+131072).

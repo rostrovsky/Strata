@@ -1,0 +1,14 @@
+memory: {'free_gib': 15.45, 'file_cache_gib': 5.02, 'apps_gib': 8.2, 'wired_gib': 2.53, 'swap_used_gib': 1.9, 'pressure_level': 1}
+bin/strata: ready in 7.5 s; context 131072, expert cache 3442 experts (6731 MiB), direct reads
+prefill   2000 tokens:    82.0 tok/s, first token after 24.40 s, 60.5 GB from the SSD, 3 passes; 24.4 s = SSD 8.6 + GPU wait 14.2 + CPU 1.6 (GPU busy 15.8; 35.6 GB read ahead, 31.3 used); swap-outs 0, 9.7 W
+  decode at 2000 tokens: 6.38 tok/s, 24 tokens; '<think>\nThe user wants me to summarize a technical document about "Strata" - which appears to be a local L'
+prefill   2100 tokens:    88.0 tok/s, first token after 23.87 s, 56.3 GB from the SSD, 3 passes; 23.9 s = SSD 7.8 + GPU wait 15.0 + CPU 1.0 (GPU busy 16.2; 39.3 GB read ahead, 35.8 used); swap-outs 0
+  decode at 2100 tokens: 7.47 tok/s, 24 tokens; '<think>\nThe user wants me to summarize a document that appears to be a benchmark/performance report for a software called "'
+prefill   2200 tokens:    88.5 tok/s, first token after 24.87 s, 55.0 GB from the SSD, 3 passes; 24.9 s = SSD 7.4 + GPU wait 16.3 + CPU 1.1 (GPU busy 17.8; 39.2 GB read ahead, 35.6 used); swap-outs 0, 29.7 W
+  decode at 2200 tokens: 7.63 tok/s, 24 tokens; '<think>\nThe user wants me to summarize a technical document about what appears to be a local LLM inference engine (likely'
+prefill   2300 tokens:    84.6 tok/s, first token after 27.19 s, 55.1 GB from the SSD, 3 passes; 27.2 s = SSD 6.7 + GPU wait 19.4 + CPU 1.1 (GPU busy 20.6; 38.6 GB read ahead, 35.9 used); swap-outs 0
+  decode at 2300 tokens: 7.36 tok/s, 24 tokens; '<think>\nThe user wants me to summarize a technical document about what appears to be a llama.cpp-based inference engine (likely'
+  read 2397/2400 tokens in 35.9 s; swap-outs 0
+prefill   2400 tokens:    61.4 tok/s, first token after 39.09 s, 55.7 GB from the SSD, 3 passes; 39.1 s = SSD 4.3 + GPU wait 32.8 + CPU 2.0 (GPU busy 33.4; 39.2 GB read ahead, 35.8 used); swap-outs 0, 24.5 W
+  decode at 2400 tokens: 5.19 tok/s, 24 tokens; '<think>\nThe user wants me to summarize a technical document about a software system (appears to be a llama.cpp-based'
+swap-outs over the whole run: 0

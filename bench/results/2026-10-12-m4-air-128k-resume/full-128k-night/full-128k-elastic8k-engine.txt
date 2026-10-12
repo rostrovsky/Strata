@@ -1,0 +1,30 @@
+strata metal: Apple M4, 32.0 GiB of unified memory, Metal's working set 21.3 GiB
+strata metal: model: 2 shard(s), 4.2 GiB dense, 46.8 GiB of routed experts (48 layers x 512, 1.95 MiB each on average), 26.8 GiB n-gram table
+strata metal: memory now: 21.4 GiB free or file cache, 8.0 GiB held by other programs, 2.4 GiB wired, 1.9 GiB in swap
+strata metal: loading the dense weights: 10%
+strata metal: loading the dense weights: 20%
+strata metal: loading the dense weights: 30%
+strata metal: loading the dense weights: 40%
+strata metal: loading the dense weights: 50%
+strata metal: loading the dense weights: 60%
+strata metal: loading the dense weights: 100%
+strata metal: weights loaded in 1.3 s, 3.89 GiB on the GPU
+~llama_context:       MTL0 compute buffer size is 275.0112 MiB, matches expectation of 275.0112 MiB
+~llama_context:        CPU compute buffer size is   6.1127 MiB, matches expectation of   6.1127 MiB
+~llama_context:        CPU compute buffer size is   0.0000 MiB, matches expectation of   0.0000 MiB
+strata metal: context 7.06 GiB on the GPU (3.20 of it for the passes) and 0.89 GiB of host memory; expert cache 3.37 GiB (auto; Metal has room for 10.1, the free memory for 3.4)
+strata metal: other programs hold 4.3 GiB of memory. The expert cache takes only what is free, so that macOS does not have to swap them out; with programs closed before the start it can be up to 6.8 GiB larger (every GiB holds ~525 more experts)
+strata metal: --elastic: answers are written with a 7.13 GiB expert cache (0.27 GiB of work memory). A long prompt is read in passes of 8192 with 4.10 GiB of work memory in the cache's place; up to 1024 new tokens in one pass beside the cache, where 0.94 GiB are free for it
+strata metal: expert cache: 3730 of 24576 experts (15%), 7.12 GiB; missed experts are read from the SSD by 8 threads (past the OS file cache)
+strata metal: expert cache filled with the profile's 3730 most used experts in 2.3 s (7.11 GiB, 3.09 GiB/s; 7.16 GiB came from the SSD)
+strata metal: prefetch: the 10 experts each layer is predicted to route to are read 1 layer(s) ahead
+strata metal: prompts are read 7 tokens per pass (more than 32 new tokens: 8192 per pass, their experts streamed from the SSD)
+strata metal: the context has its long-prompt shape after 0.41 s (0 experts read back): 13274.4 MiB on the GPU, 14962.6 MiB in all, 82.2 MiB of it compressed
+strata metal: conversation checkpoint at 130937 tokens, 112.6 MiB
+strata metal: the context has its answering shape after 2.79 s (3730 experts read back): 15505.0 MiB on the GPU, 16071.2 MiB in all, 266.1 MiB of it compressed
+strata metal: conversation checkpoint at 130943 tokens, 112.6 MiB
+strata serve: prompt 130944 (0 reused, 130944 read in 1866.81 s), 76 tokens in 14.24 s (5.27 tok/s), stop; expert cache 87.9% hits, 4565 fetched in 25.27 s, 804813.8 MB from the SSD
+strata serve: prompt 130944 (130943 reused, 1 read in 0.25 s), 76 tokens in 14.28 s (5.25 tok/s), stop; expert cache 89.2% hits, 3949 fetched in 3.10 s, 14191.9 MB from the SSD
+~llama_context:       MTL0 compute buffer size is 275.3547 MiB, matches expectation of 275.3547 MiB
+~llama_context:        CPU compute buffer size is   4.7552 MiB, matches expectation of   4.7552 MiB
+~llama_context:        CPU compute buffer size is   0.0000 MiB, matches expectation of   0.0000 MiB

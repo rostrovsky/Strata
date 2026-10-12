@@ -1,0 +1,204 @@
+{
+ "when": "2026-10-12 17:41",
+ "args": [
+  "--native",
+  "/Users/rafal/Projects/strata-air/Strata-data/models/IQ3_S/Qwen3.8-Flash-Next-GSQ-RCO-IQ3_S-00001-of-00002.gguf",
+  "--expert-profile",
+  "/Users/rafal/Projects/strata-air/Strata/data/expert-profile.bin",
+  "--expert-cache",
+  "auto",
+  "--max-context",
+  "131072",
+  "--kv",
+  "f16",
+  "--prefill",
+  "4096",
+  "--reserve-gib",
+  "4",
+  "--kv",
+  "f16",
+  "--prefill",
+  "4096",
+  "--reserve-gib",
+  "4",
+  "--elastic",
+  "on",
+  "--verbose"
+ ],
+ "memory_before": {
+  "free_gib": 9.31,
+  "file_cache_gib": 12.07,
+  "apps_gib": 7.44,
+  "wired_gib": 2.38,
+  "swap_used_gib": 1.91,
+  "pressure_level": 1
+ },
+ "info": {
+  "context": "131072",
+  "kv": "f16",
+  "kv_resident": "0",
+  "expert_slots": "3967",
+  "expert_cache_mib": "7755",
+  "expert_slots_primary": "3967",
+  "expert_cache_primary_mib": "7755",
+  "spec": "0",
+  "mtp_max": "0",
+  "lookup": "0",
+  "prefetch": "10",
+  "vram_free_mib": "5878",
+  "arena_mib": "0",
+  "pool_workers": "8",
+  "backend": "metal",
+  "expert_io": "direct",
+  "engine": "0.1.42-metal"
+ },
+ "prefill": {
+  "2000": {
+   "tokens": 2000,
+   "tps": 77.55755740228717,
+   "ttft_s": 25.788172006607056,
+   "ssd_gb": 54.7772,
+   "swapouts": 0,
+   "gpu_wait_s": 14.3378,
+   "ssd_s": 8.472,
+   "gpu_busy_s": 15.5587,
+   "wall_s": 25.7873,
+   "passes": 3.0,
+   "read_ahead_gb": 35.6157,
+   "read_ahead_used_gb": 31.278599999999997,
+   "watts": 16.70671186440678,
+   "decode_tps": 6.889640486032819,
+   "generated": 12,
+   "output": "<think>\nThe user wants me to summarize a technical document about",
+   "progress": [
+    {
+     "tokens": 1997,
+     "total": 2000,
+     "elapsed_s": 22.772
+    },
+    {
+     "tokens": 1999,
+     "total": 2000,
+     "elapsed_s": 25.569
+    }
+   ],
+   "decode_per_token": {
+    "total_ms": 145.14545454545453,
+    "gpu_wait_ms": 91.58181818181818,
+    "ssd_ms": 42.25454545454546,
+    "cpu_ms": 11.309090909090902,
+    "encode_ms": 4.036363636363636,
+    "gpu_busy_ms": 85.49090909090908,
+    "sample_ms": 0.19090909090909092,
+    "misses": 45.63636363636363,
+    "ssd_mb": 315.9818181818182,
+    "waits": 49.0,
+    "ahead": 108.81818181818181,
+    "ahead_used": 70.72727272727273,
+    "ahead_waits": 13.636363636363637,
+    "predict_ms": 4.236363636363636
+   }
+  },
+  "2100": {
+   "tokens": 2100,
+   "tps": 81.02383258161223,
+   "ttft_s": 25.91916012763977,
+   "ssd_gb": 50.588300000000004,
+   "swapouts": 0,
+   "gpu_wait_s": 15.1679,
+   "ssd_s": 7.827,
+   "gpu_busy_s": 16.2181,
+   "wall_s": 25.9183,
+   "passes": 3.0,
+   "read_ahead_gb": 39.2857,
+   "read_ahead_used_gb": 35.839400000000005,
+   "watts": null,
+   "decode_tps": 9.670329670329672,
+   "generated": 12,
+   "output": "<think>\nThe user wants me to summarize a document that appears",
+   "progress": [
+    {
+     "tokens": 2097,
+     "total": 2100,
+     "elapsed_s": 23.2
+    },
+    {
+     "tokens": 2099,
+     "total": 2100,
+     "elapsed_s": 25.809
+    }
+   ],
+   "decode_per_token": {
+    "total_ms": 103.4090909090909,
+    "gpu_wait_ms": 82.76363636363637,
+    "ssd_ms": 10.427272727272728,
+    "cpu_ms": 10.21818181818182,
+    "encode_ms": 3.5090909090909093,
+    "gpu_busy_ms": 78.05454545454546,
+    "sample_ms": 0.2,
+    "misses": 13.272727272727273,
+    "ssd_mb": 77.16363636363636,
+    "waits": 49.0,
+    "ahead": 24.363636363636363,
+    "ahead_used": 9.0,
+    "ahead_waits": 1.0909090909090908,
+    "predict_ms": 4.027272727272727
+   }
+  },
+  "2200": {
+   "tokens": 2200,
+   "tps": 81.0665408907002,
+   "ttft_s": 27.139035940170288,
+   "ssd_gb": 50.271300000000004,
+   "swapouts": 0,
+   "gpu_wait_s": 16.1007,
+   "ssd_s": 7.5108999999999995,
+   "gpu_busy_s": 16.990299999999998,
+   "wall_s": 27.1382,
+   "passes": 3.0,
+   "read_ahead_gb": 39.156400000000005,
+   "read_ahead_used_gb": 35.569300000000005,
+   "watts": 29.521416666666667,
+   "decode_tps": 9.450983761491536,
+   "generated": 12,
+   "output": "<think>\nThe user wants me to summarize a technical document about",
+   "progress": [
+    {
+     "tokens": 2197,
+     "total": 2200,
+     "elapsed_s": 24.39
+    },
+    {
+     "tokens": 2199,
+     "total": 2200,
+     "elapsed_s": 27.011
+    }
+   ],
+   "decode_per_token": {
+    "total_ms": 105.80909090909091,
+    "gpu_wait_ms": 82.35454545454546,
+    "ssd_ms": 12.69090909090909,
+    "cpu_ms": 10.763636363636374,
+    "encode_ms": 3.627272727272727,
+    "gpu_busy_ms": 76.78181818181818,
+    "sample_ms": 0.2,
+    "misses": 15.0,
+    "ssd_mb": 91.17272727272727,
+    "waits": 49.0,
+    "ahead": 28.727272727272727,
+    "ahead_used": 17.818181818181817,
+    "ahead_waits": 2.1818181818181817,
+    "predict_ms": 4.081818181818182
+   }
+  }
+ },
+ "swapouts": 0,
+ "memory_after": {
+  "free_gib": 16.17,
+  "file_cache_gib": 6.91,
+  "apps_gib": 6.0,
+  "wired_gib": 2.13,
+  "swap_used_gib": 1.91,
+  "pressure_level": 1
+ }
+}

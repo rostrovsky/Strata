@@ -1,0 +1,5 @@
+18:55:46 BASELINE swapouts 1586587, swap used 1949.88 MiB, pressure 1, free 15.65 + file cache 5.01 GiB, compressor 10.2 in 3.73 GiB, SoC 48.3 C, battery 33.5 C
+18:55:46 STARTED pid 48634: .venv/bin/python -u metal/tools/bench.py --config strata-iq3_s.json --json build-metal/resume-128k/elastic-aligned1.json --log build-metal/resume-128k/elastic-aligned1.log --context 131072 --prefill 2
+18:55:51 ok +5 s: swap-outs new 0, pressure 1, free 0.04 + file 7.5 GiB, compressor 10.19 in 3.71 GiB, SoC 50.9 C | memory: {'free_gib': 15.45, 'file_cache_gib': 5.02, 'apps_gib': 8.2, 'wired_gib': 2.53, 'swap_used_gib': 1.9, 'pressure_level': 1}
+18:57:52 ok +126 s: swap-outs new 0, pressure 1, free 0.17 + file 6.03 GiB, compressor 11.04 in 4.04 GiB, SoC 71.9 C | decode at 2300 tokens: 7.36 tok/s, 24 tokens; '<think>\nThe user wants me to summarize a technical document about what appears to be a llama.cpp-based
+18:59:35 DONE exit code 0, new swap-outs over the whole run 0 pages, swap used 1949.88 MiB (was 1949.88), peak pressure level 1, engine still running: [], stopped: False

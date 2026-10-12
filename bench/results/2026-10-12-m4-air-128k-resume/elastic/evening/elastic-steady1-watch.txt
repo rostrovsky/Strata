@@ -1,0 +1,5 @@
+17:48:50 BASELINE swapouts 1586223, swap used 1952.19 MiB, pressure 1, free 13.09 + file cache 7.94 GiB, compressor 10.87 in 3.85 GiB, SoC 46.4 C, battery 29.6 C
+17:48:50 STARTED pid 46042: .venv/bin/python -u metal/tools/bench.py --config strata-iq3_s.json --context 131072 --prefill 2000,2100,2200 --prefill-new 12 --json build-metal/resume-128k/elastic-steady1.json --log build-metal/res
+17:48:55 ok +5 s: swap-outs new 0, pressure 1, free 5.66 + file 11.12 GiB, compressor 10.87 in 3.85 GiB, SoC 47.1 C | memory: {'free_gib': 12.92, 'file_cache_gib': 7.95, 'apps_gib': 8.02, 'wired_gib': 2.32, 'swap_used_gib': 1.91, 'pressure_level': 1}
+17:49:13 SWAP MOVED: 360 pages (5.62 MiB) at 20 s; killed the command and engine [46048]; last console line: bin/strata: ready in 9.2 s; context 131072, expert cache 3563 experts (6966 MiB), direct reads
+17:50:16 DONE exit code -15, new swap-outs over the whole run 360 pages, swap used 1957.81 MiB (was 1952.19), peak pressure level 1, engine still running: [], stopped: True

@@ -1,0 +1,33 @@
+memory: {'free_gib': 15.39, 'file_cache_gib': 5.24, 'apps_gib': 8.12, 'wired_gib': 2.45, 'swap_used_gib': 1.9, 'pressure_level': 1}
+temperature before the run: SoC 43.5 C, battery 34.1 C
+bin/strata: ready in 5.9 s; context 131072, expert cache 3449 experts (6744 MiB), direct reads
+  read 4096/16384 tokens in 38.7 s; swap-outs 0
+  read 8192/16384 tokens in 78.6 s; swap-outs 0
+  read 12288/16384 tokens in 133.5 s; swap-outs 0
+  read 16381/16384 tokens in 204.8 s; swap-outs 0
+prefill  16384 tokens:    78.7 tok/s, first token after 208.08 s, 197.3 GB from the SSD, 6 passes; 208.1 s = SSD 11.8 + GPU wait 183.7 + CPU 12.6 (GPU busy 186.8; 162.7 GB read ahead, 151.7 used); swap-outs 0, 20.9 W
+  decode at 16384 tokens: 5.97 tok/s, 24 tokens; '<think>\nThe user wants me to summarize a lengthy technical document about "Strata" - a local LLM inference engine'
+temperature before the run: SoC 44.4 C, battery 34.5 C
+bin/strata: ready in 6.3 s; context 131072, expert cache 3700 experts (7234 MiB), direct reads
+  read 8192/16384 tokens in 71.8 s; swap-outs 0
+  read 16381/16384 tokens in 184.7 s; swap-outs 0
+prefill  16384 tokens:    87.1 tok/s, first token after 188.21 s, 110.3 GB from the SSD, 4 passes; 188.2 s = SSD 6.6 + GPU wait 180.0 + CPU 1.7 (GPU busy 180.9; 84.1 GB read ahead, 79.6 used); swap-outs 0, 22.2 W
+  decode at 16384 tokens: 5.58 tok/s, 24 tokens; '<think>\nThe user wants me to summarize a lengthy technical document about "Strata" - a local LLM inference engine'
+temperature before the run: SoC 44.7 C, battery 34.9 C
+bin/strata: ready in 7.2 s; context 131072, expert cache 3796 experts (7422 MiB), direct reads
+  read 8192/16384 tokens in 70.1 s; swap-outs 0
+  read 16381/16384 tokens in 189.1 s; swap-outs 0
+prefill  16384 tokens:    85.0 tok/s, first token after 192.70 s, 111.8 GB from the SSD, 4 passes; 192.7 s = SSD 6.6 + GPU wait 176.5 + CPU 9.6 (GPU busy 177.2; 84.1 GB read ahead, 79.6 used); swap-outs 0, 21.2 W
+  decode at 16384 tokens: 5.26 tok/s, 24 tokens; '<think>\nThe user wants me to summarize a lengthy technical document about "Strata" - a local LLM inference engine'
+temperature before the run: SoC 45.0 C, battery 35.1 C
+bin/strata: ready in 7.0 s; context 131072, expert cache 4121 experts (8056 MiB), direct reads
+  read 4096/16384 tokens in 35.7 s; swap-outs 0
+  read 8192/16384 tokens in 76.3 s; swap-outs 0
+  read 12288/16384 tokens in 137.9 s; swap-outs 0
+  read 16381/16384 tokens in 203.3 s; swap-outs 0
+prefill  16384 tokens:    79.1 tok/s, first token after 207.07 s, 197.1 GB from the SSD, 6 passes; 207.0 s = SSD 12.4 + GPU wait 186.2 + CPU 8.5 (GPU busy 188.1; 162.7 GB read ahead, 151.6 used); swap-outs 0, 19.5 W
+  decode at 16384 tokens: 5.43 tok/s, 24 tokens; '<think>\nThe user wants me to summarize a lengthy technical document about "Strata" - a local LLM inference engine'
+
+medians of 2 runs:
+  build-metal/bin/strata --elastic on --prefill 4096: cache 6744 MiB, prefill 16384: 78.9 tok/s, swap-outs 0
+  build-metal/bin/strata --elastic on --prefill 8192: cache 7234 MiB, prefill 16384: 86.0 tok/s, swap-outs 0

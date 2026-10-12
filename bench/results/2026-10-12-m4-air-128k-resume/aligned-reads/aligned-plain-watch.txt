@@ -1,0 +1,7 @@
+18:46:27 BASELINE swapouts 1586587, swap used 1957.88 MiB, pressure 1, free 14.44 + file cache 7.5 GiB, compressor 11.3 in 4.04 GiB, SoC 42.1 C, battery 32.0 C
+18:46:27 STARTED pid 48118: .venv/bin/python -u metal/tools/bench.py --config strata-iq3_s.json --context 131072 --prefill 12288 --prefill-new 48 --ab build-metal/bin/strata --runs 2 --cool 45 --json build-metal/resume-128k/alig
+18:46:32 ok +5 s: swap-outs new 0, pressure 1, free 6.7 + file 10.59 GiB, compressor 11.17 in 3.96 GiB, SoC 43.2 C | temperature before the run: SoC 41.9 C, battery 32.0 C
+18:48:33 ok +126 s: swap-outs new 0, pressure 1, free 0.06 + file 5.85 GiB, compressor 12.53 in 4.66 GiB, SoC 81.9 C | read 8192/12288 tokens in 82.7 s; swap-outs 0
+18:50:34 ok +247 s: swap-outs new 0, pressure 1, free 15.83 + file 5.67 GiB, compressor 11.45 in 4.23 GiB, SoC 52.4 C | decode at 12288 tokens: 6.03 tok/s, 48 tokens; '<think>\nThe user wants me to summarize a lengthy technical document about "Strata" - a local LLM infe
+18:52:35 ok +368 s: swap-outs new 0, pressure 1, free 0.07 + file 4.75 GiB, compressor 12.45 in 4.63 GiB, SoC 88.5 C | read 4096/12288 tokens in 35.8 s; swap-outs 0
+18:54:53 DONE exit code 0, new swap-outs over the whole run 0 pages, swap used 1949.88 MiB (was 1957.88), peak pressure level 1, engine still running: [], stopped: False

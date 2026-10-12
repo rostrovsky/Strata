@@ -68,5 +68,40 @@
       "bytes": 5255,
       "sha256": "138f44d39679b23186f771d5325060daa0e96924576ab17ca5e087a89cab9a66"
     }
-  ]
+  ],
+  "night": {
+    "note": "State after the late-evening work (aligned reads, --elastic changes). tests-night/, aligned-reads/gate3-final-elastic.txt are from this binary; the full-context run and the A B B A runs of section 9 ran on the builds just before the long-pass fallback was added.",
+    "artifacts": [
+      {
+        "path": "build-metal/bin/strata",
+        "bytes": 10473080,
+        "sha256": "2f29cc14619338f61eb671a51d3308b7a9a9c380ad0a1d32145740b0af20e9a7"
+      },
+      {
+        "path": "metal/patches/0001-moe-cache-fetch-stats-preload.patch",
+        "bytes": 46568,
+        "sha256": "2acd703b075c1621038fdb3837ccc293b938a38c0b79432ffaa8cc398ed76b76"
+      },
+      {
+        "path": "metal/patches/0002-metal-indexed-qsa.patch",
+        "bytes": 10548,
+        "sha256": "8ddb0e7f6a27760ebfd20c944b6fba5c77212b81c97d25383b2d3449b97781ce"
+      },
+      {
+        "path": "metal/patches/0003-metal-topk-workspace.patch",
+        "bytes": 2204,
+        "sha256": "9c415f0d8e14cc0a604dc8b5a130d7aee2cc6f216407da35edbaf018781aef13"
+      },
+      {
+        "path": "metal/patches/0004-kpool-append-reserve.patch",
+        "bytes": 5318,
+        "sha256": "485cdf4c8b278e0740038fb87fcb6cddf0ae6cb14885cea6a1708c211656eea2"
+      },
+      {
+        "path": "metal/patches/0005-context-resize.patch",
+        "bytes": 7091,
+        "sha256": "8f8d0fdbee43fe649161024e4358523ffd2c59ca7384abf07c8a530e1ed757f3"
+      }
+    ]
+  }
 }

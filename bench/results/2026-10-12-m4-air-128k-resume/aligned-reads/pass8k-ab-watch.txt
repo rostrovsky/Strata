@@ -1,0 +1,13 @@
+19:15:24 BASELINE swapouts 1586587, swap used 1949.88 MiB, pressure 1, free 15.58 + file cache 5.22 GiB, compressor 10.46 in 3.78 GiB, SoC 45.4 C, battery 34.1 C
+19:15:24 STARTED pid 49983: .venv/bin/python -u metal/tools/bench.py --config strata-iq3_s.json --context 131072 --prefill 16384 --prefill-new 24 --ab build-metal/bin/strata --elastic on --prefill 4096 build-metal/bin/strata --e
+19:15:29 ok +5 s: swap-outs new 0, pressure 1, free 14.93 + file 5.24 GiB, compressor 10.43 in 3.77 GiB, SoC 43.3 C | memory: {'free_gib': 15.39, 'file_cache_gib': 5.24, 'apps_gib': 8.12, 'wired_gib': 2.45, 'swap_used_gib': 1.9, 'pressure_level': 1}
+19:17:30 ok +126 s: swap-outs new 0, pressure 1, free 0.07 + file 6.57 GiB, compressor 11.44 in 4.0 GiB, SoC 72.2 C | read 8192/16384 tokens in 78.6 s; swap-outs 0
+19:19:31 ok +247 s: swap-outs new 0, pressure 1, free 15.34 + file 6.21 GiB, compressor 11.29 in 4.13 GiB, SoC 52.8 C | decode at 16384 tokens: 5.97 tok/s, 24 tokens; '<think>\nThe user wants me to summarize a lengthy technical document about "Strata" - a local LLM infe
+19:21:32 ok +368 s: swap-outs new 0, pressure 1, free 0.06 + file 6.24 GiB, compressor 12.19 in 4.41 GiB, SoC 75.8 C | bin/strata: ready in 6.3 s; context 131072, expert cache 3700 experts (7234 MiB), direct reads
+19:23:33 ok +489 s: swap-outs new 0, pressure 1, free 0.4 + file 6.23 GiB, compressor 12.52 in 4.29 GiB, SoC 67.7 C | read 8192/16384 tokens in 71.8 s; swap-outs 0
+19:25:34 ok +610 s: swap-outs new 0, pressure 1, free 15.77 + file 5.51 GiB, compressor 10.97 in 4.04 GiB, SoC 48.2 C | decode at 16384 tokens: 5.58 tok/s, 24 tokens; '<think>\nThe user wants me to summarize a lengthy technical document about "Strata" - a local LLM infe
+19:27:35 ok +731 s: swap-outs new 0, pressure 1, free 0.07 + file 6.07 GiB, compressor 11.78 in 4.19 GiB, SoC 82.2 C | bin/strata: ready in 7.2 s; context 131072, expert cache 3796 experts (7422 MiB), direct reads
+19:29:35 ok +852 s: swap-outs new 0, pressure 1, free 0.36 + file 6.38 GiB, compressor 12.55 in 4.27 GiB, SoC 64.5 C | read 8192/16384 tokens in 70.1 s; swap-outs 0
+19:31:37 ok +973 s: swap-outs new 0, pressure 1, free 0.06 + file 5.82 GiB, compressor 11.99 in 4.35 GiB, SoC 65.3 C | bin/strata: ready in 7.0 s; context 131072, expert cache 4121 experts (8056 MiB), direct reads
+19:33:37 ok +1094 s: swap-outs new 0, pressure 1, free 0.08 + file 6.01 GiB, compressor 12.28 in 4.38 GiB, SoC 65.6 C | read 8192/16384 tokens in 76.3 s; swap-outs 0
+19:36:11 DONE exit code 0, new swap-outs over the whole run 0 pages, swap used 1949.88 MiB (was 1949.88), peak pressure level 1, engine still running: [], stopped: False

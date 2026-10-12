@@ -1,0 +1,19 @@
+# clang -O2 -o t direct_read_test.c && ./t Qwen3.8-Flash-Next-GSQ-RCO-IQ3_S-00001-of-00002.gguf    (2026-10-12, M4 Air, APFS)
+offset aligned, buffer page-aligned, length aligned                           2922 MiB/s, read from disk  256 MiB, left in the file cache    0 MiB of 256
+offset aligned, buffer +32,          length aligned                           2720 MiB/s, read from disk  256 MiB, left in the file cache  224 MiB of 256
+offset aligned, buffer page-aligned, length -100                              2822 MiB/s, read from disk  256 MiB, left in the file cache    0 MiB of 256
+offset +32,     buffer page-aligned, length aligned                           2871 MiB/s, read from disk  256 MiB, left in the file cache  224 MiB of 256
+offset +32,     buffer +32,          length -100 (the engine's kind)          2722 MiB/s, read from disk  256 MiB, left in the file cache  224 MiB of 256
+offset +32,     buffer +32,          length -100, 2 MiB pieces (one expert)   2168 MiB/s, read from disk  256 MiB, left in the file cache  128 MiB of 256
+offset aligned, buffer page-aligned, length aligned, 2 MiB pieces             2405 MiB/s, read from disk  256 MiB, left in the file cache    0 MiB of 256
+
+# direct_read_test2.c: which alignment is needed
+offset +4096 (a block, not a page), buffer page-aligned                       2932 MiB/s, read from disk  256 MiB, left in the file cache    0 MiB of 256
+offset aligned, buffer +4096                                                  2918 MiB/s, read from disk  256 MiB, left in the file cache    0 MiB of 256
+offset aligned, buffer +512                                                   2817 MiB/s, read from disk  256 MiB, left in the file cache  225 MiB of 256
+offset aligned, buffer +8                                                     2876 MiB/s, read from disk  256 MiB, left in the file cache  224 MiB of 256
+offset +512, buffer +512                                                      2800 MiB/s, read from disk  256 MiB, left in the file cache  224 MiB of 256
+offset +4096, buffer +4096, length -1                                         2792 MiB/s, read from disk  256 MiB, left in the file cache    0 MiB of 256
+offset aligned, buffer aligned, 64 MiB pieces                                 3060 MiB/s, read from disk  256 MiB, left in the file cache    0 MiB of 256
+
+# the model's expert tensors (gguf-py): of 144, 6 start on a 4,096-byte boundary, and 39 have experts whose size is a multiple of 4,096

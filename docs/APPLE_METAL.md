@@ -66,7 +66,13 @@ things that would otherwise put model data into swap are switched off or checked
   again in a few seconds).
 
 Missed experts are read past the OS file cache (`--expert-io direct`, F_NOCACHE), so reading 40 GB during an answer does
-not fill the memory with file pages. `--expert-io cached` reads through it instead: experts that were read recently then
+not fill the memory with file pages. **Until 2026-10-12 that was only the intent:** such a read goes past the cache
+only if its offset in the file and its buffer are both multiples of 4,096 bytes, and the experts' were not, so most
+of what was read went through the file cache and stayed there (41.5 GiB of page-ins and 16.5 GiB of other
+programs' memory compressed while one 8,192-token prompt was read; 1.6 and 2.6 GiB since the reads are aligned).
+Every figure in this document from before that date was measured with the unaligned reads; see
+[the report](../bench/results/2026-10-12-m4-air-128k-resume/README.md), section 9. `STRATA_ALIGNED_READS=0` reads
+as before. `--expert-io cached` reads through the cache instead: experts that were read recently then
 come from RAM, but with little free memory it made macOS swap (17,700 pages during three 120-token answers), so it is not the
 default. The staging buffer for long prompts (1.1 GiB, or 0.45 GiB if that is all there is room for) is taken only for
 the time of the prompt and only if that much memory is free beyond 1.5 GiB.
@@ -319,12 +325,15 @@ done). None of this is fixed or decided; the numbers are under "Measured" unless
 | `--prefill N` | tokens per pass for long prompts (default 1,024; 0 = off). 2,048 needs 1.1 GiB more for the context and read 8,000 tokens at 81 instead of 62 tok/s. |
 | `--prefill-ahead on\|off` | long prompts: read the next expert tensors while the GPU computes (default on) |
 | `--prefill-from N` | stretches of N or more new tokens go in one such pass (default 33) |
-| `--elastic on\|off` | **experimental, default off.** The long passes' work memory (2.67 GiB at 131,072 context with `--prefill 4096`) and the expert cache take turns in one budget: answers are written with the larger cache, a long prompt is read with the cache's memory, and the cache is read back from the SSD afterwards (about 2 s). Measured: 8.01 against 6.66 tok/s written, and **swap-outs in three of its runs at `--reserve-gib 4`** with other programs open. Read the [report](../bench/results/2026-10-12-m4-air-128k-resume/README.md) before turning it on. Not with `--mtp` or a set `--expert-cache` size. `--elastic-short N`: a stretch of up to N new tokens (1,024) is read in one pass beside the cache, in memory that is free at that moment; 0 = always give the cache up |
+| `--elastic on\|off` | **experimental, default off.** The long passes' work memory (2.67 GiB at 131,072 context with `--prefill 4096`) and the expert cache take turns in one budget: answers are written with the larger cache, a long prompt is read with the cache's memory, and the cache is read back from the SSD afterwards (2-3 s). Measured with aligned reads: 7.71 against 6.38 tok/s written; a full 130,944-token prompt with `--prefill 8192` at 70.1 tok/s and 5.27 tok/s written; no swap-out in ten runs. Before the reads were aligned it swapped in five. Read the [report](../bench/results/2026-10-12-m4-air-128k-resume/README.md) before turning it on. Not with `--mtp` or a set `--expert-cache` size. `--elastic-short N`: a stretch of up to N new tokens (1,024) is read in one pass beside the cache, in memory that is free at that moment; 0 = always give the cache up. With `--elastic`, `--prefill 8192` costs the answering cache nothing (9% faster on a 16,384-token prompt than 4,096); long passes fall back to half or a quarter of `--prefill` when the memory has no room |
 | `--mtp FILE`, `--spec N`, `--spec-min-p P` | the MTP head: up to N drafts per pass (3) while the head gives them probability P (0.75) or more. Off unless `--mtp` is given. |
 | `--lookup N` | draft what followed the last N tokens where they stood before in the context (0 = off) |
 | `--io-threads N` | threads reading experts (default 8; 4 or more read the same on the Air's SSD) |
 | `--plan` / `--load-only` | print the memory plan without loading / load, print it as it came out, exit |
 | `--verbose` | llama.cpp's own log, and the engine's memory after every prompt pass and every change of shape |
+
+`metal/tools/swapwatch.py NAME -- <command>` runs a benchmark under a watch on macOS's swap-out counter and stops the
+engine the moment it moves; use it for every run on the real model.
 
 Flags of the CUDA engine that a config may carry (`--pack`, `--kv-resident`, ...) are accepted and not used; the log
 names each one.

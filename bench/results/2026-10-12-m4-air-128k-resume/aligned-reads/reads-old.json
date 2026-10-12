@@ -1,0 +1,123 @@
+{
+ "when": "2026-10-12 18:23",
+ "args": [
+  "--native",
+  "/Users/rafal/Projects/strata-air/Strata-data/models/IQ3_S/Qwen3.8-Flash-Next-GSQ-RCO-IQ3_S-00001-of-00002.gguf",
+  "--expert-profile",
+  "/Users/rafal/Projects/strata-air/Strata/data/expert-profile.bin",
+  "--expert-cache",
+  "auto",
+  "--max-context",
+  "131072",
+  "--kv",
+  "f16",
+  "--prefill",
+  "4096",
+  "--reserve-gib",
+  "4",
+  "--expert-cache-cap",
+  "4000"
+ ],
+ "memory_before": {
+  "free_gib": 0.45,
+  "file_cache_gib": 18.86,
+  "apps_gib": 9.58,
+  "wired_gib": 2.32,
+  "swap_used_gib": 1.91,
+  "pressure_level": 1
+ },
+ "info": {
+  "context": "131072",
+  "kv": "f16",
+  "kv_resident": "0",
+  "expert_slots": "2039",
+  "expert_cache_mib": "3992",
+  "expert_slots_primary": "2039",
+  "expert_cache_primary_mib": "3992",
+  "spec": "0",
+  "mtp_max": "0",
+  "lookup": "0",
+  "prefetch": "10",
+  "vram_free_mib": "7707",
+  "arena_mib": "0",
+  "pool_workers": "8",
+  "backend": "metal",
+  "expert_io": "direct",
+  "engine": "0.1.42-metal"
+ },
+ "prefill": {
+  "8192": {
+   "tokens": 8192,
+   "tps": 101.67429968599124,
+   "ttft_s": 80.57204413414001,
+   "ssd_gb": 94.63239999999999,
+   "swapouts": 0,
+   "gpu_wait_s": 63.6638,
+   "ssd_s": 6.139600000000001,
+   "gpu_busy_s": 64.7676,
+   "wall_s": 80.571,
+   "passes": 4.0,
+   "read_ahead_gb": 71.7313,
+   "read_ahead_used_gb": 64.9936,
+   "watts": 23.71972881355932,
+   "decode_tps": 5.2772870155794696,
+   "generated": 24,
+   "output": "<think>\nThe user wants me to summarize a technical document about \"Strata\" - which appears to be a local L",
+   "progress": [
+    {
+     "tokens": 4096,
+     "total": 8192,
+     "elapsed_s": 38.657,
+     "memory": {
+      "free_gib": 0.05,
+      "file_cache_gib": 6.39,
+      "apps_gib": 8.74,
+      "wired_gib": 16.02,
+      "swap_used_gib": 1.91,
+      "pressure_level": 1
+     },
+     "swapouts": 0
+    },
+    {
+     "tokens": 8189,
+     "total": 8192,
+     "elapsed_s": 79.917,
+     "memory": {
+      "free_gib": 0.01,
+      "file_cache_gib": 7.3,
+      "apps_gib": 7.89,
+      "wired_gib": 16.0,
+      "swap_used_gib": 1.91,
+      "pressure_level": 1
+     },
+     "swapouts": 0
+    }
+   ],
+   "decode_per_token": {
+    "total_ms": 189.4913043478261,
+    "gpu_wait_ms": 104.19565217391305,
+    "ssd_ms": 73.20869565217392,
+    "cpu_ms": 12.08695652173914,
+    "encode_ms": 4.439130434782609,
+    "gpu_busy_ms": 101.54347826086956,
+    "sample_ms": 0.14782608695652175,
+    "misses": 77.34782608695652,
+    "ssd_mb": 493.6217391304348,
+    "waits": 49.0,
+    "ahead": 163.47826086956522,
+    "ahead_used": 105.43478260869566,
+    "ahead_waits": 21.52173913043478,
+    "predict_ms": 4.378260869565217
+   }
+  }
+ },
+ "swapouts": 0,
+ "memory_after": {
+  "free_gib": 15.48,
+  "file_cache_gib": 7.17,
+  "apps_gib": 6.42,
+  "wired_gib": 2.13,
+  "swap_used_gib": 1.91,
+  "pressure_level": 1
+ }
+}
