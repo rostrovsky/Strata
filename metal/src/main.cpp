@@ -503,6 +503,22 @@ struct Engine {
     // written to when they are made, the cache is cleared when it is made, and what the long passes do not need of
     // the cache's memory is held in this buffer.
     ggml_backend_buffer_t ballast_ = nullptr;
+    // --elastic: the KV cache takes its memory as the conversation grows, kv_step_ cells at a time (llama.cpp:
+    // LLAMA_KV_LAZY_CELLS), and the plan gives what it has not taken to the expert cache.  Before the context grows
+    // past the cells that are paid for, the cache gives the memory for the next ones back (make_room_for_kv).
+    // Measured for this model at 131,072 context: 28.6 KiB a cell, 3.3 GiB that a conversation of up to 16,000
+    // tokens leaves to the cache (10.6 GiB instead of 7.1).
+    uint32_t kv_step_ = 0;                // 0: the KV cache has all of its memory from the start
+    uint64_t kv_cell_bytes_ = 0;
+    uint32_t kv_paid_ = 0;                // cells the KV cache has its memory for
+    uint64_t kv_slack_ = 0;               // of what it has not taken, what the cache did not use (a capped cache)
+    uint32_t kv_due_ = 0;                 // cells that are paid for and not mapped yet (kv_take)
+    struct KvNote {
+        int64_t tokens;
+        uint64_t grow, was;
+        int64_t filled;
+        double ms;
+    } kv_note_{};
     uint64_t swapouts_seen_ = 0;          // macOS's count of pages written to swap, at the last look
     uint64_t compressed_seen_ = 0;        // ... and of the bytes it compressed
     llama_moe_cache_stats stats_gone_{};  // what the caches that were given up had counted
@@ -724,6 +740,77 @@ struct Engine {
         if (swapped) cache_plan_bytes_ = smaller;
         attach_cache();
         refill_cache();
+        return true;
+    }
+
+    // --elastic: the context is about to hold `tokens` tokens.  If that is past the cells the KV cache has memory
+    // for, the expert cache gives the memory for the next ones first (one budget).  Three cases:
+    //   the context is about to take its long-prompt shape (`before_long`): the cache is about to be given up
+    //     anyway, so only the books change here - the buffer that will hold the cache's place is made that much
+    //     smaller, and kv_take() maps the cells once it is.  (Making that buffer first and a smaller one after it
+    //     was tried: Metal lets go of a released buffer's memory a second late, and for that second macOS
+    //     compressed 1.4 GiB of other programs' memory.)
+    //   the cache is there: it is made smaller and read back (4 s; once per kv_step_ tokens of a conversation that
+    //     grows in short turns or in the middle of an answer);
+    //   the context has its long-prompt shape already (llama.cpp had to map cells by itself): the books only.
+    bool make_room_for_kv(int64_t tokens, bool before_long, std::string& err) {
+        if (kv_step_ == 0 || tokens + 256 <= (int64_t) kv_paid_) return true;
+        const uint32_t n_ctx = (uint32_t) o.max_context;
+        uint32_t want = (uint32_t) std::min<int64_t>(n_ctx, (tokens + 256 + kv_step_ - 1) / kv_step_ * kv_step_);
+        want = std::max(want, llama_kv_cells_mapped(ctx, nullptr));   // (what llama.cpp mapped by itself, if it had to)
+        if (want <= kv_paid_) return true;
+        const auto t0 = Clock::now();
+        const uint64_t grow = (uint64_t) (want - kv_paid_) * kv_cell_bytes_;
+        const uint64_t from_slack = std::min(grow, kv_slack_);
+        kv_slack_ -= from_slack;
+        const uint64_t floor = (uint64_t) (512 * kMiB);
+        const uint64_t was = cache_bytes;
+        const uint64_t give = std::min(grow - from_slack, cache_bytes > floor ? cache_bytes - floor : 0);
+        int64_t filled = 0;
+        const bool there = !before_long && shape_ != Shape::Long;
+        if (give > 0 && there) {
+            pool->drain();   // reads under way write into the cache that is given up
+            llama_moe_cache_stats st{};
+            if (cache_stats(st)) stats_gone_ = st;
+            remember_cache();
+            const uint32_t batch = shape_ == Shape::Short ? (uint32_t) short_batch_ : (uint32_t) kAnswerBatch;
+            if (!llama_context_resize(ctx, batch, cache_bytes - give, false)) {
+                broken_ = true;
+                err = "the expert cache could not be made smaller for the KV cache";
+                return false;
+            }
+            attach_cache();
+            filled = refill_cache();
+        } else if (give > 0 && shape_ == Shape::Long) {
+            answer_cache_ = answer_cache_ > give ? answer_cache_ - give : 0;
+        }
+        cache_bytes -= give;
+        cache_plan_bytes_ = cache_plan_bytes_ > give ? cache_plan_bytes_ - give : 0;
+        kv_note_ = {tokens, grow, was, filled, ms_since(t0)};
+        if (before_long && shape_ != Shape::Long) {
+            kv_due_ = want;
+            return true;
+        }
+        kv_due_ = want;
+        return kv_take(err);
+    }
+
+    // maps the cells make_room_for_kv made room for
+    bool kv_take(std::string& err) {
+        if (kv_due_ == 0) return true;
+        const auto t0 = Clock::now();
+        if (!llama_kv_map_cells(ctx, kv_due_)) {
+            err = "the KV cache could not take more memory";
+            return false;
+        }
+        kv_paid_ = kv_due_;
+        kv_due_ = 0;
+        const double ms = kv_note_.ms + ms_since(t0);
+        reshape_ms_ += ms;
+        std::fprintf(stderr, "strata metal: the conversation reaches %lld tokens: the KV cache takes its memory for %u (%.2f GiB "
+                             "more), the expert cache gives it: %.2f -> %.2f GiB%s, %.2f s\n", (long long) kv_note_.tokens, kv_paid_,
+                     (double) kv_note_.grow / kGiB, (double) kv_note_.was / kGiB, (double) cache_bytes / kGiB,
+                     shape_ == Shape::Long ? " when it comes back" : kv_note_.filled > 0 ? " (read back)" : "", ms / 1000.0);
         return true;
     }
 
@@ -959,12 +1046,21 @@ struct Engine {
         std::fprintf(stderr, "strata metal: weights loaded in %.1f s, %.2f GiB on the GPU\n", ms_since(t0) / 1000.0,
                      (double) (used1 - used0 - mtp_bytes) / kGiB);
 
+        // --elastic: the KV cache takes its memory 16,384 cells at a time, as the conversation reaches them
+        // (STRATA_KV_STEP=N: another step; 0: all of it at the start, as without --elastic)
+        {
+            const char* ks = std::getenv("STRATA_KV_STEP");
+            const int step = ks ? std::atoi(ks) : 16384;
+            if (o.elastic && o.prefill > 32 && step > 0 && o.max_context > step) setenv("LLAMA_KV_LAZY_CELLS", std::to_string(step).c_str(), 1);
+            else unsetenv("LLAMA_KV_LAZY_CELLS");
+        }
         // ---- the expert cache: what is left of Metal's working set once the context (KV cache, work buffers) has
         // its memory.  The context is made twice: once without a cache to see what it takes, then with the cache.
         uint64_t want = 0;
         bool fixed = false;
         double elastic_total = 0.0, elastic_metal = 0.0;   // --elastic: what the passes' work memory and the cache share
         double elastic_work = 0.0;                         // ... and the long passes' work memory of it
+        double kv_rest = 0.0;                              // memory the KV cache has not taken yet (kv_step_)
         double elastic_answer_gpu = 0.0;                   // the answering shape's work memory on the GPU
         struct LongShape {
             int batch;
@@ -996,11 +1092,21 @@ struct Engine {
             // Sample with the context still alive: Metal may release its physical pages later than llama_free.
             const HostMemory hm = host_memory();
             const double ctx_bytes = (double) (used2 - used1);
+            // (with a KV cache that takes its memory as it fills, the context is measured with its first cells only:
+            // what the others will take is taken out of every figure here, and --elastic gives it to the cache below)
+            size_t kv_per = 0;
+            const uint32_t kv_cells = llama_kv_cells_mapped(ctx, &kv_per);
+            kv_rest = kv_cells > 0 && (uint32_t) o.max_context > kv_cells ? (double) ((uint32_t) o.max_context - kv_cells) * (double) kv_per : 0.0;
+            if (kv_rest > 0.0) {
+                kv_step_ = kv_cells;
+                kv_cell_bytes_ = kv_per;
+                kv_paid_ = kv_cells;
+            }
             // The context's compute buffer in host memory (the inputs of a pass: 0.45 GiB for passes of 4,096 tokens)
             // has no pages yet; the passes of a long prompt touch all of it.
             size_t ctx_device = 0, ctx_host = 0;
             llama_get_compute_buffer_sizes(ctx, &ctx_device, &ctx_host);
-            const double by_ram = std::min(before_context.usable() - ctx_bytes, hm.usable()) - (double) ctx_host - o.reserve_gib * kGiB;
+            const double by_ram = std::min(before_context.usable() - ctx_bytes, hm.usable()) - (double) ctx_host - o.reserve_gib * kGiB - kv_rest;
             if (o.elastic && !mtp && o.prefill > 32) {
                 // the other shapes' work memory, measured on this context too: the cache is then allocated once
                 size_t dev = 0, host = 0, sdev = 0, shost = 0;
@@ -1026,7 +1132,7 @@ struct Engine {
             llama_free(ctx);
             ctx = nullptr;
             const double margin = 0.25 * kGiB;
-            const double by_metal = (double) ws + o.overcommit_gib * kGiB - (double) used2 - margin;
+            const double by_metal = (double) ws + o.overcommit_gib * kGiB - (double) used2 - margin - kv_rest;
             const double room = std::max(0.0, std::min(by_metal, by_ram));
             if (!fixed) want = (uint64_t) room;
             // benchmarks: the same cache in every run, and still never more than the free memory has room for
@@ -1068,7 +1174,7 @@ struct Engine {
             }
             std::fprintf(stderr, "strata metal: context %.2f GiB on the GPU (%.2f of it for the passes) and %.2f GiB of host "
                                  "memory; expert cache %.2f GiB (%s; Metal has room for %.1f, the free memory for %.1f)\n",
-                         ctx_bytes / kGiB, (double) ctx_device / kGiB, (double) ctx_host / kGiB, (double) want / kGiB,
+                         (ctx_bytes + kv_rest) / kGiB, (double) ctx_device / kGiB, (double) ctx_host / kGiB, (double) want / kGiB,
                          fixed ? "as asked" : "auto",
                          std::max(0.0, by_metal) / kGiB, std::max(0.0, by_ram) / kGiB);
             if (!fixed && by_ram < by_metal - 0.5 * kGiB && (double) files.expert_bytes > room)
@@ -1090,6 +1196,15 @@ struct Engine {
             all = std::min(all, (double) files.expert_bytes + 64 * kMiB);
             if (o.expert_cache_cap_mib > 0.0) all = std::min(all, o.expert_cache_cap_mib * kMiB);
             cache_bytes = (uint64_t) std::max(all, (double) want);
+            // what the KV cache has not taken yet goes to the cache (as far as the cache may grow: the rest is kept
+            // as slack, used up first when the KV cache takes its memory)
+            if (kv_rest > 0.0) {
+                double most = (double) files.expert_bytes + 64 * kMiB;
+                if (o.expert_cache_cap_mib > 0.0) most = std::min(most, o.expert_cache_cap_mib * kMiB);
+                const double more = std::clamp(most - (double) cache_bytes, 0.0, kv_rest);
+                cache_bytes += (uint64_t) more;
+                kv_slack_ = (uint64_t) (kv_rest - more);
+            }
             cache_plan_bytes_ = cache_bytes;
             ctx = llama_init_from_model(model, ctx_params(cache_bytes, kAnswerBatch));
             std::fprintf(stderr, "strata metal: --elastic: answers are written with a %.2f GiB expert cache (%.2f GiB of work "
@@ -1099,8 +1214,19 @@ struct Engine {
                 std::fprintf(stderr, "; up to %d new tokens in one pass beside the cache, where %.2f GiB are free for it",
                              short_batch_, short_work_ / kGiB);
             std::fprintf(stderr, "\n");
+            if (kv_step_ > 0)
+                std::fprintf(stderr, "strata metal: --elastic: the KV cache has its memory for the first %u tokens; every %u more "
+                                     "take %.2f GiB from the expert cache (%.2f GiB of it at %lld tokens)\n", kv_paid_, kv_step_,
+                             (double) kv_step_ * (double) kv_cell_bytes_ / kGiB, ((double) cache_bytes - kv_rest + (double) kv_slack_) / kGiB,
+                             (long long) o.max_context);
         } else {
+            kv_step_ = 0;
             ctx = llama_init_from_model(model, ctx_params(cache_bytes));
+            // (without --elastic the cache cannot give memory back: the KV cache takes all of its own now)
+            if (ctx != nullptr && llama_kv_cells_mapped(ctx, nullptr) > 0 && !llama_kv_map_cells(ctx, (uint32_t) o.max_context)) {
+                err = "the KV cache could not take its memory";
+                return false;
+            }
         }
         if (ctx == nullptr && cache_bytes > 0) {
             err = "the expert cache could not be allocated (" + std::to_string(cache_bytes >> 20) +
@@ -1508,11 +1634,18 @@ struct Engine {
                     const Shape want = !long_pass ? Shape::Answer
                                      : shape_ == Shape::Long ? Shape::Long
                                      : rem <= short_batch_ && (shape_ == Shape::Short || can_borrow()) ? Shape::Short : Shape::Long;
+                    // The KV cache's memory for the whole prompt, once, at its first pass: from the cache while the
+                    // context still has its answering shape, or (below) from what holds the cache's place once it
+                    // has the long-prompt one - the cache is then not read back just to be given up.
+                    // (before a long prompt for 2,048 tokens beyond it: the answer and the next turns then do not
+                    // cross a step, which costs nothing here and 4 s of reading the cache back while it is there)
+                    if (shape_ != Shape::Long && !make_room_for_kv(want == Shape::Long ? n + 2048 : n, want == Shape::Long, err)) return false;
                     if (want != shape_) {
                         bulk.finish();
                         if (!reshape(want, err)) return false;
                         if (want != Shape::Answer) stage(want == Shape::Short ? short_work_ : 0.0);
                     }
+                    if (!kv_take(err)) return false;
                     if (shape_ == Shape::Short) most = short_batch_;
                 }
                 const int32_t take = (int32_t) (long_pass ? std::min<int64_t>(most, rem) : std::min<int64_t>(o.chunk, rem));
@@ -1587,6 +1720,10 @@ struct Engine {
                     mtp->draft(t, at_pos, mtp->n_draft, 0.0f, drafts_, draft_probs_);
                     mtp->note(drafts_, draft_probs_);
                     drafts_.clear();
+                }
+                if (!make_room_for_kv((int64_t) live.size() + 1 + (int64_t) drafts_.size(), false, err)) {
+                    llama_sampler_free(smpl);
+                    return false;
                 }
                 if (drafts_.empty()) {
                     if (!decode(&t, 1, err)) {

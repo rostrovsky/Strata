@@ -1,0 +1,641 @@
+--- a/ggml/include/ggml-backend.h
++++ b/ggml/include/ggml-backend.h
+@@ -63,6 +63,17 @@
+     GGML_API size_t                         ggml_backend_buffer_get_max_size  (ggml_backend_buffer_t buffer);
+     GGML_API size_t                         ggml_backend_buffer_get_alloc_size(ggml_backend_buffer_t buffer, const struct ggml_tensor * tensor);
+     GGML_API void                           ggml_backend_buffer_clear         (ggml_backend_buffer_t buffer, uint8_t value);
++    // Map only n parts of the buffer on the device: [ptrs[i], ptrs[i] + sizes[i]) of its host memory, each widened
++    // to whole pages. A tensor is then found by where it starts and may be used as far as its part goes; the rest
++    // of the buffer takes no memory until a later call maps it (it reads as zeros then). Clearing the buffer
++    // clears the mapped parts. The device must not be given work on the buffer during the call.
++    // Returns false, and changes nothing, if the buffer's backend cannot do this.
++    GGML_API bool                           ggml_backend_buffer_set_views     (ggml_backend_buffer_t buffer, const void ** ptrs, const size_t * sizes, int n);
++    // While this is on, a buffer the calling thread allocates is for ggml_backend_buffer_set_views: a backend that
++    // has it leaves the buffer unmapped until the first such call (it then never takes the memory of the whole
++    // buffer, not even for a moment). Other backends allocate as always.
++    GGML_API void                           ggml_backend_alloc_unmapped       (bool on);
++    GGML_API bool                           ggml_backend_alloc_unmapped_get   (void);
+     GGML_API bool                           ggml_backend_buffer_is_host       (ggml_backend_buffer_t buffer);
+     GGML_API void                           ggml_backend_buffer_set_usage     (ggml_backend_buffer_t buffer, enum ggml_backend_buffer_usage usage);
+     GGML_API enum ggml_backend_buffer_usage ggml_backend_buffer_get_usage     (ggml_backend_buffer_t buffer);
+--- a/ggml/src/ggml-backend-impl.h
++++ b/ggml/src/ggml-backend-impl.h
+@@ -68,6 +68,8 @@
+         void         (*clear)        (ggml_backend_buffer_t buffer, uint8_t value);
+         // (optional) reset any internal state due to tensor initialization, such as tensor extras
+         void         (*reset)        (ggml_backend_buffer_t buffer);
++        // (optional) map only parts of the buffer on the device, see ggml_backend_buffer_set_views
++        bool         (*set_views)    (ggml_backend_buffer_t buffer, const void ** ptrs, const size_t * sizes, int n);
+     };
+ 
+     struct ggml_backend_buffer {
+--- a/ggml/src/ggml-backend-meta.cpp
++++ b/ggml/src/ggml-backend-meta.cpp
+@@ -1698,6 +1698,7 @@
+     /* .cpy_tensor      = */ nullptr,
+     /* .clear           = */ ggml_backend_meta_buffer_clear,
+     /* .reset           = */ ggml_backend_meta_buffer_reset,
++    /* .set_views       = */ NULL,
+ };
+ 
+ bool ggml_backend_buffer_is_meta(ggml_backend_buffer_t buf) {
+--- a/ggml/src/ggml-backend.cpp
++++ b/ggml/src/ggml-backend.cpp
+@@ -296,8 +296,26 @@
+         return buffer->iface.init_tensor(buffer, tensor);
+     }
+     return GGML_STATUS_SUCCESS;
++}
++
++static thread_local bool g_alloc_unmapped = false;
++
++void ggml_backend_alloc_unmapped(bool on) {
++    g_alloc_unmapped = on;
+ }
+ 
++bool ggml_backend_alloc_unmapped_get(void) {
++    return g_alloc_unmapped;
++}
++
++bool ggml_backend_buffer_set_views(ggml_backend_buffer_t buffer, const void ** ptrs, const size_t * sizes, int n) {
++    GGML_ASSERT(buffer);
++    if (buffer->iface.set_views == NULL || buffer->size == 0) {
++        return false;
++    }
++    return buffer->iface.set_views(buffer, ptrs, sizes, n);
++}
++
+ void ggml_backend_buffer_clear(ggml_backend_buffer_t buffer, uint8_t value) {
+     GGML_ASSERT(buffer);
+     // clear is optional if the buffer is zero-sized
+@@ -853,6 +871,7 @@
+     /* .cpy_tensor      = */ NULL,
+     /* .clear           = */ ggml_backend_multi_buffer_clear,
+     /* .reset           = */ NULL,
++    /* .set_views       = */ NULL,
+ };
+ 
+ ggml_backend_buffer_t ggml_backend_multi_buffer_alloc_buffer(ggml_backend_buffer_t * buffers, size_t n_buffers) {
+@@ -2518,6 +2537,7 @@
+     /* .cpy_tensor      = */ ggml_backend_cpu_buffer_cpy_tensor,
+     /* .clear           = */ ggml_backend_cpu_buffer_clear,
+     /* .reset           = */ NULL,
++    /* .set_views       = */ NULL,
+ };
+ 
+ static const struct ggml_backend_buffer_i ggml_backend_cpu_buffer_from_ptr_i = {
+@@ -2532,6 +2552,7 @@
+     /* .cpy_tensor      = */ ggml_backend_cpu_buffer_cpy_tensor,
+     /* .clear           = */ ggml_backend_cpu_buffer_clear,
+     /* .reset           = */ NULL,
++    /* .set_views       = */ NULL,
+ };
+ 
+ // CPU backend buffer type
+--- a/ggml/src/ggml-metal/ggml-metal-device.h
++++ b/ggml/src/ggml-metal/ggml-metal-device.h
+@@ -362,6 +362,10 @@
+ void   ggml_metal_buffer_get_tensor   (ggml_metal_buffer_t buf, const struct ggml_tensor * tensor, void * data, size_t offset, size_t size);
+ bool   ggml_metal_buffer_cpy_tensor   (ggml_metal_buffer_t buf, const struct ggml_tensor * src, struct ggml_tensor * dst);
+ void   ggml_metal_buffer_clear        (ggml_metal_buffer_t buf, uint8_t value);
++
++// a shared buffer that was allocated here: one Metal buffer per part instead of one for all of it
++// (see ggml_backend_buffer_set_views)
++bool   ggml_metal_buffer_set_views    (ggml_metal_buffer_t buf, const void ** ptrs, const size_t * sizes, int n);
+ 
+ // finds the Metal buffer that contains the tensor data on the GPU device
+ // the assumption is that there is 1-to-1 mapping between the host and device memory buffers, so we can find the
+--- a/ggml/src/ggml-metal/ggml-metal-device.m
++++ b/ggml/src/ggml-metal/ggml-metal-device.m
+@@ -12,6 +12,11 @@
+ 
+ #include <stdatomic.h>
+ 
++#include <errno.h>
++#include <string.h>
++#include <sys/mman.h>
++#include <unistd.h>
++
+ #ifndef TARGET_OS_VISION
+ #define TARGET_OS_VISION 0
+ #endif
+@@ -1993,10 +1998,14 @@
+     bool is_shared;
+     bool owned;
+ 
+-    // multiple buffers are used only to avoid the maximum buffer size limitation when using mmap
++    // multiple buffers are used only to avoid the maximum buffer size limitation when using mmap,
++    // and for a buffer that is mapped in parts (ggml_metal_buffer_set_views)
+     int n_buffers;
+     struct ggml_metal_buffer_wrapper buffers[GGML_METAL_MAX_BUFFERS];
+ 
++    // the Metal buffers are parts of the host memory: a tensor is found by where it starts
++    bool is_views;
++
+     bool use_residency_sets;
+ 
+     // optional MTLResidencySet
+@@ -2136,6 +2145,18 @@
+     res->owned = true;
+ 
+     res->n_buffers = 1;
++
++    // to be mapped in parts (ggml_backend_alloc_unmapped): host memory only, the Metal buffers come with
++    // ggml_metal_buffer_set_views. (Made whole first, the buffer's memory would all be wired for a second or so:
++    // Metal lets go of a released buffer's pages late.)
++    if (res->is_shared && res->all_data != NULL && size_aligned > 0 && ggml_backend_alloc_unmapped_get()) {
++        res->n_buffers = 0;
++        res->is_views  = true;
++        res->use_residency_sets = props_dev->use_residency_sets;
++        res->rset = nil;
++
++        return res;
++    }
+ 
+     if (res->all_data != NULL) {
+         res->buffers[0].size  = size;
+@@ -2293,6 +2314,129 @@
+     free(buf);
+ }
+ 
++// One Metal buffer per part of the host memory, in place of the one over all of it.
++//
++// A Metal buffer is resident as a whole: from requestResidency if it is in a residency set, else from the first
++// command that uses it (measured on an M4: a 512 MiB buffer over untouched memory had all 512 MiB resident after
++// the GPU wrote 16 MiB of it). Memory that is to be taken only as it is needed - a KV cache for a context that
++// may never fill - therefore cannot be one buffer. The parts are separate buffers over the same host memory;
++// what lies between them has no Metal buffer and no pages. Mapping more later keeps the bytes that are there.
++bool ggml_metal_buffer_set_views(ggml_metal_buffer_t buf, const void ** ptrs, const size_t * sizes, int n) {
++    if (!buf->is_shared || !buf->owned || n < 1 || n > GGML_METAL_MAX_BUFFERS) {
++        return false;
++    }
++
++    const uintptr_t page = (uintptr_t) sysconf(_SC_PAGESIZE);
++    const uintptr_t lo   = (uintptr_t) buf->all_data;
++    const uintptr_t hi   = lo + buf->all_size;
++
++    struct ggml_metal_buffer_wrapper views[GGML_METAL_MAX_BUFFERS];
++    for (int i = 0; i < n; i++) {
++        const uintptr_t beg = (uintptr_t) ptrs[i] & ~(page - 1);
++        const uintptr_t end = ((uintptr_t) ptrs[i] + sizes[i] + page - 1) & ~(page - 1);
++        if (sizes[i] == 0 || beg < lo || end > hi) {
++            return false;
++        }
++        views[i].data  = (void *) beg;
++        views[i].size  = end - beg;
++        views[i].metal = nil;
++    }
++
++    struct ggml_metal_buffer_wrapper old[GGML_METAL_MAX_BUFFERS];
++    const int n_old = buf->n_buffers;
++
++    @autoreleasepool {
++        // The command buffers do not retain what they use, so nothing that was committed may still be running when
++        // the old Metal buffers go: the device has one queue, and it finishes its work in the order it was given.
++        {
++            id<MTLCommandBuffer> cmd_buf = [buf->dev->mtl_queue commandBuffer];
++            [cmd_buf commit];
++            [cmd_buf waitUntilCompleted];
++        }
++
++        for (int i = 0; i < n; i++) {
++            views[i].metal = [buf->dev->mtl_device newBufferWithBytesNoCopy:views[i].data
++                                                                     length:views[i].size
++                                                                    options:MTLResourceStorageModeShared
++                                                                deallocator:nil];
++            if (views[i].metal == nil) {
++                GGML_LOG_ERROR("%s: error: failed to map %8.2f MiB\n", __func__, views[i].size / 1024.0 / 1024.0);
++                for (int j = 0; j < i; j++) {
++                    [views[j].metal release];
++                }
++                return false;
++            }
++        }
++
++        memcpy(old, buf->buffers, sizeof(old[0])*n_old);
++        id rset_old = buf->rset;
++
++        // the new parts are made resident before the old ones are let go: what both cover stays wired throughout
++        buf->n_buffers = n;
++        memcpy(buf->buffers, views, sizeof(views[0])*n);
++        if (!ggml_metal_buffer_rset_init(buf)) {
++            for (int i = 0; i < n; i++) {
++                [views[i].metal release];
++            }
++            buf->n_buffers = n_old;
++            memcpy(buf->buffers, old, sizeof(old[0])*n_old);
++            buf->rset = rset_old;
++            return false;
++        }
++        ggml_metal_device_rsets_add(buf->dev, buf->rset);
++
++        ggml_metal_device_rsets_rm(buf->dev, rset_old);
++        for (int i = 0; i < n_old; i++) {
++            [old[i].metal release];
++        }
++#if defined(GGML_METAL_HAS_RESIDENCY_SETS)
++        if (@available(macOS 15.0, iOS 18.0, tvOS 18.0, visionOS 2.0, *)) {
++            if (rset_old) {
++                [rset_old endResidency];
++                [rset_old removeAllAllocations];
++                [rset_old commit];
++                [rset_old release];
++            }
++        }
++#endif
++    }
++
++    // What was mapped and is not any more gives its pages back (the first time: everything outside the parts,
++    // which requestResidency had made resident). Fresh memory in its place reads as zeros when it is mapped again.
++    for (int i = 0; i < n_old; i++) {
++        uintptr_t at = (uintptr_t) old[i].data;
++        const uintptr_t old_end = at + ((old[i].size + page - 1) & ~(page - 1));
++        while (at < old_end) {
++            // the next stretch of the old part that no new part covers
++            uintptr_t stop = old_end;
++            bool covered = false;
++            for (int j = 0; j < n; j++) {
++                const uintptr_t beg = (uintptr_t) views[j].data;
++                const uintptr_t end = beg + views[j].size;
++                if (at >= beg && at < end) {
++                    covered = true;
++                    stop = end < old_end ? end : old_end;
++                    break;
++                }
++                if (beg > at && beg < stop) {
++                    stop = beg;
++                }
++            }
++            if (!covered && stop > at) {
++                void * res = mmap((void *) at, stop - at, PROT_READ | PROT_WRITE, MAP_FIXED | MAP_ANON | MAP_PRIVATE, -1, 0);
++                if (res == MAP_FAILED) {
++                    GGML_LOG_WARN("%s: the unmapped part keeps its pages: %s\n", __func__, strerror(errno));
++                }
++            }
++            at = stop;
++        }
++    }
++
++    buf->is_views = true;
++
++    return true;
++}
++
+ void * ggml_metal_buffer_get_base(ggml_metal_buffer_t buf) {
+     return buf->all_data;
+ }
+@@ -2467,6 +2611,14 @@
+ }
+ 
+ void ggml_metal_buffer_clear(ggml_metal_buffer_t buf, uint8_t value) {
++    if (buf->is_shared && buf->is_views) {
++        // only what is mapped: writing to the rest would take the memory it was left out to save
++        for (int i = 0; i < buf->n_buffers; i++) {
++            memset(buf->buffers[i].data, value, buf->buffers[i].size);
++        }
++        return;
++    }
++
+     if (buf->is_shared) {
+         memset(buf->all_data, value, buf->all_size);
+         return;
+@@ -2495,6 +2647,23 @@
+ 
+     const int64_t tsize = ggml_nbytes(t);
+ 
++    // a buffer mapped in parts: the part the tensor starts in (the caller uses the tensor only as far as it goes)
++    if (buf->is_views) {
++        for (int i = 0; i < buf->n_buffers; ++i) {
++            const int64_t ioffs = (int64_t) t->data - (int64_t) buf->buffers[i].data;
++            if (ioffs >= 0 && ioffs < (int64_t) buf->buffers[i].size) {
++                res.metal = buf->buffers[i].metal;
++                res.offs  = (size_t) ioffs;
++
++                return res;
++            }
++        }
++
++        GGML_LOG_ERROR("%s: error: tensor '%s' starts in a part of its buffer that is not mapped\n", __func__, t->name);
++
++        return res;
++    }
++
+     // find the view that contains the tensor fully
+     for (int i = 0; i < buf->n_buffers; ++i) {
+         const int64_t ioffs = (int64_t) t->data - (int64_t) buf->buffers[i].data;
+--- a/ggml/src/ggml-metal/ggml-metal.cpp
++++ b/ggml/src/ggml-metal/ggml-metal.cpp
+@@ -86,6 +86,14 @@
+     GGML_ASSERT(ggml_metal_buffer_is_shared(ctx));
+ 
+     ggml_metal_buffer_clear(ctx, value);
++}
++
++static bool ggml_backend_metal_buffer_shared_set_views(ggml_backend_buffer_t buffer, const void ** ptrs, const size_t * sizes, int n) {
++    ggml_metal_buffer_t ctx = (ggml_metal_buffer_t)buffer->context;
++
++    GGML_ASSERT(ggml_metal_buffer_is_shared(ctx));
++
++    return ggml_metal_buffer_set_views(ctx, ptrs, sizes, n);
+ }
+ 
+ static ggml_backend_buffer_i ggml_backend_metal_buffer_shared_i = {
+@@ -100,6 +108,7 @@
+     /* .cpy_tensor    = */ ggml_backend_metal_buffer_shared_cpy_tensor,
+     /* .clear         = */ ggml_backend_metal_buffer_shared_clear,
+     /* .reset         = */ NULL,
++    /* .set_views     = */ ggml_backend_metal_buffer_shared_set_views,
+ };
+ 
+ // private buffer
+@@ -176,6 +185,7 @@
+     /* .cpy_tensor    = */ ggml_backend_metal_buffer_private_cpy_tensor,
+     /* .clear         = */ ggml_backend_metal_buffer_private_clear,
+     /* .reset         = */ NULL,
++    /* .set_views     = */ NULL,
+ };
+ 
+ static bool ggml_backend_buffer_is_metal(ggml_backend_buffer_t buffer) {
+--- a/include/llama.h
++++ b/include/llama.h
+@@ -1213,6 +1213,17 @@
+     // returns false if the context cannot be resized or the new buffers could not be allocated
+     LLAMA_API bool llama_context_resize(struct llama_context * ctx, uint32_t n_batch, size_t moe_cache_size, bool touch);
+ 
++    // A KV cache that takes its device memory as it fills [EXPERIMENTAL]
++    // With LLAMA_KV_LAZY_CELLS=N in the environment when the context is made, a device that can map a buffer in
++    // parts (Metal) maps the KV cache N cells at a time: more as cells come into use, never fewer.
++    // Returns the cells mapped now, 0 if the whole cache is mapped (the variable was not set, or the device cannot).
++    // bytes_per_cell (optional): the device memory one more cell takes, all the context's KV caches together.
++    LLAMA_API uint32_t llama_kv_cells_mapped(const struct llama_context * ctx, size_t * bytes_per_cell);
++
++    // Map at least n_cells now: for a caller that knows how far the context is about to fill and has made room
++    // for that memory. Waits for the device first. Returns false if it could not (or nothing is mapped in parts).
++    LLAMA_API bool llama_kv_map_cells(struct llama_context * ctx, uint32_t n_cells);
++
+     // the compute buffers the context has reserved, in bytes: on its devices, and in host memory (which the
+     // system only backs with pages as passes touch it)
+     LLAMA_API void llama_get_compute_buffer_sizes(const struct llama_context * ctx, size_t * device, size_t * host);
+--- a/src/llama-context.cpp
++++ b/src/llama-context.cpp
+@@ -4218,6 +4218,56 @@
+ 
+ bool llama_context_resize(llama_context * ctx, uint32_t n_batch, size_t moe_cache_size, bool touch) {
+     return ctx->resize(n_batch, moe_cache_size, touch);
++}
++
++// the KV caches of the context's memory (attention, and the indexer's if there is one)
++static std::vector<llama_kv_cache *> llama_context_kv_caches(const llama_context * ctx) {
++    std::vector<llama_kv_cache *> res;
++    llama_memory_t mem = ctx->get_memory();
++    if (auto * hyb_idx = dynamic_cast<llama_memory_hybrid_idx *>(mem)) {
++        res.push_back(hyb_idx->get_mem_attn());
++        if (hyb_idx->get_mem_idx()) {
++            res.push_back(hyb_idx->get_mem_idx());
++        }
++    } else if (auto * hyb = dynamic_cast<llama_memory_hybrid *>(mem)) {
++        res.push_back(hyb->get_mem_attn());
++    } else if (auto * kv = dynamic_cast<llama_kv_cache *>(mem)) {
++        res.push_back(kv);
++    }
++    return res;
++}
++
++uint32_t llama_kv_cells_mapped(const llama_context * ctx, size_t * bytes_per_cell) {
++    uint32_t n_mapped = 0;
++    size_t   n_bytes  = 0;
++    for (const llama_kv_cache * kv : llama_context_kv_caches(ctx)) {
++        const uint32_t n = kv->get_n_mapped();
++        if (n == 0) {
++            continue;
++        }
++        n_mapped = n_mapped == 0 ? n : std::min(n_mapped, n);
++        n_bytes += kv->get_cell_bytes();
++    }
++    if (bytes_per_cell) {
++        *bytes_per_cell = n_bytes;
++    }
++    return n_mapped;
++}
++
++bool llama_kv_map_cells(llama_context * ctx, uint32_t n_cells) {
++    ctx->synchronize();
++
++    bool res = false;
++    for (llama_kv_cache * kv : llama_context_kv_caches(ctx)) {
++        if (kv->get_n_mapped() == 0) {
++            continue;
++        }
++        if (!kv->map_cells(n_cells)) {
++            return false;
++        }
++        res = true;
++    }
++    return res;
+ }
+ 
+ void llama_get_compute_buffer_sizes(const llama_context * ctx, size_t * device, size_t * host) {
+--- a/src/llama-kv-cache.cpp
++++ b/src/llama-kv-cache.cpp
+@@ -272,8 +272,18 @@
+             LLAMA_LOG_DEBUG("%s: - layer %3d: reuse layer %d, is_swa = %d\n", __func__, il, il_reuse, hparams.is_swa(il));
+         }
+     }
++
++    // LLAMA_KV_LAZY_CELLS, see map_cells(): a device that can leaves the buffer unmapped until then
++    const char * LLAMA_KV_LAZY_CELLS = getenv("LLAMA_KV_LAZY_CELLS");
++    const int    lazy_cells          = LLAMA_KV_LAZY_CELLS ? atoi(LLAMA_KV_LAZY_CELLS) : 0;
++    const bool   lazy_try            = lazy_cells > 0 && !hparams.no_alloc && n_stream == 1 && ctx_map.size() == 1 && !layers.empty();
+ 
+     // allocate tensors and initialize the buffers to avoid NaNs in the padding
++    struct unmapped_scope {
++        explicit unmapped_scope(bool on) { ggml_backend_alloc_unmapped(on); }
++        ~unmapped_scope() { ggml_backend_alloc_unmapped(false); }
++    };
++    std::unique_ptr<unmapped_scope> unmapped = std::make_unique<unmapped_scope>(lazy_try);
+     for (auto & [buft, ctx] : ctx_map) {
+         ggml_backend_buffer_t buf;
+         if (hparams.no_alloc) {
+@@ -290,8 +300,33 @@
+ 
+         LLAMA_LOG_INFO("%s: %10s KV buffer size = %8.2f MiB\n", __func__, ggml_backend_buffer_name(buf), ggml_backend_buffer_get_size(buf)/1024.0/1024.0);
+ 
+-        ggml_backend_buffer_clear(buf, 0);
+         ctxs_bufs.emplace_back(std::move(ctx), buf);
++    }
++
++    unmapped.reset();
++
++    // mapped in parts if that is asked for and the device can (one buffer, one stream); the buffer is new memory
++    // then and reads as zeros without being written to, which would take all of it
++    {
++        if (lazy_try) {
++            lazy_step = std::min<uint32_t>(kv_size, GGML_PAD((uint32_t) lazy_cells, std::max(n_pad, 256u)));
++            if (map_cells(lazy_step)) {
++                LLAMA_LOG_INFO("%s: the device maps the cache as it fills: %u of %u cells now, %.2f MiB each %u more\n",
++                        __func__, n_mapped, kv_size, lazy_step*get_cell_bytes()/1024.0/1024.0, lazy_step);
++            } else {
++                lazy_step = 0;
++                // (a device that left the buffer unmapped for this maps all of it now; others never did)
++                ggml_backend_buffer_t buf = ctxs_bufs[0].second.get();
++                const void * base = ggml_backend_buffer_get_base(buf);
++                const size_t size = ggml_backend_buffer_get_size(buf);
++                ggml_backend_buffer_set_views(buf, &base, &size, 1);
++            }
++        }
++        if (lazy_step == 0) {
++            for (auto & [_, buf] : ctxs_bufs) {
++                ggml_backend_buffer_clear(buf.get(), 0);
++            }
++        }
+     }
+ 
+     {
+@@ -393,8 +428,60 @@
+     if (data) {
+         for (auto & [_, buf] : ctxs_bufs) {
+             ggml_backend_buffer_clear(buf.get(), 0);
++        }
++    }
++}
++
++size_t llama_kv_cache::get_cell_bytes() const {
++    size_t res = 0;
++    for (const auto & layer : layers) {
++        res += layer.k ? layer.k->nb[1] : 0;
++        res += layer.v ? layer.v->nb[1] : 0;
++    }
++    return res;
++}
++
++bool llama_kv_cache::map_cells(uint32_t n) {
++    if (lazy_step == 0) {
++        return false;
++    }
++
++    const uint32_t kv_size = get_size();
++    n = std::min(kv_size, GGML_PAD(std::max(n, 1u), lazy_step));
++    if (n <= n_mapped) {
++        return true;
++    }
++
++    // every layer's K and V: the first n cells of each
++    std::vector<const void *> ptrs;
++    std::vector<size_t>       sizes;
++    for (const auto & layer : layers) {
++        for (const ggml_tensor * t : { layer.k, layer.v }) {
++            if (t == nullptr) {
++                continue;
++            }
++            ptrs.push_back(t->data);
++            sizes.push_back((size_t) n*t->nb[1]);
+         }
+     }
++
++    if (!ggml_backend_buffer_set_views(ctxs_bufs[0].second.get(), ptrs.data(), sizes.data(), (int) ptrs.size())) {
++        return false;
++    }
++
++    // the new cells are cleared as the whole cache is when it is mapped at once (they read as zeros already:
++    // writing them makes the memory count as this process's, like every other buffer of the context)
++    for (const auto & layer : layers) {
++        for (ggml_tensor * t : { layer.k, layer.v }) {
++            if (t != nullptr) {
++                ggml_backend_tensor_memset(t, 0, (size_t) n_mapped*t->nb[1], (size_t) (n - n_mapped)*t->nb[1]);
++            }
++        }
++    }
++
++    n_mapped = n;
++
++    return true;
+ }
+ 
+ bool llama_kv_cache::seq_rm(llama_seq_id seq_id, llama_pos p0, llama_pos p1) {
+@@ -873,6 +960,11 @@
+     }
+ 
+     if (do_shift) {
++        // (the shift's graph goes over every cell)
++        if (lazy_step > 0 && !map_cells(get_size())) {
++            throw std::runtime_error("failed to map the KV cache on the device");
++        }
++
+         if (!get_can_shift()) {
+             GGML_ABORT("The current KV cache / model configuration does not support K-shift");
+         }
+@@ -1112,9 +1204,33 @@
+     return res;
+ }
+ 
++// the graph reads the cache up to get_n_kv(): the device has to have that much of it mapped
++// (a cache that shares its cells may be asked before or after their owner has marked the slot's cells as used)
++void llama_kv_cache::map_slot(const slot_info & sinfo) {
++    if (lazy_step == 0) {
++        return;
++    }
++
++    const uint32_t n_pad_cur = std::max(n_pad, 256u);
++
++    uint32_t used = 0;
++    for (uint32_t s = 0; s < sinfo.n_stream(); ++s) {
++        used = std::max(used, v_cells[sinfo.strm[s]].used_max_p1());
++        for (const uint32_t idx : sinfo.idxs[s]) {
++            used = std::max(used, idx + 1);
++        }
++    }
++
++    const uint32_t need = std::min(get_size(), std::max(n_pad_cur, GGML_PAD(used, n_pad_cur)));
++    if (need > n_mapped && !map_cells(need)) {
++        throw std::runtime_error("failed to map more of the KV cache on the device");
++    }
++}
++
+ void llama_kv_cache::apply_ubatch(const slot_info & sinfo, const llama_ubatch & ubatch) {
+     // TODO: refactor [TAG_KV_CACHE_SHARE_CELLS]
+     if (other) {
++        map_slot(sinfo);
+         return;
+     }
+ 
+@@ -1203,6 +1319,8 @@
+ 
+         head = sinfo.idxs[s].back() + 1;
+     }
++
++    map_slot(sinfo);
+ }
+ 
+ bool llama_kv_cache::get_can_shift() const {
+--- a/src/llama-kv-cache.h
++++ b/src/llama-kv-cache.h
+@@ -134,6 +134,16 @@
+     bool get_can_shift() const override;
+ 
+     void clear(bool data) override;
++
++    // LLAMA_KV_LAZY_CELLS=N in the environment when the cache is made: a device that can map a buffer in parts
++    // (ggml_backend_buffer_set_views) maps the cache N cells at a time, as its cells come into use, instead of all
++    // of it from the start. The memory of a context that never fills is then never taken.
++    // cells mapped now, 0 if the whole cache is (the variable is not set, or the device cannot)
++    uint32_t get_n_mapped() const { return lazy_step > 0 ? n_mapped : 0; }
++    // device memory of one cell, all layers together
++    size_t get_cell_bytes() const;
++    // map at least n cells (more are mapped by themselves when a cell beyond them is taken); false: it could not
++    bool map_cells(uint32_t n);
+ 
+     bool seq_rm  (llama_seq_id seq_id,                              llama_pos p0, llama_pos p1) override;
+     void seq_cp  (llama_seq_id seq_id_src, llama_seq_id seq_id_dst, llama_pos p0, llama_pos p1) override;
+@@ -292,6 +302,12 @@
+     // env: LLAMA_KV_CACHE_DEBUG
+     int debug = 0;
+ 
++    // env: LLAMA_KV_LAZY_CELLS, see map_cells()
++    uint32_t lazy_step = 0; // 0: the device maps the whole cache
++    uint32_t n_mapped  = 0;
++
++    void map_slot(const slot_info & sinfo);
++
+     // this is the SWA type of the cache - not to be confused with the model SWA type
+     const llama_swa_type swa_type = LLAMA_SWA_TYPE_NONE;
+ 
