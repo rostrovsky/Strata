@@ -673,6 +673,7 @@ struct Engine {
             fixed = true;
         }
         if (files.expert_bytes > 0 && (!fixed || want > 0)) {
+            const HostMemory before_context = host_memory();
             ctx = llama_init_from_model(model, ctx_params(0));
             if (ctx == nullptr) {
                 err = "the context could not be created (is --max-context too large for this Mac?)";
@@ -687,14 +688,15 @@ struct Engine {
             }
             uint64_t used2 = 0;
             gpu_memory(used2, ws);
+            // Sample with the context still alive: Metal may release its physical pages later than llama_free.
+            const HostMemory hm = host_memory();
+            const double ctx_bytes = (double) (used2 - used1);
+            const double by_ram = std::min(before_context.usable() - ctx_bytes, hm.usable()) - o.reserve_gib * kGiB;
             if (mtp) mtp->free_context();
             llama_free(ctx);
             ctx = nullptr;
-            const HostMemory hm = host_memory();   // the dense weights are in; the context was measured and freed
-            const double ctx_bytes = (double) (used2 - used1);
             const double margin = 0.25 * kGiB;
             const double by_metal = (double) ws + o.overcommit_gib * kGiB - (double) used2 - margin;
-            const double by_ram = hm.usable() - ctx_bytes - o.reserve_gib * kGiB;
             const double room = std::max(0.0, std::min(by_metal, by_ram));
             if (!fixed) want = (uint64_t) room;
             // benchmarks: the same cache in every run, and still never more than the free memory has room for
@@ -1098,7 +1100,8 @@ struct Engine {
         struct Bulk {
             ExpertFetch& f;
             bool on = false;
-            ~Bulk() { if (on) f.end_bulk(); }
+            void finish() { if (on) { f.end_bulk(); on = false; } }
+            ~Bulk() { finish(); }
         } bulk{fetch};
         if (const char* w = std::getenv("STRATA_PREFILL_AHEAD_TENSORS")) o.prefill_ahead_tensors = std::atoi(w);
         if (o.prefill_ahead && o.prefill > 32 && n - at >= o.prefill_from && pool) {
@@ -1139,6 +1142,7 @@ struct Engine {
         if (!cancelled) {   // the prompt's last pass is over when the GPU has finished it
             llama_synchronize(ctx);
         }
+        bulk.finish();   // release prompt staging before decoding an answer or waiting for the next request
         r.prompt_ms = ms_since(tp);
         const Mark m1 = mark_now();
 

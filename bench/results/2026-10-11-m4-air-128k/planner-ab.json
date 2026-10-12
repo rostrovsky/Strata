@@ -1,0 +1,545 @@
+{
+  "when": "2026-10-11 21:33",
+  "args": [
+    "--native",
+    "<workspace>/Strata-data/models/IQ3_S/Qwen3.8-Flash-Next-GSQ-RCO-IQ3_S-00001-of-00002.gguf",
+    "--expert-profile",
+    "<workspace>/Strata/data/expert-profile.bin",
+    "--expert-cache",
+    "auto",
+    "--max-context",
+    "131072",
+    "--kv",
+    "q8_0",
+    "--prefill",
+    "2048",
+    "--reserve-gib",
+    "4"
+  ],
+  "memory_before": {
+    "free_gib": 16.21,
+    "file_cache_gib": 4.99,
+    "apps_gib": 7.87,
+    "wired_gib": 2.13,
+    "swap_used_gib": 1.51
+  },
+  "ab": {
+    "build-metal/tuning-128k/strata-before": [
+      {
+        "info": {
+          "context": "131072",
+          "kv": "q8_0",
+          "kv_resident": "0",
+          "expert_slots": "292",
+          "expert_cache_mib": "577",
+          "expert_slots_primary": "292",
+          "expert_cache_primary_mib": "577",
+          "spec": "0",
+          "mtp_max": "0",
+          "lookup": "0",
+          "prefetch": "10",
+          "vram_free_mib": "12684",
+          "arena_mib": "0",
+          "pool_workers": "8",
+          "backend": "metal",
+          "expert_io": "direct",
+          "engine": "0.1.42-metal"
+        },
+        "therm": null,
+        "temps_before": [
+          57.2,
+          34.5
+        ],
+        "memory_before": {
+          "free_gib": 16.21,
+          "file_cache_gib": 4.99,
+          "apps_gib": 7.87,
+          "wired_gib": 2.13,
+          "swap_used_gib": 1.51
+        },
+        "ready_s": 19.12975311279297,
+        "decode": {
+          "tps": 2.505038543433952,
+          "rows": [
+            {
+              "name": "chat",
+              "tps": 2.4628826175217924,
+              "hit_rate": 0.4968578735842163,
+              "ssd_gb": 119.953,
+              "watts": 18.532694915254236,
+              "ttft_s": 9.00236701965332,
+              "generated": 100,
+              "decode_ms": 40196.8,
+              "drafts_accepted": 0,
+              "drafts_offered": 0,
+              "per_token": {
+                "total_ms": 406.02828282828284,
+                "gpu_wait_ms": 192.93636363636364,
+                "ssd_ms": 193.92121212121214,
+                "cpu_ms": 19.170707070707085,
+                "encode_ms": 4.851515151515152,
+                "gpu_busy_ms": 189.80707070707072,
+                "sample_ms": 0.18383838383838383,
+                "misses": 231.58585858585857,
+                "ssd_mb": 1016.9494949494949,
+                "waits": 49.0,
+                "ahead": 267.1111111111111,
+                "ahead_used": 228.41414141414143,
+                "ahead_waits": 42.97979797979798,
+                "predict_ms": 4.27979797979798
+              },
+              "swapouts": 0,
+              "at_s": 49.2267689704895,
+              "therm": null
+            },
+            {
+              "name": "code",
+              "tps": 2.5486627243917317,
+              "hit_rate": 0.497847399829497,
+              "ssd_gb": 106.3069,
+              "watts": 17.98091666666667,
+              "ttft_s": 6.0416419506073,
+              "generated": 100,
+              "decode_ms": 38843.9,
+              "drafts_accepted": 0,
+              "drafts_offered": 0,
+              "per_token": {
+                "total_ms": 392.3626262626263,
+                "gpu_wait_ms": 201.66464646464647,
+                "ssd_ms": 174.85454545454544,
+                "cpu_ms": 15.84343434343438,
+                "encode_ms": 4.995959595959596,
+                "gpu_busy_ms": 197.56363636363636,
+                "sample_ms": 0.19393939393939394,
+                "misses": 230.8181818181818,
+                "ssd_mb": 1004.0151515151515,
+                "waits": 49.0,
+                "ahead": 261.5050505050505,
+                "ahead_used": 229.1818181818182,
+                "ahead_waits": 31.171717171717173,
+                "predict_ms": 4.342424242424242
+              },
+              "swapouts": 0,
+              "at_s": 94.15261483192444,
+              "therm": null
+            }
+          ],
+          "hit_rate": 0.49735263670685664,
+          "ssd_gb": 226.25990000000002,
+          "swapouts": 0,
+          "watts": 18.256805790960453,
+          "tokens_per_joule": 0.13721121712727422,
+          "per_token": {
+            "total_ms": 399.1954545454546,
+            "gpu_wait_ms": 197.30050505050505,
+            "ssd_ms": 184.38787878787878,
+            "cpu_ms": 17.50707070707073,
+            "encode_ms": 4.923737373737374,
+            "gpu_busy_ms": 193.68535353535356,
+            "sample_ms": 0.18888888888888888,
+            "misses": 231.2020202020202,
+            "ssd_mb": 1010.4823232323232,
+            "waits": 49.0,
+            "ahead": 264.30808080808083,
+            "ahead_used": 228.7979797979798,
+            "ahead_waits": 37.07575757575758,
+            "predict_ms": 4.311111111111111
+          }
+        },
+        "swapouts": 0,
+        "temps_after": [
+          60.8,
+          34.5
+        ]
+      },
+      {
+        "info": {
+          "context": "131072",
+          "kv": "q8_0",
+          "kv_resident": "0",
+          "expert_slots": "1585",
+          "expert_cache_mib": "3106",
+          "expert_slots_primary": "1585",
+          "expert_cache_primary_mib": "3106",
+          "spec": "0",
+          "mtp_max": "0",
+          "lookup": "0",
+          "prefetch": "10",
+          "vram_free_mib": "10154",
+          "arena_mib": "0",
+          "pool_workers": "8",
+          "backend": "metal",
+          "expert_io": "direct",
+          "engine": "0.1.42-metal"
+        },
+        "therm": null,
+        "temps_before": [
+          62.5,
+          34.5
+        ],
+        "memory_before": {
+          "free_gib": 16.25,
+          "file_cache_gib": 4.81,
+          "apps_gib": 7.77,
+          "wired_gib": 2.37,
+          "swap_used_gib": 1.51
+        },
+        "ready_s": 4.633217096328735,
+        "decode": {
+          "tps": 4.663443081264029,
+          "rows": [
+            {
+              "name": "chat",
+              "tps": 4.520733728783375,
+              "hit_rate": 0.7718933887158186,
+              "ssd_gb": 64.2168,
+              "watts": 20.794542372881356,
+              "ttft_s": 4.232052326202393,
+              "generated": 100,
+              "decode_ms": 21899.1,
+              "drafts_accepted": 0,
+              "drafts_offered": 0,
+              "per_token": {
+                "total_ms": 221.2030303030303,
+                "gpu_wait_ms": 113.73636363636363,
+                "ssd_ms": 97.85151515151514,
+                "cpu_ms": 9.615151515151512,
+                "encode_ms": 4.13030303030303,
+                "gpu_busy_ms": 111.75656565656566,
+                "sample_ms": 0.16363636363636364,
+                "misses": 100.02020202020202,
+                "ssd_mb": 546.2949494949495,
+                "waits": 49.0,
+                "ahead": 168.74747474747474,
+                "ahead_used": 122.9090909090909,
+                "ahead_waits": 26.07070707070707,
+                "predict_ms": 4.25050505050505
+              },
+              "swapouts": 0,
+              "at_s": 26.152454137802124,
+              "therm": null
+            },
+            {
+              "name": "code",
+              "tps": 4.815456155028504,
+              "hit_rate": 0.7918957026380857,
+              "ssd_gb": 58.2532,
+              "watts": null,
+              "ttft_s": 5.3324480056762695,
+              "generated": 100,
+              "decode_ms": 20558.8,
+              "drafts_accepted": 0,
+              "drafts_offered": 0,
+              "per_token": {
+                "total_ms": 207.66464646464647,
+                "gpu_wait_ms": 108.3080808080808,
+                "ssd_ms": 89.80101010101009,
+                "cpu_ms": 9.555555555555555,
+                "encode_ms": 4.11919191919192,
+                "gpu_busy_ms": 105.17171717171718,
+                "sample_ms": 0.15151515151515152,
+                "misses": 95.87878787878788,
+                "ssd_mb": 500.16262626262625,
+                "waits": 49.0,
+                "ahead": 148.8080808080808,
+                "ahead_used": 114.9090909090909,
+                "ahead_waits": 23.95959595959596,
+                "predict_ms": 4.252525252525253
+              },
+              "swapouts": 0,
+              "at_s": 52.07537508010864,
+              "therm": null
+            }
+          ],
+          "hit_rate": 0.7818945456769522,
+          "ssd_gb": 122.47,
+          "swapouts": 0,
+          "watts": 20.794542372881356,
+          "tokens_per_joule": 0.2242628377023451,
+          "per_token": {
+            "total_ms": 214.43383838383838,
+            "gpu_wait_ms": 111.02222222222221,
+            "ssd_ms": 93.82626262626262,
+            "cpu_ms": 9.585353535353534,
+            "encode_ms": 4.124747474747474,
+            "gpu_busy_ms": 108.46414141414141,
+            "sample_ms": 0.1575757575757576,
+            "misses": 97.94949494949495,
+            "ssd_mb": 523.2287878787879,
+            "waits": 49.0,
+            "ahead": 158.77777777777777,
+            "ahead_used": 118.9090909090909,
+            "ahead_waits": 25.015151515151516,
+            "predict_ms": 4.251515151515152
+          }
+        },
+        "swapouts": 0,
+        "temps_after": [
+          65.6,
+          34.6
+        ]
+      }
+    ],
+    "build-metal/bin/strata": [
+      {
+        "info": {
+          "context": "131072",
+          "kv": "q8_0",
+          "kv_resident": "0",
+          "expert_slots": "2861",
+          "expert_cache_mib": "5596",
+          "expert_slots_primary": "2861",
+          "expert_cache_primary_mib": "5596",
+          "spec": "0",
+          "mtp_max": "0",
+          "lookup": "0",
+          "prefetch": "10",
+          "vram_free_mib": "7664",
+          "arena_mib": "0",
+          "pool_workers": "8",
+          "backend": "metal",
+          "expert_io": "direct",
+          "engine": "0.1.42-metal"
+        },
+        "therm": null,
+        "temps_before": [
+          58.4,
+          34.5
+        ],
+        "memory_before": {
+          "free_gib": 10.5,
+          "file_cache_gib": 8.68,
+          "apps_gib": 9.57,
+          "wired_gib": 2.46,
+          "swap_used_gib": 1.51
+        },
+        "ready_s": 3.4662530422210693,
+        "decode": {
+          "tps": 6.1209537558852345,
+          "rows": [
+            {
+              "name": "chat",
+              "tps": 5.959654941998712,
+              "hit_rate": 0.8270037515477444,
+              "ssd_gb": 43.1029,
+              "watts": null,
+              "ttft_s": 3.7647862434387207,
+              "generated": 100,
+              "decode_ms": 16611.7,
+              "drafts_accepted": 0,
+              "drafts_offered": 0,
+              "per_token": {
+                "total_ms": 167.7949494949495,
+                "gpu_wait_ms": 94.34141414141413,
+                "ssd_ms": 64.13131313131314,
+                "cpu_ms": 9.322222222222237,
+                "encode_ms": 4.03030303030303,
+                "gpu_busy_ms": 87.71616161616161,
+                "sample_ms": 0.15858585858585858,
+                "misses": 67.8989898989899,
+                "ssd_mb": 375.85555555555555,
+                "waits": 49.0,
+                "ahead": 117.56565656565657,
+                "ahead_used": 80.53535353535354,
+                "ahead_waits": 16.171717171717173,
+                "predict_ms": 4.224242424242424
+              },
+              "swapouts": 0,
+              "at_s": 20.4028959274292,
+              "therm": null
+            },
+            {
+              "name": "code",
+              "tps": 6.291226598543486,
+              "hit_rate": 0.8532807487177392,
+              "ssd_gb": 41.1577,
+              "watts": null,
+              "ttft_s": 4.94368577003479,
+              "generated": 100,
+              "decode_ms": 15736.2,
+              "drafts_accepted": 0,
+              "drafts_offered": 0,
+              "per_token": {
+                "total_ms": 158.95151515151517,
+                "gpu_wait_ms": 91.43232323232323,
+                "ssd_ms": 58.24444444444444,
+                "cpu_ms": 9.27474747474749,
+                "encode_ms": 4.004040404040404,
+                "gpu_busy_ms": 85.21313131313131,
+                "sample_ms": 0.15353535353535352,
+                "misses": 66.11111111111111,
+                "ssd_mb": 344.6282828282828,
+                "waits": 49.0,
+                "ahead": 103.02020202020202,
+                "ahead_used": 76.62626262626263,
+                "ahead_waits": 14.141414141414142,
+                "predict_ms": 4.225252525252525
+              },
+              "swapouts": 0,
+              "at_s": 41.11180591583252,
+              "therm": null
+            }
+          ],
+          "hit_rate": 0.8401422501327418,
+          "ssd_gb": 84.2606,
+          "swapouts": 0,
+          "per_token": {
+            "total_ms": 163.37323232323234,
+            "gpu_wait_ms": 92.88686868686868,
+            "ssd_ms": 61.18787878787879,
+            "cpu_ms": 9.298484848484865,
+            "encode_ms": 4.017171717171717,
+            "gpu_busy_ms": 86.46464646464646,
+            "sample_ms": 0.15606060606060607,
+            "misses": 67.0050505050505,
+            "ssd_mb": 360.2419191919192,
+            "waits": 49.0,
+            "ahead": 110.2929292929293,
+            "ahead_used": 78.58080808080808,
+            "ahead_waits": 15.156565656565657,
+            "predict_ms": 4.224747474747474
+          }
+        },
+        "swapouts": 0,
+        "temps_after": [
+          65.1,
+          34.5
+        ]
+      },
+      {
+        "info": {
+          "context": "131072",
+          "kv": "q8_0",
+          "kv_resident": "0",
+          "expert_slots": "3527",
+          "expert_cache_mib": "6896",
+          "expert_slots_primary": "3527",
+          "expert_cache_primary_mib": "6896",
+          "spec": "0",
+          "mtp_max": "0",
+          "lookup": "0",
+          "prefetch": "10",
+          "vram_free_mib": "6364",
+          "arena_mib": "0",
+          "pool_workers": "8",
+          "backend": "metal",
+          "expert_io": "direct",
+          "engine": "0.1.42-metal"
+        },
+        "therm": null,
+        "temps_before": [
+          61.7,
+          34.5
+        ],
+        "memory_before": {
+          "free_gib": 15.12,
+          "file_cache_gib": 5.08,
+          "apps_gib": 8.66,
+          "wired_gib": 2.35,
+          "swap_used_gib": 1.51
+        },
+        "ready_s": 7.336216688156128,
+        "decode": {
+          "tps": 6.5907729179149195,
+          "rows": [
+            {
+              "name": "chat",
+              "tps": 6.625220004149128,
+              "hit_rate": 0.8482884154609113,
+              "ssd_gb": 37.7719,
+              "watts": 19.854067796610167,
+              "ttft_s": 3.772887706756592,
+              "generated": 100,
+              "decode_ms": 14942.9,
+              "drafts_accepted": 0,
+              "drafts_offered": 0,
+              "per_token": {
+                "total_ms": 150.93838383838383,
+                "gpu_wait_ms": 89.66969696969696,
+                "ssd_ms": 50.958585858585856,
+                "cpu_ms": 10.310101010101018,
+                "encode_ms": 3.854545454545455,
+                "gpu_busy_ms": 83.72727272727273,
+                "sample_ms": 0.14949494949494951,
+                "misses": 54.97979797979798,
+                "ssd_mb": 301.24949494949493,
+                "waits": 49.0,
+                "ahead": 93.95959595959596,
+                "ahead_used": 61.04040404040404,
+                "ahead_waits": 11.323232323232324,
+                "predict_ms": 4.157575757575758
+              },
+              "swapouts": 0,
+              "at_s": 18.73855710029602,
+              "therm": null
+            },
+            {
+              "name": "code",
+              "tps": 6.556682186355478,
+              "hit_rate": 0.8745121278378323,
+              "ssd_gb": 37.6588,
+              "watts": null,
+              "ttft_s": 4.8319549560546875,
+              "generated": 100,
+              "decode_ms": 15099.1,
+              "drafts_accepted": 0,
+              "drafts_offered": 0,
+              "per_token": {
+                "total_ms": 152.5161616161616,
+                "gpu_wait_ms": 93.06666666666668,
+                "ssd_ms": 50.12929292929293,
+                "cpu_ms": 9.320202020202018,
+                "encode_ms": 4.041414141414141,
+                "gpu_busy_ms": 87.30707070707071,
+                "sample_ms": 0.1393939393939394,
+                "misses": 55.80808080808081,
+                "ssd_mb": 285.6606060606061,
+                "waits": 49.0,
+                "ahead": 84.51515151515152,
+                "ahead_used": 61.333333333333336,
+                "ahead_waits": 10.585858585858587,
+                "predict_ms": 4.229292929292929
+              },
+              "swapouts": 0,
+              "at_s": 38.69862508773804,
+              "therm": null
+            }
+          ],
+          "hit_rate": 0.8614002716493718,
+          "ssd_gb": 75.4307,
+          "swapouts": 0,
+          "watts": 19.854067796610167,
+          "tokens_per_joule": 0.3319608346980769,
+          "per_token": {
+            "total_ms": 151.72727272727272,
+            "gpu_wait_ms": 91.36818181818182,
+            "ssd_ms": 50.5439393939394,
+            "cpu_ms": 9.815151515151518,
+            "encode_ms": 3.947979797979798,
+            "gpu_busy_ms": 85.51717171717172,
+            "sample_ms": 0.14444444444444446,
+            "misses": 55.39393939393939,
+            "ssd_mb": 293.4550505050505,
+            "waits": 49.0,
+            "ahead": 89.23737373737373,
+            "ahead_used": 61.18686868686869,
+            "ahead_waits": 10.954545454545455,
+            "predict_ms": 4.193434343434344
+          }
+        },
+        "swapouts": 0,
+        "temps_after": [
+          65.8,
+          34.5
+        ]
+      }
+    ]
+  },
+  "memory_after": {
+    "free_gib": 14.1,
+    "file_cache_gib": 6.77,
+    "apps_gib": 8.0,
+    "wired_gib": 2.33,
+    "swap_used_gib": 1.51
+  }
+}

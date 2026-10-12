@@ -13,6 +13,8 @@ to cause none.
                        again with the reference's tokens fed in (teacher forcing), and the difference is accepted
                        only if both engines had the two tokens within --tie logits of each other at that place
   --prefill 32,256,..  reads prompts of N tokens and writes one token: tokens/s and the time to the first token
+  --prefill-new N      also measures decode at each prompt depth
+  --needle             retrieves five exact records spread across each prompt; requires --prefill-new >= 64
   --decode             the suite's short requests one after another: tokens/s, hit rate, and where a token's time goes
   --sustained S        --decode repeated for S seconds: tokens/s per 30 s (a fanless Mac slows down once it is warm)
   --ab EXE [EXE ...]   --decode (or --prefill) with each engine in turn, --runs times, medians
@@ -153,13 +155,15 @@ class Engine:
                 f"{self.info.get('expert_slots')} experts ({self.info.get('expert_cache_mib')} MiB), "
                 f"{self.info.get('expert_io')} reads")
 
-    def gen(self, ids, max_new, keys=""):
+    def gen(self, ids, max_new, keys="", progress=False):
         """One request.  -> dict: ids, probes, stats, the DONE figures, wall times."""
         s0 = swapouts()
         p0 = power_counters()
         self.p.stdin.write(f"GEN {max_new}{keys} {','.join(map(str, ids))}\n")
         self.p.stdin.flush()
         start, stamps, out, probes, stats, resume = time.time(), [], [], [], {}, 0
+        last_progress = start
+        progress_rows = []
         for line in self.p.stdout:
             f = line.split()
             if f[0] == "T":
@@ -173,6 +177,15 @@ class Engine:
                 stats[f[1]] = {k: float(v) for k, v in (kv.split("=", 1) for kv in f[2:])}
             elif f[0] == "RESUME":
                 resume = int(f[1])
+            elif f[0] == "PP":
+                row = {"tokens": int(f[1]), "total": int(f[2]), "elapsed_s": float(f[3]) / 1000}
+                progress_rows.append(row)
+                if progress and time.time() - last_progress >= 30:
+                    row["memory"] = memory_state()
+                    row["swapouts"] = swapouts() - s0
+                    print(f"  read {row['tokens']}/{row['total']} tokens in {row['elapsed_s']:.1f} s; "
+                          f"swap-outs {row['swapouts']}", flush=True)
+                    last_progress = time.time()
             elif f[0] == "ERR":
                 sys.exit(f"the engine answered: {line.strip()}")
             elif f[0] == "DONE":
@@ -188,7 +201,7 @@ class Engine:
                         "tps_first": first / (stamps[first] - stamps[0]) if first > 0 else 0.0,
                         "tps": (gen - 1) / (dms / 1000) if gen > 1 and dms > 0 else 0.0,
                         "hits": hits, "lookups": look, "hit_rate": hits / max(1, look), "ssd_gb": fmb / 1000,
-                        "wall_s": time.time() - start, "stamps": stamps, "swapouts": swapouts() - s0,
+                        "wall_s": time.time() - start, "stamps": stamps, "progress": progress_rows, "swapouts": swapouts() - s0,
                         "watts": watts(p0, power_counters())}
         sys.exit("the engine ended inside a request (see the log)")
 
@@ -380,22 +393,43 @@ def run_prefill(e, tok, a, sizes):
     body = tok.encode((ROOT / "docs" / "DETAILS.md").read_text(encoding="utf-8"))
     head = tok.encode("<|im_start|>user\nSummarize the following document.\n\n", parse_special=True)
     tail = tok.encode("<|im_end|>\n<|im_start|>assistant\n", parse_special=True)
+    needles = {"ALPHA": "cedar-58317", "BRAVO": "quartz-92406", "CHARLIE": "lilac-76183",
+               "DELTA": "maple-40952", "ECHO": "coral-63821"} if a.needle else {}
+    if needles:
+        head = tok.encode("<|im_start|>user\nFind the five STRATA_TEST_RECORD entries in this document.\n\n", parse_special=True)
+        tail = tok.encode("\n\nReturn the exact values of STRATA_TEST_RECORD ALPHA, BRAVO, CHARLIE, DELTA, and ECHO, "
+                          "one per line. Do not summarize or explain.\n<|im_end|>\n<|im_start|>assistant\n"
+                          "<think>\n\n</think>\n\n", parse_special=True)
     out = {}
     ctx = int(e.info.get("context", 0))
     for i, n in enumerate(sizes):
-        if n + 16 > ctx:
+        if n + a.prefill_new + 8 > ctx:
             print(f"prefill {n}: skipped, the context is {ctx}", flush=True)
             continue
         # a different start of the text for every size, so no request reuses the one before it
         cut = body[1000 * i:] * (1 + n // max(1, len(body) - 1000 * i))
-        ids = head + cut[:max(1, n - len(head) - len(tail))] + tail
-        r = e.gen(ids, 1, " stats=1")
+        content = cut[:max(1, n - len(head) - len(tail))]
+        positions = {}
+        for (name, value), fraction in zip(needles.items(), (0.05, 0.25, 0.5, 0.75, 0.95)):
+            record = tok.encode(f"\n\nSTRATA_TEST_RECORD {name} = {value}\n\n")
+            pos = int(len(content) * fraction)
+            if pos + len(record) > len(content):
+                raise ValueError("needle prompts must be large enough for all five records")
+            content[pos:pos + len(record)] = record
+            positions[name] = len(head) + pos
+        ids = head + content + tail
+        r = e.gen(ids, a.prefill_new, " stats=1", progress=True)
         st = r["stats"].get("prompt", {})
         out[n] = {"tokens": r["read"], "tps": r["prefill_tps"], "ttft_s": r["ttft_s"], "ssd_gb": r["ssd_gb"],
                   "swapouts": r["swapouts"], "gpu_wait_s": st.get("gpu_wait", 0) / 1000, "ssd_s": st.get("fetch", 0) / 1000,
                   "gpu_busy_s": st.get("gpu_busy", 0) / 1000, "wall_s": st.get("wall", 0) / 1000,
                   "passes": st.get("passes", 0), "read_ahead_gb": st.get("staged_mb", 0) / 1000,
-                  "read_ahead_used_gb": st.get("staged_used_mb", 0) / 1000, "watts": r["watts"]}
+                  "read_ahead_used_gb": st.get("staged_used_mb", 0) / 1000, "watts": r["watts"],
+                  "decode_tps": r["tps"], "generated": r["generated"], "output": tok.decode(r["ids"]),
+                  "progress": r["progress"], "decode_per_token": per_token(r)}
+        if needles:
+            out[n]["needle_positions"] = positions
+            out[n]["needle_found"] = {name: value in out[n]["output"] for name, value in needles.items()}
         o = out[n]
         print(f"prefill {r['read']:6d} tokens: {r['prefill_tps']:7.1f} tok/s, first token after {r['ttft_s']:.2f} s, "
               f"{r['ssd_gb']:.1f} GB from the SSD, {int(o['passes'])} passes; {o['wall_s']:.1f} s = SSD {o['ssd_s']:.1f} + "
@@ -403,6 +437,17 @@ def run_prefill(e, tok, a, sizes):
               f"{o['gpu_busy_s']:.1f}"
               + (f"; {o['read_ahead_gb']:.1f} GB read ahead, {o['read_ahead_used_gb']:.1f} used" if o["read_ahead_gb"] else "")
               + f"); swap-outs {r['swapouts']}" + (f", {o['watts']:.1f} W" if o["watts"] else ""), flush=True)
+        if r["generated"] > 1:
+            print(f"  decode at {n} tokens: {r['tps']:.2f} tok/s, {r['generated']} tokens; {tok.decode(r['ids'])!r}", flush=True)
+        if needles:
+            print(f"  retrieval: {sum(out[n]['needle_found'].values())}/{len(needles)} exact values", flush=True)
+        if a.prefill_repeat:
+            again = e.gen(ids, a.prefill_new, " stats=1", progress=True)
+            out[n]["repeat"] = {"read": again["read"], "resume": again["resume"], "ttft_s": again["ttft_s"],
+                                "decode_tps": again["tps"], "same_ids": again["ids"] == r["ids"],
+                                "swapouts": again["swapouts"]}
+            print(f"  repeat: {again['resume']} tokens reused, first token after {again['ttft_s']:.2f} s, "
+                  f"same output: {again['ids'] == r['ids']}", flush=True)
     return out
 
 
@@ -417,6 +462,9 @@ def main():
     ap.add_argument("--ref", default=str(ROOT / "build-metal" / "gate-ref.json"))
     ap.add_argument("--tie", type=float, default=0.05, help="gate: two tokens this close in logits are a near-tie")
     ap.add_argument("--prefill", help="prompt sizes in tokens, e.g. 32,256,1600,8000,32000")
+    ap.add_argument("--prefill-new", type=int, default=1, help="tokens to generate at each prefill depth (default 1)")
+    ap.add_argument("--prefill-repeat", action="store_true", help="repeat each prefill request to check prefix reuse")
+    ap.add_argument("--needle", action="store_true", help="prefill: retrieve five records spread across the prompt")
     ap.add_argument("--decode", action="store_true")
     ap.add_argument("--sustained", type=float, default=0.0, help="seconds")
     ap.add_argument("--ab", nargs="+", help="engines to compare, interleaved; an entry may carry environment and options: "
@@ -428,6 +476,12 @@ def main():
     ap.add_argument("--log", default=str(ROOT / "bench-metal.log"))
     ap.add_argument("extra", nargs="*", help="more engine options, after --")
     a = ap.parse_args()
+    if a.prefill_new < 1:
+        ap.error("--prefill-new must be positive")
+    if a.prefill_repeat and not a.prefill:
+        ap.error("--prefill-repeat requires --prefill")
+    if a.needle and (not a.prefill or min(map(int, a.prefill.split(","))) < 512 or a.prefill_new < 64):
+        ap.error("--needle requires --prefill sizes of at least 512 and --prefill-new of at least 64")
     cfg = json.loads(Path(a.config).read_text(encoding="utf-8"))
     tok = tokenizer(Path(cfg["tokenizer"]))
     args = list(cfg["args"])
@@ -461,7 +515,8 @@ def main():
                 if a.pause:
                     time.sleep(a.pause)
                 e = start(x)
-                one = {"info": e.info, "therm": thermal(), "temps_before": temps()}
+                one = {"info": e.info, "therm": thermal(), "temps_before": temps(), "memory_before": e.mem0,
+                       "ready_s": e.ready_s}
                 if sizes:
                     one["prefill"] = run_prefill(e, tok, a, sizes)
                 if a.decode or not sizes:
@@ -528,6 +583,15 @@ def main():
         Path(a.json).write_text(json.dumps(result, indent=1, default=str), encoding="utf-8")
     if a.gate == "check" and not result.get("gate_passed"):
         sys.exit(1)
+    if a.needle:
+        measured = [run["prefill"] for runs in result["ab"].values() for run in runs] if a.ab else [result["prefill"]]
+        if any(not rows or not all(all(row["needle_found"].values()) for row in rows.values()) for rows in measured):
+            sys.exit(1)
+    if a.prefill_repeat:
+        measured = [run["prefill"] for runs in result["ab"].values() for run in runs] if a.ab else [result["prefill"]]
+        if any(not rows or not all(row["repeat"]["same_ids"] and row["repeat"]["read"] == 1
+                                   for row in rows.values()) for rows in measured):
+            sys.exit(1)
 
 
 if __name__ == "__main__":
