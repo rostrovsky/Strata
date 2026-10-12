@@ -1,0 +1,98 @@
+--- a/ggml/src/ggml-metal/ggml-metal-ops.cpp
++++ b/ggml/src/ggml-metal/ggml-metal-ops.cpp
+@@ -5691,11 +5691,11 @@
+         /*.top_k =*/ (int32_t) op->ne[0],
+     };
+ 
+-    // shared memory: 256-entry histogram + bucket/above scalars + output counter
++    // shared memory: 256-entry histogram + bucket/above scalars + two counts per thread (above the threshold, ties)
+     const size_t smem_histo  = GGML_PAD(256*sizeof(uint32_t), 16);
+     const size_t smem_bucket = GGML_PAD(    sizeof(uint32_t), 16);
+     const size_t smem_above  = GGML_PAD(    sizeof(uint32_t), 16);
+-    const size_t smem_out    = GGML_PAD(    sizeof(uint32_t), 16);
++    const size_t smem_out    = GGML_PAD(2*nth*sizeof(uint32_t), 16);
+ 
+     ggml_metal_encoder_set_pipeline(enc, pipeline);
+     ggml_metal_encoder_set_bytes   (enc, &args, sizeof(args), 0);
+--- a/ggml/src/ggml-metal/kernels/argsort.metal
++++ b/ggml/src/ggml-metal/kernels/argsort.metal
+@@ -254,7 +254,7 @@
+         threadgroup atomic_uint * histo     [[threadgroup(0)]],
+         threadgroup        uint * sh_bucket [[threadgroup(1)]],
+         threadgroup        uint * sh_above  [[threadgroup(2)]],
+-        threadgroup atomic_uint * out_count [[threadgroup(3)]],
++        threadgroup        uint * counts    [[threadgroup(3)]],
+         uint3   tgpig[[threadgroup_position_in_grid]],
+         ushort3 tpitg[[thread_position_in_threadgroup]],
+         ushort3   ntg[[threads_per_threadgroup]]) {
+@@ -316,28 +316,56 @@
+         threadgroup_barrier(mem_flags::mem_threadgroup);
+     }
+ 
+-    if (tid == 0) {
+-        atomic_store_explicit(out_count, 0u, memory_order_relaxed);
++    // Emit in index order: everything above the threshold, then the ties with the lowest indices until the row
++    // is full.  Every thread counts its own contiguous slice of the row first, so a position is fixed by the data
++    // alone.  (A shared atomic counter hands the positions out in the order the threads happen to run: with ties
++    // at the threshold - common when the scores were computed in half precision - a different set of them was
++    // taken from one run to the next, and the model's output differed in the second decimal of its logits.)
++    const uint threshold = prefix;
++
++    const uint chunk = (ncols + ntg_x - 1)/ntg_x;
++    const uint i_beg = min(ncols, tid*chunk);
++    const uint i_end = min(ncols, i_beg + chunk);
++
++    uint n_above = 0;
++    uint n_ties  = 0;
++    for (uint i = i_beg; i < i_end; ++i) {
++        const uint key = ggml_top_k_f2ui(src0_row[i]);
++        n_above += key >  threshold ? 1u : 0u;
++        n_ties  += key == threshold ? 1u : 0u;
+     }
++    counts[2*tid + 0] = n_above;
++    counts[2*tid + 1] = n_ties;
+     threadgroup_barrier(mem_flags::mem_threadgroup);
+ 
+-    // emit everything above the threshold, then fill the rest from ties
+-    const uint threshold = prefix;
+-
+-    for (uint i = tid; i < ncols; i += ntg_x) {
+-        if (ggml_top_k_f2ui(src0_row[i]) > threshold) {
+-            const uint pos = atomic_fetch_add_explicit(out_count, 1u, memory_order_relaxed);
+-            dst_row[pos] = (int32_t) i;
++    // exclusive prefix sums over the slices
++    if (tid == 0) {
++        uint acc_above = 0;
++        uint acc_ties  = 0;
++        for (uint t = 0; t < ntg_x; ++t) {
++            const uint a = counts[2*t + 0];
++            const uint e = counts[2*t + 1];
++            counts[2*t + 0] = acc_above;
++            counts[2*t + 1] = acc_ties;
++            acc_above += a;
++            acc_ties  += e;
+         }
++        *sh_above = acc_above;
+     }
+     threadgroup_barrier(mem_flags::mem_threadgroup);
+ 
+-    for (uint i = tid; i < ncols; i += ntg_x) {
+-        if (ggml_top_k_f2ui(src0_row[i]) == threshold) {
+-            const uint pos = atomic_fetch_add_explicit(out_count, 1u, memory_order_relaxed);
+-            if (pos < top_k) {
+-                dst_row[pos] = (int32_t) i;
++    uint pos_above = counts[2*tid + 0];
++    uint pos_ties  = *sh_above + counts[2*tid + 1];
++
++    for (uint i = i_beg; i < i_end; ++i) {
++        const uint key = ggml_top_k_f2ui(src0_row[i]);
++        if (key > threshold) {
++            dst_row[pos_above++] = (int32_t) i;
++        } else if (key == threshold) {
++            if (pos_ties < top_k) {
++                dst_row[pos_ties] = (int32_t) i;
+             }
++            ++pos_ties;
+         }
+     }
+ }

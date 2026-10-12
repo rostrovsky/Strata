@@ -60,10 +60,82 @@ struct ModelFiles {
     int n_layer = 0;                // layers that have routed experts
     uint64_t n_pairs = 0;           // (layer, expert) pairs
     uint64_t max_expert_tensor = 0; // bytes of the largest expert tensor
+    std::vector<void*> maps;        // each shard mapped read-only, for the three calls below: nothing is read through them
 
     ~ModelFiles() {
+        for (size_t f = 0; f < maps.size(); ++f)
+            if (maps[f] != nullptr) ::munmap(maps[f], (size_t) sizes[f]);
         for (int fd : fds)
             if (fd >= 0) ::close(fd);
+    }
+
+    // The OS file cache and this model.  What llama.cpp reads through its mapping of the files stays in the file
+    // cache: the dense weights after they were copied to the GPU (4 GiB that are then in memory twice), and every
+    // row of the n-gram table that was ever looked up (4 GiB after an evening of prompts).  macOS counts those pages
+    // as free, and so does the plan, but on this Mac it compressed other programs' memory before it let go of them:
+    // with 0.06 GiB free it still kept 6 GiB of file cache.  The pages are clean copies of a read-only file, so they
+    // are given back by name instead: read_ahead() before the bytes are wanted, drop() once they have been used.
+    // Measured on the M4 Air: the kernel reads ahead at 2.6 GiB/s where page faults one after another give 0.16,
+    // and a drop takes 23 ms per GiB that is cached (nothing when nothing is).
+    bool map(std::string& err) {
+        if (!maps.empty()) return true;
+        for (size_t f = 0; f < fds.size(); ++f) {
+            void* p = ::mmap(nullptr, (size_t) sizes[f], PROT_READ, MAP_SHARED, fds[f], 0);
+            if (p == MAP_FAILED) {
+                err = "cannot map " + paths[f] + ": " + std::strerror(errno);
+                for (size_t g = 0; g < maps.size(); ++g) ::munmap(maps[g], (size_t) sizes[g]);
+                maps.clear();
+                return false;
+            }
+            maps.push_back(p);
+        }
+        return true;
+    }
+
+    // [offs, offs + size) of a shard, widened to whole pages and clamped to the file
+    bool pages(int file, uint64_t offs, uint64_t size, char*& p, size_t& n) const {
+        if (file < 0 || (size_t) file >= maps.size() || size == 0 || offs >= sizes[(size_t) file]) return false;
+        static const uint64_t page = (uint64_t) ::sysconf(_SC_PAGESIZE);
+        const uint64_t a = offs & ~(page - 1);
+        const uint64_t b = std::min(sizes[(size_t) file], (offs + size + page - 1) & ~(page - 1));
+        p = (char*) maps[(size_t) file] + a;
+        n = (size_t) (b - a);
+        return true;
+    }
+
+    // the kernel starts reading the range into the file cache (asked for 1 MiB at a time: one call may read less
+    // than it was asked for)
+    void read_ahead(int file, uint64_t offs, uint64_t size) const {
+        char* p = nullptr;
+        size_t n = 0;
+        if (!pages(file, offs, size, p, n)) return;
+        for (size_t at = 0; at < n; at += (size_t) 1 << 20) (void) ::madvise(p + at, std::min(n - at, (size_t) 1 << 20), MADV_WILLNEED);
+    }
+
+    // the range leaves the file cache (read again from the SSD if it is wanted again)
+    void drop(int file, uint64_t offs, uint64_t size) const {
+        char* p = nullptr;
+        size_t n = 0;
+        if (pages(file, offs, size, p, n)) (void) ::msync(p, n, MS_INVALIDATE);
+    }
+
+    void drop_all() const {
+        for (size_t f = 0; f < maps.size(); ++f) drop((int) f, 0, sizes[f]);
+    }
+
+    // The weights the loader copies to the GPU, in the order they lie in the files.
+    std::vector<TensorAt> gpu_weights() const {
+        std::vector<TensorAt> out;
+        for (const auto& [name, t] : tensors)
+            if (t.n_expert == 0 && !is_expert_tensor(name) && (name.rfind("blk.", 0) == 0 || name.rfind("output", 0) == 0)) out.push_back(t);
+        std::sort(out.begin(), out.end(), [](const TensorAt& a, const TensorAt& b) { return a.file != b.file ? a.file < b.file : a.offs < b.offs; });
+        return out;
+    }
+
+    // the n-gram table: its rows are read through the mapping, a few pages per token
+    const TensorAt* lazy_table() const {
+        const auto it = tensors.find("per_layer_token_embd.weight");
+        return it == tensors.end() ? nullptr : &it->second;
     }
 
     double mean_expert_bytes() const { return n_pairs ? (double) expert_bytes / (double) n_pairs : 0.0; }

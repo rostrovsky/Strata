@@ -289,6 +289,7 @@ struct HostMemory {
     uint64_t available = 0, apps = 0, wired = 0;
     uint64_t swapped = 0;   // what macOS has in swap already: memory of open programs that will want to come back
     uint64_t swapouts = 0;  // pages macOS has written to swap since it started
+    uint64_t compressed = 0;   // bytes of programs' memory macOS has compressed since it started (it does when it runs short)
 
     // what the engine may take: memory in swap is counted as owed to the programs it belongs to
     double usable() const { return std::max(0.0, (double) available - (double) swapped); }
@@ -304,6 +305,7 @@ HostMemory host_memory() {
     m.apps = ((uint64_t) vm.internal_page_count + vm.compressor_page_count) * page;
     m.wired = (uint64_t) vm.wire_count * page;
     m.swapouts = vm.swapouts;
+    m.compressed = vm.compressions * page;
     xsw_usage sw{};
     size_t len = sizeof sw;
     if (sysctlbyname("vm.swapusage", &sw, &len, nullptr, 0) == 0) m.swapped = sw.xsu_used;
@@ -449,6 +451,7 @@ struct Checkpoint {
 struct Engine {
     Options o;
     ModelFiles files;
+    bool tidy_ = true;   // what the model leaves in the OS file cache is given back (STRATA_FILE_CACHE=keep: it stays)
     std::unique_ptr<ReadPool> pool;
     std::unique_ptr<strata::metal::GpuKeepalive> keepalive;
     bool keepalive_always = false;        // for the whole request (the default), not only its reads
@@ -501,6 +504,7 @@ struct Engine {
     // the cache's memory is held in this buffer.
     ggml_backend_buffer_t ballast_ = nullptr;
     uint64_t swapouts_seen_ = 0;          // macOS's count of pages written to swap, at the last look
+    uint64_t compressed_seen_ = 0;        // ... and of the bytes it compressed
     llama_moe_cache_stats stats_gone_{};  // what the caches that were given up had counted
     std::vector<int32_t> profile_layers_, profile_experts_;   // Strata's expert profile, most used first
     std::vector<int32_t> kept_layers_, kept_experts_;         // what the answering cache held when it was given up
@@ -672,19 +676,33 @@ struct Engine {
         return l.empty() ? 0 : llama_moe_cache_preload(ctx, l.data(), e.data(), l.size());
     }
 
-    // --elastic, before a request: if macOS has written pages to swap since the last look, the plan was too large for
-    // what the other programs need now.  The cache gives a quarter of itself back (1 GiB at most) and stays at that:
-    // one look per request, so the swapping ends after a request or two instead of going on.
-    // (STRATA_ELASTIC_TEST_BACKOFF: tests, as if macOS had swapped before every request.)
+    // --elastic, before a request: has macOS run short of memory since the last look?  Two signs:
+    //   it wrote pages to swap: the plan was too large for what the other programs need now.  The cache gives a
+    //     quarter of itself back (1 GiB at most) and stays at that, so the swapping ends after a request or two;
+    //   before it comes to that, it compressed other programs' memory and less than half of --reserve-gib is free
+    //     now.  The cache gives back what is missing (a quarter of itself at most); it may take it again after the
+    //     next long prompt if the memory is free then.
+    // (STRATA_ELASTIC_TEST_BACKOFF: tests, as if macOS had swapped before every request; =tight: as if it were short.)
     bool back_off(std::string& err) {
         if (!o.elastic || shape_ != Shape::Answer) return true;
-        const uint64_t now = host_memory().swapouts;
-        const bool swapped = now > swapouts_seen_ || std::getenv("STRATA_ELASTIC_TEST_BACKOFF") != nullptr;
-        const uint64_t pages = now > swapouts_seen_ ? now - swapouts_seen_ : 0;
-        swapouts_seen_ = now;
+        const HostMemory hm = host_memory();
+        const char* test = std::getenv("STRATA_ELASTIC_TEST_BACKOFF");
+        const bool test_tight = test != nullptr && std::strcmp(test, "tight") == 0;
+        const bool swapped = hm.swapouts > swapouts_seen_ || (test != nullptr && !test_tight);
+        const uint64_t pages = hm.swapouts > swapouts_seen_ ? hm.swapouts - swapouts_seen_ : 0;
+        const uint64_t squeezed = hm.compressed > compressed_seen_ ? hm.compressed - compressed_seen_ : 0;
+        swapouts_seen_ = hm.swapouts;
+        compressed_seen_ = hm.compressed;
+        const double low = 0.5 * o.reserve_gib * kGiB;
+        const bool tight = !swapped && (test_tight || ((double) squeezed >= 256 * kMiB && (double) hm.available < low));
         const uint64_t floor = std::min<uint64_t>((uint64_t) kGiB, cache_plan_bytes_ / 4);
-        if (!swapped || cache_bytes <= floor) return true;
-        const uint64_t smaller = std::max(floor, cache_bytes - std::min<uint64_t>((uint64_t) kGiB, cache_bytes / 4));
+        if ((!swapped && !tight) || cache_bytes <= floor) return true;
+        uint64_t give = std::min<uint64_t>((uint64_t) kGiB, cache_bytes / 4);
+        if (tight) {   // up to half the reserve and 0.5 GiB more, in steps of 256 MiB
+            const double missing = test_tight ? 300 * kMiB : low + 0.5 * kGiB - (double) hm.available;
+            give = std::min<uint64_t>(cache_bytes / 4, (uint64_t) std::ceil(missing / (256 * kMiB)) * (uint64_t) (256 * kMiB));
+        }
+        const uint64_t smaller = std::max(floor, cache_bytes - give);
         pool->drain();
         llama_moe_cache_stats st{};
         if (cache_stats(st)) stats_gone_ = st;
@@ -694,10 +712,16 @@ struct Engine {
             err = "the expert cache could not be made smaller";
             return false;
         }
-        std::fprintf(stderr, "strata metal: macOS wrote %llu pages to swap since the last request: the expert cache gives memory "
-                             "back, %.2f -> %.2f GiB (a larger --reserve-gib avoids this)\n", (unsigned long long) pages,
-                     (double) cache_bytes / kGiB, (double) smaller / kGiB);
-        cache_bytes = cache_plan_bytes_ = smaller;
+        if (swapped)
+            std::fprintf(stderr, "strata metal: macOS wrote %llu pages to swap since the last request: the expert cache gives memory "
+                                 "back, %.2f -> %.2f GiB (a larger --reserve-gib avoids this)\n", (unsigned long long) pages,
+                         (double) cache_bytes / kGiB, (double) smaller / kGiB);
+        else
+            std::fprintf(stderr, "strata metal: macOS compressed %.2f GiB of other programs' memory since the last request and %.2f "
+                                 "GiB are free: the expert cache gives memory back, %.2f -> %.2f GiB\n", (double) squeezed / kGiB,
+                         (double) hm.available / kGiB, (double) cache_bytes / kGiB, (double) smaller / kGiB);
+        cache_bytes = smaller;
+        if (swapped) cache_plan_bytes_ = smaller;
         attach_cache();
         refill_cache();
         return true;
@@ -870,8 +894,24 @@ struct Engine {
             last = pct;
             return true;
         };
+        // The loader copies the dense weights out of its mapping of the files: page faults one after another when
+        // they are not in the OS file cache (5.8 s for this model's 3.9 GiB), and a second copy of them in the file
+        // cache for as long as macOS keeps it (ModelFiles::map).  The kernel reads them ahead of the loader, and
+        // once they are on the GPU the file cache gives the model's pages back.
+        if (const char* fc = std::getenv("STRATA_FILE_CACHE")) tidy_ = std::strcmp(fc, "keep") != 0;
+        if (tidy_) {
+            std::string merr;
+            if (!files.map(merr)) {
+                std::fprintf(stderr, "strata metal: %s; the OS file cache keeps what is read through it\n", merr.c_str());
+                tidy_ = false;
+            }
+        }
+        std::thread ahead;
+        if (tidy_) ahead = std::thread([this] { for (const auto& t : files.gpu_weights()) files.read_ahead(t.file, t.offs, t.size); });
         const auto t0 = Clock::now();
         model = llama_model_load_from_file(o.native.c_str(), mp);
+        if (ahead.joinable()) ahead.join();
+        if (tidy_) files.drop_all();
         if (probe) ggml_backend_buffer_free(probe);
         if (model == nullptr) {
             err = "the model could not be loaded (see the lines above)";
@@ -1168,6 +1208,7 @@ struct Engine {
         }
         if (o.chunk == 0) o.chunk = 32;
         swapouts_seen_ = host_memory().swapouts;
+        compressed_seen_ = host_memory().compressed;
         if (drafting()) spec_batch = llama_batch_init(o.spec + 1, 0, 1);
         if (o.lookup > 0 && o.spec > 0)
             std::fprintf(stderr, "strata metal: lookup: where the last %d tokens stood before in the context, what followed is drafted "
@@ -1379,6 +1420,13 @@ struct Engine {
         return 0;
     }
 
+    // The rows of the n-gram table that the last passes looked up leave the OS file cache (ModelFiles::map): a
+    // long prompt reads 110 KiB of them per token.
+    void drop_rows() {
+        if (!tidy_) return;
+        if (const auto* t = files.lazy_table()) files.drop(t->file, t->offs, t->size);
+    }
+
     template <class OnToken, class OnProgress, class OnProbe>
     bool generate(const std::vector<llama_token>& ids, int64_t max_new, const Sampling& sp, const Extras& ex,
                   std::atomic<bool>& stop, OnToken on_token, OnProgress on_progress, OnProbe on_probe, Result& r,
@@ -1472,6 +1520,7 @@ struct Engine {
                 if (!decode(ids.data() + at, take, err)) return false;
                 live.insert(live.end(), ids.begin() + at, ids.begin() + at + take);
                 at += take;
+                if (long_pass) drop_rows();
                 if (o.verbose) {   // where the context's memory grows as it fills (the plan measures an empty one)
                     uint64_t used = 0, ws = 0;
                     gpu_memory(used, ws);
@@ -1582,6 +1631,7 @@ struct Engine {
             llama_sampler_free(smpl);
         }
         r.decode_ms = ms_since(td);
+        drop_rows();
         if (mtp) mtp->report(written);
         const Mark m2 = mark_now();
         r.prompt = phase_between(m0, m1);
