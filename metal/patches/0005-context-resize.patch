@@ -1,19 +1,81 @@
+--- a/ggml/include/ggml-alloc.h
++++ b/ggml/include/ggml-alloc.h
+@@ -73,6 +73,9 @@
+ 
+ GGML_API size_t ggml_gallocr_get_buffer_size(ggml_gallocr_t galloc, int buffer_id);
+ 
++// Write zeros over the buffers: memory a device hands out lazily is then really taken, at once
++GGML_API void ggml_gallocr_touch_buffers(ggml_gallocr_t galloc);
++
+ // Utils
+ // Create a buffer and allocate all the tensors in a ggml_context
+ 
+--- a/ggml/include/ggml-backend.h
++++ b/ggml/include/ggml-backend.h
+@@ -343,6 +343,8 @@
+ 
+     GGML_API ggml_backend_buffer_type_t ggml_backend_sched_get_buffer_type(ggml_backend_sched_t sched, ggml_backend_t backend);
+     GGML_API size_t                     ggml_backend_sched_get_buffer_size(ggml_backend_sched_t sched, ggml_backend_t backend);
++    // Write zeros over the compute buffers (see ggml_gallocr_touch_buffers)
++    GGML_API void                       ggml_backend_sched_touch_buffers(ggml_backend_sched_t sched);
+ 
+     GGML_API void                 ggml_backend_sched_set_tensor_backend(ggml_backend_sched_t sched, struct ggml_tensor * node, ggml_backend_t backend);
+     GGML_API ggml_backend_t       ggml_backend_sched_get_tensor_backend(ggml_backend_sched_t sched, struct ggml_tensor * node);
+--- a/ggml/src/ggml-alloc.c
++++ b/ggml/src/ggml-alloc.c
+@@ -1115,6 +1115,21 @@
+     return ggml_vbuffer_size(galloc->buffers[buffer_id]);
+ }
+ 
++void ggml_gallocr_touch_buffers(ggml_gallocr_t galloc) {
++    for (int i = 0; i < galloc->n_buffers; i++) {
++        bool seen = galloc->buffers[i] == NULL;
++        for (int j = 0; j < i && !seen; j++) {
++            seen = galloc->buffers[j] == galloc->buffers[i];
++        }
++        if (seen) {
++            continue;
++        }
++        for (int c = 0; c < GGML_VBUFFER_MAX_CHUNKS && galloc->buffers[i]->chunks[c]; c++) {
++            ggml_backend_buffer_clear(galloc->buffers[i]->chunks[c], 0);
++        }
++    }
++}
++
+ // utils
+ 
+ static struct ggml_tensor ** ggml_backend_alloc_ctx_tensors_from_buft_collect(
+--- a/ggml/src/ggml-backend.cpp
++++ b/ggml/src/ggml-backend.cpp
+@@ -2172,6 +2172,11 @@
+     return sched->bufts[backend_index];
+ }
+ 
++void ggml_backend_sched_touch_buffers(ggml_backend_sched_t sched) {
++    GGML_ASSERT(sched);
++    ggml_gallocr_touch_buffers(sched->galloc);
++}
++
+ size_t ggml_backend_sched_get_buffer_size(ggml_backend_sched_t sched, ggml_backend_t backend) {
+     GGML_ASSERT(sched);
+     int backend_index = ggml_backend_sched_backend_id(sched, backend);
 --- a/include/llama.h
 +++ b/include/llama.h
-@@ -1205,6 +1205,13 @@
+@@ -1204,6 +1204,14 @@
+ 
      // the slot of every expert of layer il in the cache (-1 = not cached), NULL if the cache does not serve the layer
      LLAMA_API const int32_t * llama_moe_cache_get_slots(const struct llama_context * ctx, int32_t il, int32_t * n_expert);
- 
++
 +    // Give the context another largest pass (n_batch tokens) and another MoE cache (moe_cache_size bytes, 0: none).
 +    // Its compute buffers and the cache are freed first and then made anew: the cache comes back empty and without
 +    // its callbacks, unless its size stays the same - then the cache is kept as it is.
 +    // The context's memory (KV cache, recurrent state) is not touched.
++    // touch: write to the new compute buffers at once, so that they take their memory now and not pass by pass.
 +    // returns false if the context cannot be resized or the new buffers could not be allocated
-+    LLAMA_API bool llama_context_resize(struct llama_context * ctx, uint32_t n_batch, size_t moe_cache_size);
-+
++    LLAMA_API bool llama_context_resize(struct llama_context * ctx, uint32_t n_batch, size_t moe_cache_size, bool touch);
+ 
      // the compute buffers the context has reserved, in bytes: on its devices, and in host memory (which the
      // system only backs with pages as passes touch it)
-     LLAMA_API void llama_get_compute_buffer_sizes(const struct llama_context * ctx, size_t * device, size_t * host);
 --- a/src/llama-context.cpp
 +++ b/src/llama-context.cpp
 @@ -495,7 +495,8 @@
@@ -26,13 +88,13 @@
          for (size_t i = 0; i < backend_ptrs.size(); ++i) {
              ggml_backend_t             backend = backend_ptrs[i];
              ggml_backend_buffer_type_t buft    = backend_buft[i];
-@@ -512,6 +513,51 @@
+@@ -512,6 +513,57 @@
          }
      }
      ggml_opt_free(opt_ctx);
 +}
 +
-+bool llama_context::resize(uint32_t n_batch, size_t moe_cache_size) {
++bool llama_context::resize(uint32_t n_batch, size_t moe_cache_size, bool touch) {
 +    // the memory of a sliding-window model is sized with the ubatch
 +    if (model.hparams.vocab_only || n_batch == 0 || model.hparams.swa_type != LLAMA_SWA_TYPE_NONE) {
 +        return false;
@@ -74,21 +136,27 @@
 +        return false;
 +    }
 +
++    // the new compute buffers take their memory now, not as passes first write to them: a caller that trades
++    // memory between the buffers and the cache keeps the process's memory steady that way
++    if (touch) {
++        ggml_backend_sched_touch_buffers(sched.get());
++    }
++
 +    return true;
  }
  
  void llama_context::resolve_fused_ops(const llama_memory_context_i * mctx, uint32_t n_seqs) {
-@@ -4164,6 +4210,10 @@
-     return ctx->get_moe_cache() ? ctx->get_moe_cache()->get_slots(il, n_expert) : nullptr;
- }
+@@ -4162,6 +4214,10 @@
  
-+bool llama_context_resize(llama_context * ctx, uint32_t n_batch, size_t moe_cache_size) {
-+    return ctx->resize(n_batch, moe_cache_size);
+ const int32_t * llama_moe_cache_get_slots(const llama_context * ctx, int32_t il, int32_t * n_expert) {
+     return ctx->get_moe_cache() ? ctx->get_moe_cache()->get_slots(il, n_expert) : nullptr;
 +}
 +
++bool llama_context_resize(llama_context * ctx, uint32_t n_batch, size_t moe_cache_size, bool touch) {
++    return ctx->resize(n_batch, moe_cache_size, touch);
+ }
+ 
  void llama_get_compute_buffer_sizes(const llama_context * ctx, size_t * device, size_t * host) {
-     size_t n_device = 0;
-     size_t n_host   = 0;
 --- a/src/llama-context.h
 +++ b/src/llama-context.h
 @@ -264,6 +264,9 @@
@@ -96,31 +164,8 @@
      llama_moe_cache * get_moe_cache() const { return moe_cache.get(); }
  
 +    // see llama_context_resize
-+    bool resize(uint32_t n_batch, size_t moe_cache_size);
++    bool resize(uint32_t n_batch, size_t moe_cache_size, bool touch);
 +
  private:
      llm_graph_result * get_gf_res_prev();
  
---- a/src/llama-moe-cache.cpp
-+++ b/src/llama-moe-cache.cpp
-@@ -6,6 +6,7 @@
- #include "ggml-cpp.h"
- 
- #include <algorithm>
-+#include <cstdlib>
- #include <stdexcept>
- #include <unordered_map>
- #include <vector>
-@@ -508,7 +509,11 @@
-                 if (!d.buf) {
-                     throw std::runtime_error("failed to allocate the MoE cache buffers");
-                 }
--                ggml_backend_buffer_clear(d.buf.get(), 0);
-+                // LLAMA_MOE_CACHE_NO_CLEAR: for a device that hands out zero-filled pages on first use (Metal on macOS
-+                // allocates with vm_allocate). The banks then take their memory as their slots are filled, not at once.
-+                if (std::getenv("LLAMA_MOE_CACHE_NO_CLEAR") == nullptr) {
-+                    ggml_backend_buffer_clear(d.buf.get(), 0);
-+                }
-                 d.buf_size = ggml_backend_buffer_get_size(d.buf.get());
-             }
-             buf_host.reset(ggml_backend_alloc_ctx_tensors_from_buft(ctx_host.get(), buft_host));

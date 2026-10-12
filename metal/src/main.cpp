@@ -318,6 +318,14 @@ uint64_t own_footprint() {
     return ti.phys_footprint;
 }
 
+// how much of this process's memory macOS holds compressed (or in swap) instead of in RAM
+uint64_t own_compressed() {
+    task_vm_info_data_t ti{};
+    mach_msg_type_number_t n = TASK_VM_INFO_COUNT;
+    if (task_info(mach_task_self(), TASK_VM_INFO, (task_info_t) &ti, &n) != KERN_SUCCESS) return 0;
+    return ti.compressed;
+}
+
 // bytes this process has read from disk so far
 uint64_t disk_bytes_read() {
     rusage_info_v2 ri{};
@@ -480,7 +488,17 @@ struct Engine {
     int short_batch_ = 0;                 // the Short shape's passes (0: there is none)
     double short_work_ = 0.0, short_gpu_ = 0.0;   // what it takes on top of the Answer shape: in all, and on the GPU
     double answer_work_ = 0.0;            // the Answer shape's work memory (GPU and host)
-    uint64_t long_footprint0_ = 0;        // this process's memory when the Long shape was taken, before its passes
+    uint64_t answer_footprint_ = 0;       // this process's memory in the Answer shape, when it was last left for the Long one
+    uint64_t answer_cache_ = 0;           // ... and the cache it had then
+    double long_work_ = 0.0;              // the Long shape's work memory (GPU and host), without its cache and read-ahead
+    // The Long shape and the Answer shape hold the same amount of memory, and a change between them takes what it
+    // frees again within the second.  On a desktop whose other programs sit compressed, memory that is free for a
+    // few seconds is theirs (a trace showed them take 0.3-0.5 GiB a second), and getting it back squeezes them at
+    // once, which is when macOS swaps: 41 MiB over five long prompts while the cache's memory was simply given back,
+    // 0.5 MiB when only the idle part of it was held.  So: the long passes' work memory and read-ahead buffer are
+    // written to when they are made, the cache is cleared when it is made, and what the long passes do not need of
+    // the cache's memory is held in this buffer.
+    ggml_backend_buffer_t ballast_ = nullptr;
     uint64_t swapouts_seen_ = 0;          // macOS's count of pages written to swap, at the last look
     llama_moe_cache_stats stats_gone_{};  // what the caches that were given up had counted
     std::vector<int32_t> profile_layers_, profile_experts_;   // Strata's expert profile, most used first
@@ -493,6 +511,7 @@ struct Engine {
     static constexpr size_t kMaxCheckpoints = 6;
 
     ~Engine() {
+        if (ballast_) ggml_backend_buffer_free(ballast_);
         mtp.reset();
         if (spec_batch.token) llama_batch_free(spec_batch);
         if (pool) pool->drain();   // reads under way write into the context's buffers
@@ -669,7 +688,7 @@ struct Engine {
         llama_moe_cache_stats st{};
         if (cache_stats(st)) stats_gone_ = st;
         remember_cache();
-        if (!llama_context_resize(ctx, kAnswerBatch, smaller)) {
+        if (!llama_context_resize(ctx, kAnswerBatch, smaller, false)) {
             broken_ = true;
             err = "the expert cache could not be made smaller";
             return false;
@@ -695,23 +714,30 @@ struct Engine {
             llama_moe_cache_stats st{};
             if (cache_stats(st)) stats_gone_ = st;
         }
-        if (cache_goes) remember_cache();
+        if (cache_goes) {
+            remember_cache();
+            answer_footprint_ = own_footprint();
+            answer_cache_ = cache_bytes;
+        }
         if (cache_comes) {
-            // Other programs may have grown into the memory the cache gave up: it comes back only as large as leaves
-            // --reserve-gib free now (and may come back larger the next time, up to the plan).
-            // (what the long passes took is what this process has grown by since the shape was taken)
-            const uint64_t fp = own_footprint();
-            const double gives_back = (double) (fp > long_footprint0_ ? fp - long_footprint0_ : 0) + (double) cache_bulk_bytes_;
-            const double fits = host_memory().usable() + gives_back - answer_work_ - o.reserve_gib * kGiB;
+            // The cache comes back as it was, plus or minus what is free beyond --reserve-gib now and what this shape
+            // holds more or less than the answering shape did (other programs may have grown meanwhile); it may come
+            // back larger the next time, up to the plan.
+            const double fits = (double) answer_cache_ + host_memory().usable() - o.reserve_gib * kGiB +
+                                (double) own_footprint() - (double) answer_footprint_;
             const uint64_t floor = (uint64_t) (512 * kMiB);
             const uint64_t now = std::min(cache_plan_bytes_, (uint64_t) std::max(fits, (double) floor));
             if (now + (uint64_t) (64 * kMiB) < cache_plan_bytes_)
                 std::fprintf(stderr, "strata metal: less memory is free than at the start: the expert cache comes back with %.2f "
                                      "GiB of its %.2f\n", (double) now / kGiB, (double) cache_plan_bytes_ / kGiB);
             cache_bytes = now;
+            if (ballast_) ggml_backend_buffer_free(ballast_);
+            ballast_ = nullptr;
         }
+        const uint64_t cache_was = cache_bytes;
         const uint32_t batch = to == Shape::Long ? (uint32_t) o.prefill : to == Shape::Short ? (uint32_t) short_batch_ : (uint32_t) kAnswerBatch;
-        if (!llama_context_resize(ctx, batch, to == Shape::Long ? cache_bulk_bytes_ : cache_bytes)) {
+        // (the Short shape borrows: its work memory is taken as its one pass needs it, and no more)
+        if (!llama_context_resize(ctx, batch, to == Shape::Long ? cache_bulk_bytes_ : cache_bytes, cache_goes || cache_comes)) {
             broken_ = true;
             err = std::string("the context could not be given its ") + shape_name(to) +
                   " shape (is the memory it had taken by other programs now?)";
@@ -720,7 +746,15 @@ struct Engine {
         shape_ = to;
         int64_t filled = 0;
         if (cache_goes || cache_comes) attach_cache();
-        if (cache_goes) long_footprint0_ = own_footprint();
+        if (cache_goes) {
+            // what the answering shape held, less what this shape has taken and its read-ahead buffer will
+            const double staging = o.prefill_ahead ? (double) fetch.staging_bytes(true) : 0.0;
+            const double idle = (double) cache_was + answer_work_ - (double) cache_bulk_bytes_ - long_work_ - staging;
+            if (idle >= 64 * kMiB && std::getenv("STRATA_ELASTIC_NO_BALLAST") == nullptr) {
+                ballast_ = ggml_backend_buft_alloc_buffer(ggml_backend_dev_buffer_type(gpu), (size_t) idle);
+                if (ballast_) ggml_backend_buffer_clear(ballast_, 0);   // touched: the pages are this process's now
+            }
+        }
         if (cache_comes) filled = refill_cache();
         const double ms = ms_since(t0);
         reshape_ms_ += ms;
@@ -728,8 +762,8 @@ struct Engine {
             uint64_t used = 0, ws = 0;
             gpu_memory(used, ws);
             std::fprintf(stderr, "strata metal: the context has its %s shape after %.2f s (%lld experts read back): %.1f MiB on "
-                                 "the GPU, %.1f MiB in all\n", shape_name(to), ms / 1000.0, (long long) filled,
-                         (double) used / kMiB, (double) own_footprint() / kMiB);
+                                 "the GPU, %.1f MiB in all, %.1f MiB of it compressed\n", shape_name(to), ms / 1000.0, (long long) filled,
+                         (double) used / kMiB, (double) own_footprint() / kMiB, (double) own_compressed() / kMiB);
         }
         return true;
     }
@@ -925,9 +959,9 @@ struct Engine {
                 // the other shapes' work memory, measured on this context too: the cache is then allocated once
                 size_t dev = 0, host = 0, sdev = 0, shost = 0;
                 short_batch_ = std::min(o.elastic_short, o.prefill);
-                if (short_batch_ <= 32 || !llama_context_resize(ctx, (uint32_t) short_batch_, 0)) short_batch_ = 0;
+                if (short_batch_ <= 32 || !llama_context_resize(ctx, (uint32_t) short_batch_, 0, false)) short_batch_ = 0;
                 else llama_get_compute_buffer_sizes(ctx, &sdev, &shost);
-                if (llama_context_resize(ctx, kAnswerBatch, 0)) {
+                if (llama_context_resize(ctx, kAnswerBatch, 0, false)) {
                     llama_get_compute_buffer_sizes(ctx, &dev, &host);
                     answer_work_ = (double) dev + (double) host;
                     short_gpu_ = (double) sdev - (double) dev;
@@ -957,6 +991,7 @@ struct Engine {
                 const double staging = o.prefill_ahead ? (double) fetch.staging_bytes(true) : 0.0;
                 const double bulk_need = (double) ctx_device + (double) ctx_host + (double) cache_bulk_bytes_ + staging;
                 elastic_work = (double) ctx_device + (double) ctx_host;
+                long_work_ = elastic_work;
                 elastic_total = room + elastic_work;
                 elastic_metal = by_metal + (double) ctx_device;
                 if (mtp || fixed || o.prefill <= 32 || answer_work_ <= 0.0 || elastic_total < bulk_need) {   // (no room: hardly any memory is free)
@@ -983,9 +1018,7 @@ struct Engine {
         if (elastic_total <= 0.0) o.elastic = false;
         cache_bytes = want;
         if (o.elastic) {
-            // A cache that comes back takes gigabytes within a second if it is cleared first; unified memory hands out
-            // zero-filled pages anyway, so it is left to take them as the experts are read back (metal/patches).
-            setenv("LLAMA_MOE_CACHE_NO_CLEAR", "1", 1);
+            fetch.wire_staging = true;
             // the answering shape: its work memory (64 MiB more than measured, for the cache's own bookkeeping in the
             // graphs) and the cache, which gets the rest of the total
             const double margin = 64 * kMiB;
@@ -1415,8 +1448,9 @@ struct Engine {
                 if (o.verbose) {   // where the context's memory grows as it fills (the plan measures an empty one)
                     uint64_t used = 0, ws = 0;
                     gpu_memory(used, ws);
-                    std::fprintf(stderr, "strata metal: pass of %d tokens to %lld: %.1f MiB on the GPU, %.1f MiB in all\n", (int) take,
-                                 (long long) at, (double) used / kMiB, (double) own_footprint() / kMiB);
+                    std::fprintf(stderr, "strata metal: pass of %d tokens to %lld: %.1f MiB on the GPU, %.1f MiB in all, %.1f MiB of it "
+                                         "compressed\n", (int) take, (long long) at, (double) used / kMiB, (double) own_footprint() / kMiB,
+                                 (double) own_compressed() / kMiB);
                 }
                 if (ms_since(last_pp) >= 500.0 && at < n) {
                     on_progress(at, n, ms_since(tp));

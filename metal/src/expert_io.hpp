@@ -494,6 +494,7 @@ struct ExpertFetch {
         Staged slot[3];
     } staging;
     llama_context* ctx = nullptr;                         // for the expert cache's contents
+    bool wire_staging = false;                            // the staging buffer is wired when it is made: taken at once, never compressed
     bool read_ahead = false;                              // the engine allows it for this prompt
     bool more_passes = false;                             // the engine: another long pass follows the one under way
     double ahead_from = 0.5;                              // the next layer is read ahead if this share of this layer's experts was used
@@ -551,6 +552,8 @@ struct ExpertFetch {
             return false;
         }
         staging.buf = (uint8_t*) p;
+        // (munmap ends the wiring; if macOS refuses it, the pages are at least written to)
+        if (wire_staging && ::mlock(p, staging.cap) != 0) std::memset(p, 0, staging.cap);
         read_ahead = true;
         return true;
     }
