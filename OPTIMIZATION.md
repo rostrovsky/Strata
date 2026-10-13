@@ -702,6 +702,11 @@ desktop-128k-elastic.json  the same with --elastic on and --reserve-gib 6 (exper
 both                       env: STRATA_METAL_INDEXED_QSA=1     aliases: qwen3.8-27b-iq3_s
 ```
 
+(2026-10-13: the alias is gone from the production config and from `desktop-128k-elastic.json`, and pi asks for
+the config's `model_name`, `qwen3.8-flash-next-iq3_s`. "27B" was the wrong name: Qwen3.8-27B is another, dense
+model; this one is Qwen3.8-Flash-Next, 125B parameters and 51B of n-gram embeddings, 6B active per token, in
+ISTA-DASLab's GSQ-RCO IQ3_S quantization. The server answers under any model name, so the old one still works.)
+
 They leave idle unload unchanged and do not enable MTP or lookup. They point to the ordinary engine binary, which
 is now built from the current source. Re-read and merge current production settings before applying one; do not
 overwrite intervening user changes. `desktop-128k.json` has read a full-context prompt with this build (evening);
@@ -709,9 +714,10 @@ the `--elastic` one has not.
 
 pi was version **1.0.2**, executable `/Users/rafal/.bun/bin/pi`, linked into the global
 `@earendil-works/pi-coding-agent` package. In `/Users/rafal/.pi/agent/models.json`, provider `qwen-local` uses
-`http://127.0.0.1:8080/v1`, API `openai-completions`, model ID **`qwen3.8-27b-iq3_s`**, reasoning enabled, text input,
-`contextWindow: 32768`, and `maxTokens: 8192`. The old ID/display name misleadingly says 27B; preserve compatibility
-through the server alias if the display name is corrected. The global pi default was an OpenRouter DeepSeek model,
+`http://127.0.0.1:8080/v1`, API `openai-completions`, model ID **`qwen3.8-flash-next-iq3_s`** (until 2026-10-13
+`qwen3.8-27b-iq3_s`, with a display name that said 27B; the file before the change is
+`~/.pi/agent/models.json.backup-20261013-061001-27b-name`), reasoning enabled, text input,
+`contextWindow: 131072` (32,768 when this section was written), and `maxTokens: 8192`. The global pi default was an OpenRouter DeepSeek model,
 not the local provider. Do not change global defaults or print credentials while updating one local entry.
 
 After future validation and installation, set the local provider's context window to 131,072 and check `/health`
@@ -720,14 +726,16 @@ and `/v1/models` plus actual tool use. A prepared fixture at `build-metal/lowlev
 
 ```sh
 /Users/rafal/.bun/bin/pi \
-  --provider qwen-local --model qwen3.8-27b-iq3_s \
+  --provider qwen-local --model qwen3.8-flash-next-iq3_s \
   --offline --no-session --thinking off \
   --no-extensions --no-skills --no-prompt-templates --no-context-files \
   --tools read --mode json --print \
   'Use read to open /Users/rafal/Projects/strata-air/Strata/build-metal/lowlevel-128k/pi-smoke.txt, then return its exact content.'
 ```
 
-Require an actual `read` tool call and the final marker; a plain chat completion is not sufficient. pi tried to
+Require an actual `read` tool call and the final marker; a plain chat completion is not sufficient. From a
+script, close pi's standard input (`< /dev/null`): with `--print` it otherwise waits for it to end. Run again on
+2026-10-13 under the new name: tool call and marker (`build-metal/resume-128k/alias_check.py`). pi tried to
 create a settings lock even for help in the restricted environment, so invoking it may require an approved local
 execution context. `--offline` avoids unrelated startup network work. No dedicated `run-pi-iq3_s.sh` was created;
 such a launcher could select this provider without changing global settings.

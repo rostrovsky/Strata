@@ -1,0 +1,5 @@
+/v1/models: ['qwen3.8-flash-next-iq3_s']
+asked as qwen3.8-flash-next-iq3_s: answered as qwen3.8-flash-next-iq3_s: 'The capital of France is Paris.'
+asked as qwen3.8-27b-iq3_s (the old name): answered as qwen3.8-flash-next-iq3_s: 'ready'
+pi (exit 0): read tool called: True; marker returned: True
+all as expected
