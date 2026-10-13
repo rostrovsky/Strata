@@ -27,8 +27,5 @@
   "idle_unload_s": 900,
   "env": {
     "STRATA_METAL_INDEXED_QSA": "1"
-  },
-  "aliases": [
-    "qwen3.8-27b-iq3_s"
-  ]
+  }
 }

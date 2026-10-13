@@ -16,3 +16,10 @@ cp bench/results/2026-10-12-m4-air-128k-resume/installed/strata-iq3_s.before-ela
 ```
 
 pi needs no change (its `contextWindow` is 131072 for both).
+
+2026-10-13: the alias `qwen3.8-27b-iq3_s` is gone from the production config and from `desktop-128k-elastic.json`.
+It was only there because pi's `qwen-local` entry asked for that name, and the name was wrong: Qwen3.8-27B is
+another, dense model; this is Qwen3.8-Flash-Next (125B + 51B n-gram embeddings). pi now asks for the config's
+`model_name`, `qwen3.8-flash-next-iq3_s` (`~/.pi/agent/models.json`, backup beside it). The server answers
+requests under any model name, so nothing that still uses the old one stops working; the older files in
+`installed/` keep the alias as they were.
