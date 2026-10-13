@@ -1,0 +1,15 @@
+21:56:53 BASELINE swapouts 1586587, swap used 1781.88 MiB, pressure 1, free 14.5 + file cache 2.06 GiB, compressor 12.08 in 4.21 GiB, SoC 49.6 C, battery 36.6 C
+21:56:53 STARTED pid 37974: .venv/bin/python -u metal/tools/bench.py --config strata-iq3_s.json --json build-metal/resume-128k/pass-ab2.json --log build-metal/resume-128k/pass-ab2.log --prefill 2000,10000 --prefill-new 64 --cool
+21:56:58 ok +5 s: swap-outs new 0, pressure 1, free 14.32 + file 2.08 GiB, compressor 12.08 in 4.21 GiB, SoC 46.9 C | memory: {'free_gib': 14.3, 'file_cache_gib': 2.07, 'apps_gib': 12.13, 'wired_gib': 2.69, 'swap_used_gib': 1.74, 'pressure_level': 1}
+21:58:59 ok +126 s: swap-outs new 0, pressure 1, free 2.37 + file 2.48 GiB, compressor 11.99 in 4.16 GiB, SoC 77.0 C | read 2944/10000 tokens in 31.6 s; swap-outs 0
+22:00:59 ok +247 s: swap-outs new 0, pressure 1, free 2.12 + file 2.63 GiB, compressor 11.96 in 4.15 GiB, SoC 58.9 C | read 8192/10000 tokens in 137.2 s; swap-outs 0
+22:03:01 ok +368 s: swap-outs new 0, pressure 1, free 13.12 + file 2.47 GiB, compressor 11.83 in 4.09 GiB, SoC 46.8 C | decode at 10000 tokens: 4.17 tok/s, 64 tokens, token 2 after 180.77 s, token 10 after 182.50 s, token 50 after 191.91 s; '<think>\nThe user wants me t
+22:05:02 ok +489 s: swap-outs new 0, pressure 1, free 1.82 + file 3.07 GiB, compressor 11.82 in 4.08 GiB, SoC 86.8 C | decode at 2000 tokens: 5.82 tok/s, 64 tokens, token 2 after 22.55 s, token 10 after 23.90 s, token 50 after 30.60 s; '<think>\nThe user wants me to su
+22:07:02 ok +610 s: swap-outs new 0, pressure 1, free 2.05 + file 2.77 GiB, compressor 11.8 in 4.08 GiB, SoC 60.1 C | read 9056/10000 tokens in 129.2 s; swap-outs 0
+22:09:04 ok +731 s: swap-outs new 0, pressure 1, free 13.1 + file 2.48 GiB, compressor 11.79 in 4.07 GiB, SoC 46.3 C | decode at 10000 tokens: 4.34 tok/s, 64 tokens, token 2 after 150.71 s, token 10 after 152.76 s, token 50 after 161.91 s; '<think>\nThe user wants me t
+22:11:05 ok +852 s: swap-outs new 0, pressure 1, free 1.31 + file 3.23 GiB, compressor 11.79 in 4.07 GiB, SoC 71.7 C | read 3584/10000 tokens in 32.6 s; swap-outs 0
+22:13:05 ok +973 s: swap-outs new 0, pressure 1, free 3.07 + file 2.53 GiB, compressor 11.76 in 4.06 GiB, SoC 60.0 C | read 8605/10000 tokens in 135.7 s; swap-outs 0
+22:15:07 ok +1094 s: swap-outs new 0, pressure 1, free 12.68 + file 2.74 GiB, compressor 11.61 in 4.01 GiB, SoC 46.3 C | decode at 10000 tokens: 4.39 tok/s, 64 tokens, token 2 after 165.44 s, token 10 after 167.30 s, token 50 after 176.51 s; '<think>\nThe user wants me t
+22:17:08 ok +1215 s: swap-outs new 0, pressure 1, free 2.49 + file 2.94 GiB, compressor 11.6 in 4.01 GiB, SoC 71.4 C | read 2944/10000 tokens in 30.9 s; swap-outs 0
+22:19:08 ok +1336 s: swap-outs new 0, pressure 1, free 2.82 + file 2.63 GiB, compressor 11.54 in 3.98 GiB, SoC 61.2 C | read 9207/10000 tokens in 161.8 s; swap-outs 0
+22:20:27 DONE exit code 0, new swap-outs over the whole run 0 pages, swap used 1781.88 MiB (was 1781.88), peak pressure level 1, engine still running: [], stopped: False

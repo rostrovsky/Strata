@@ -1,0 +1,6 @@
+record rc=0 swapouts=0
+every engine must report: expert cache 605 experts
+default rc=1 swapouts=0 1
+indexed rc=1 swapouts=0 1
+elastic rc=1 swapouts=0 1
+elastic, 8192-token passes (near-ties allowed) rc=0 swapouts=0 1

@@ -1,0 +1,9 @@
+passes-2048: ready in 5.4 s; context 131072, expert cache 3682 experts (7199 MiB), direct reads
+passes-2048, prompt read: 10000 tokens, 24 written; this is what the others are compared with
+passes-8192: ready in 6.1 s; context 131072, expert cache 3682 experts (7199 MiB), direct reads
+passes-8192, prompt read: identical IDs and logits
+passes-2048-radix-only: ready in 6.3 s; context 131072, expert cache 3682 experts (7199 MiB), direct reads
+passes-2048-radix-only, prompt read: identical IDs and logits
+passes-2048-bitonic-only: ready in 6.3 s; context 131072, expert cache 4734 experts (9252 MiB), direct reads
+passes-2048-bitonic-only, prompt read: identical IDs and logits
+all identical

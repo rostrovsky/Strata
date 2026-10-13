@@ -1,0 +1,52 @@
+memory: {'free_gib': 13.94, 'file_cache_gib': 3.47, 'apps_gib': 11.12, 'wired_gib': 2.68, 'swap_used_gib': 1.76, 'pressure_level': 1}
+temperature before the run: SoC 45.0 C, battery 35.5 C
+bin/strata: ready in 5.3 s; context 131072, expert cache 3576 experts (6992 MiB), direct reads
+prefill    500 tokens:    46.1 tok/s, first token after 10.84 s, 50.1 GB from the SSD, 3 passes; 10.8 s = SSD 5.1 + GPU wait 4.2 + CPU 1.5 (GPU busy 5.4; 21.7 GB read ahead, 17.6 used); swap-outs 0
+  decode at 500 tokens: 6.82 tok/s, 64 tokens, token 2 after 10.98 s, token 10 after 12.11 s, token 50 after 17.97 s; '<think>\nThe user wants me to summarize a document about "Strata" - which appears to be a technical documentation page for a local AI/LLM inference engine. Let me analyze the content and provide a concise summary.\n\nThe document is a technical reference page for Strata, covering:\n- Speed benchmarks ('
+prefill   2000 tokens:    87.1 tok/s, first token after 22.96 s, 62.0 GB from the SSD, 3 passes; 23.0 s = SSD 7.2 + GPU wait 14.4 + CPU 1.3 (GPU busy 18.5; 25.2 GB read ahead, 23.1 used); swap-outs 0, 16.3 W
+  decode at 2000 tokens: 6.87 tok/s, 64 tokens, token 2 after 23.10 s, token 10 after 24.40 s, token 50 after 30.21 s; '<think>\nThe user wants me to summarize a document that appears to be a benchmark/performance report for a software called "Strata" (or similar), covering model inference performance across different quantization levels, hardware configurations, and engine versions. Let me organize the key information and provide a clear summary.\n\nThe document covers'
+  read 2944/8000 tokens in 31.5 s; swap-outs 0
+  read 5418/8000 tokens in 66.4 s; swap-outs 0
+  read 7147/8000 tokens in 100.8 s; swap-outs 0
+prefill   8000 tokens:    67.1 tok/s, first token after 119.28 s, 186.6 GB from the SSD, 6 passes; 119.3 s = SSD 13.8 + GPU wait 102.7 + CPU 2.8 (GPU busy 143.2; 150.9 GB read ahead, 138.9 used); swap-outs 0, 23.4 W
+  decode at 8000 tokens: 4.75 tok/s, 64 tokens, token 2 after 119.44 s, token 10 after 121.35 s, token 50 after 129.96 s; '<think>\nThe user wants me to summarize a lengthy technical document about what appears to be a software project called "Strata" - an engine for running large language models (specifically Mixture-of-Experts models) on consumer hardware. Let me organize the key information into a coherent summary.\n\nThe document covers:\n'
+temperature before the run: SoC 44.8 C, battery 35.6 C
+bin/strata: ready in 5.3 s; context 131072, expert cache 3576 experts (6992 MiB), direct reads
+prefill    500 tokens:    47.4 tok/s, first token after 10.56 s, 50.1 GB from the SSD, 3 passes; 10.6 s = SSD 5.1 + GPU wait 4.1 + CPU 1.3 (GPU busy 7.0; 21.7 GB read ahead, 17.6 used); swap-outs 0, 11.6 W
+  decode at 500 tokens: 6.88 tok/s, 64 tokens, token 2 after 10.70 s, token 10 after 11.81 s, token 50 after 17.61 s; '<think>\nThe user wants me to summarize a document about "Strata" - which appears to be a technical documentation page for a local AI/LLM inference engine. Let me analyze the content and provide a concise summary.\n\nThe document is a technical reference page for Strata, covering:\n- Speed benchmarks ('
+prefill   2000 tokens:    87.0 tok/s, first token after 23.00 s, 63.8 GB from the SSD, 3 passes; 23.0 s = SSD 7.2 + GPU wait 14.5 + CPU 1.3 (GPU busy 22.3; 25.2 GB read ahead, 23.1 used); swap-outs 0
+  decode at 2000 tokens: 6.57 tok/s, 64 tokens, token 2 after 23.14 s, token 10 after 24.45 s, token 50 after 30.58 s; '<think>\nThe user wants me to summarize a document that appears to be a benchmark/performance report for a software called "Strata" (or similar), covering model inference performance across different quantization levels, hardware configurations, and engine versions. Let me organize the key information and provide a clear summary.\n\nThe document covers'
+  read 2858/8000 tokens in 31.3 s; swap-outs 0
+  read 4992/8000 tokens in 63.8 s; swap-outs 0
+  read 6452/8000 tokens in 98.9 s; swap-outs 0
+  read 7919/8000 tokens in 131.3 s; swap-outs 0
+prefill   8000 tokens:    59.6 tok/s, first token after 134.21 s, 189.4 GB from the SSD, 6 passes; 134.2 s = SSD 12.8 + GPU wait 118.3 + CPU 3.2 (GPU busy 151.0; 150.9 GB read ahead, 138.9 used); swap-outs 0, 20.5 W
+  decode at 8000 tokens: 4.38 tok/s, 64 tokens, token 2 after 134.35 s, token 10 after 135.74 s, token 50 after 145.67 s; '<think>\nThe user wants me to summarize a lengthy technical document about what appears to be a software project called "Strata" - an engine for running large language models (specifically Mixture-of-Experts models) on consumer hardware. Let me organize the key information into a coherent summary.\n\nThe document covers:\n'
+temperature before the run: SoC 50.7 C, battery 35.9 C
+bin/strata: ready in 5.5 s; context 131072, expert cache 3576 experts (6992 MiB), direct reads
+prefill    500 tokens:    46.1 tok/s, first token after 10.85 s, 50.1 GB from the SSD, 3 passes; 10.8 s = SSD 5.2 + GPU wait 4.2 + CPU 1.5 (GPU busy 6.0; 21.7 GB read ahead, 17.6 used); swap-outs 0, 11.1 W
+  decode at 500 tokens: 6.74 tok/s, 64 tokens, token 2 after 10.99 s, token 10 after 12.12 s, token 50 after 18.04 s; '<think>\nThe user wants me to summarize a document about "Strata" - which appears to be a technical documentation page for a local AI/LLM inference engine. Let me analyze the content and provide a concise summary.\n\nThe document is a technical reference page for Strata, covering:\n- Speed benchmarks ('
+prefill   2000 tokens:    84.3 tok/s, first token after 23.76 s, 61.5 GB from the SSD, 3 passes; 23.7 s = SSD 7.7 + GPU wait 14.6 + CPU 1.5 (GPU busy 26.5; 25.2 GB read ahead, 23.1 used); swap-outs 0
+  decode at 2000 tokens: 6.77 tok/s, 64 tokens, token 2 after 23.90 s, token 10 after 25.22 s, token 50 after 31.12 s; '<think>\nThe user wants me to summarize a document that appears to be a benchmark/performance report for a software called "Strata" (or similar), covering model inference performance across different quantization levels, hardware configurations, and engine versions. Let me organize the key information and provide a clear summary.\n\nThe document covers'
+  read 2688/8000 tokens in 35.1 s; swap-outs 0
+  read 4309/8000 tokens in 68.5 s; swap-outs 0
+  read 5802/8000 tokens in 102.2 s; swap-outs 0
+  read 7379/8000 tokens in 135.3 s; swap-outs 0
+prefill   8000 tokens:    54.2 tok/s, first token after 147.63 s, 185.9 GB from the SSD, 6 passes; 147.6 s = SSD 9.9 + GPU wait 134.8 + CPU 2.9 (GPU busy 162.9; 150.9 GB read ahead, 138.9 used); swap-outs 0, 19.9 W
+  decode at 8000 tokens: 4.90 tok/s, 64 tokens, token 2 after 147.78 s, token 10 after 149.49 s, token 50 after 157.93 s; '<think>\nThe user wants me to summarize a lengthy technical document about what appears to be a software project called "Strata" - an engine for running large language models (specifically Mixture-of-Experts models) on consumer hardware. Let me organize the key information into a coherent summary.\n\nThe document covers:\n'
+temperature before the run: SoC 44.6 C, battery 36.0 C
+bin/strata: ready in 5.4 s; context 131072, expert cache 3576 experts (6992 MiB), direct reads
+prefill    500 tokens:    46.8 tok/s, first token after 10.69 s, 50.1 GB from the SSD, 3 passes; 10.7 s = SSD 5.2 + GPU wait 4.1 + CPU 1.4 (GPU busy 4.8; 21.7 GB read ahead, 17.6 used); swap-outs 0, 10.2 W
+  decode at 500 tokens: 6.90 tok/s, 64 tokens, token 2 after 10.82 s, token 10 after 11.94 s, token 50 after 17.72 s; '<think>\nThe user wants me to summarize a document about "Strata" - which appears to be a technical documentation page for a local AI/LLM inference engine. Let me analyze the content and provide a concise summary.\n\nThe document is a technical reference page for Strata, covering:\n- Speed benchmarks ('
+prefill   2000 tokens:    87.4 tok/s, first token after 22.87 s, 62.3 GB from the SSD, 3 passes; 22.9 s = SSD 7.2 + GPU wait 14.3 + CPU 1.3 (GPU busy 18.9; 25.2 GB read ahead, 23.1 used); swap-outs 0
+  decode at 2000 tokens: 6.86 tok/s, 64 tokens, token 2 after 23.02 s, token 10 after 24.31 s, token 50 after 30.12 s; '<think>\nThe user wants me to summarize a document that appears to be a benchmark/performance report for a software called "Strata" (or similar), covering model inference performance across different quantization levels, hardware configurations, and engine versions. Let me organize the key information and provide a clear summary.\n\nThe document covers'
+  read 2901/8000 tokens in 31.7 s; swap-outs 0
+  read 5034/8000 tokens in 63.3 s; swap-outs 0
+  read 6568/8000 tokens in 96.8 s; swap-outs 0
+  read 7997/8000 tokens in 129.7 s; swap-outs 0
+prefill   8000 tokens:    61.1 tok/s, first token after 130.90 s, 187.4 GB from the SSD, 6 passes; 130.9 s = SSD 12.8 + GPU wait 115.3 + CPU 2.8 (GPU busy 142.8; 150.9 GB read ahead, 138.9 used); swap-outs 0, 20.8 W
+  decode at 8000 tokens: 4.56 tok/s, 64 tokens, token 2 after 131.06 s, token 10 after 133.25 s, token 50 after 142.18 s; '<think>\nThe user wants me to summarize a lengthy technical document about what appears to be a software project called "Strata" - an engine for running large language models (specifically Mixture-of-Experts models) on consumer hardware. Let me organize the key information into a coherent summary.\n\nThe document covers:\n'
+
+medians of 2 runs:
+  STRATA_ELASTIC_LONG=plan build-metal/bin/strata: cache 6992 MiB, prefill 500: 46.5 tok/s, prefill 2000: 87.3 tok/s, prefill 8000: 64.1 tok/s, swap-outs 0
+  STRATA_ELASTIC_LONG=plan GGML_METAL_TOP_K=radix build-metal/bin/strata: cache 6992 MiB, prefill 500: 46.7 tok/s, prefill 2000: 85.6 tok/s, prefill 8000: 56.9 tok/s, swap-outs 0

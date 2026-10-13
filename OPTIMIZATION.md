@@ -13,6 +13,32 @@ afternoon's), [the morning after](bench/results/2026-10-12-m4-air-128k-resume/RE
 
 ## Read this first
 
+**Evening, 2026-10-13 — the newest state.** Section 15 of the
+[report](bench/results/2026-10-12-m4-air-128k-resume/README.md#15-evening-of-2026-10-13-the-long-pass-sized-per-prompt-and-one-tie-rule-for-the-top-k).
+
+- **The long pass is sized per prompt** (`Engine::reshape`; `STRATA_ELASTIC_LONG=plan`: as before). The plan's size
+  is for a full context; a start with less free memory used 4,096 or 2,048 for everything. A B B A where the plan
+  has room for 2,048: a 10,000-token prompt in 150.5 and 165.3 s instead of 180.6 and 177.6, 162 GB from the SSD
+  instead of 238.
+- **One tie rule for the top-k** (`metal/patches/0009`). The same prompt gave other logits in passes of 2,048 than
+  in passes of 8,192 (35.725 and 35.851): llama.cpp's two top-k kernels kept different ones of the candidates
+  tied at the sparse attention's threshold, and which kernel a row takes depends on its length. The sort now
+  breaks ties as the radix selection does. Passes of 2,048 and 8,192, and either kernel for every row: identical
+  logits. Against `strata-reference`: chat and code identical; the 7,900-token document identical in IDs, logits
+  off by at most 0.0065. **Results from before this patch at more than 2,048 tokens of context are not
+  bit-comparable with results after it.**
+- **The gate checks its cache sizes** (`build-metal/resume-128k/gate.sh`, a copy in `pass-size/`): a reference that
+  gets less than the capped cache (other programs holding much memory) computes some layers another way and
+  "fails" everything by up to 0.14. `GATE_CAP=1200` for such an evening. `gate_self.sh` holds the build's paths
+  against its own plain one.
+- **Progress** while a long prompt is read: every 5 s inside a pass, and the share of the prompt in the server's
+  line.
+- Where the time of a written token goes, and what is left: GPU 80-83 ms (about 58 of it the weights it has to
+  read, by the memory-read figure; not profiled per operation), SSD 29-35 ms (reading ahead more is slower), CPU
+  8.5 ms. In code, with bit-identical output and the desktop open, a few per cent per item are left. Larger: memory
+  (programs closed), cooling (a cool pass reads at 111-114 tok/s, a warm Air at 77-87), and `--lookup` drafting
+  (not bit-identical; unmeasured on real work; the owner's call).
+
 **Morning, 2026-10-13 — the newest state; read this before the rest.** The first two steps of the night's list,
 done in a side session. Section 12 of the
 [report](bench/results/2026-10-12-m4-air-128k-resume/README.md#12-morning-of-2026-10-13-the-expert-cache-is-not-read-back)
@@ -193,7 +219,7 @@ Mac with the apps open: the GPU alone takes 82-126 ms per written token, and a w
 | Production Strata configuration | **131,072** context. Since the night of 2026-10-12: `--kv f16 --prefill 8192 --reserve-gib 3 --elastic on`, indexed QSA, the alias pi asks for (`pending/desktop-128k-elastic.json`). The evening's plain one (`--prefill 4096 --reserve-gib 4`, no `--elastic`) is `installed/strata-iq3_s.before-elastic.json`. The 32,768 file is kept as `bench/results/2026-10-12-m4-air-128k-resume/installed/strata-iq3_s.before.json` |
 | pi local-provider configuration | `contextWindow` **131,072** (backup: `~/.pi/agent/models.json.backup-20261012-165047-32k`). The smoke test against the 128k server passed: a real `read` tool call and the marker. A long pi session was not tested |
 | Completed full-context run | Two: the morning's (`build-metal/lowlevel-128k/strata-indexed-topk`, old plan, 61.7 MiB swapped) and the evening's (`build-metal/bin/strata`, new plan, **0 swap-outs**) |
-| Repository source | Eight patches (`0001`-`0008`), engine with `--elastic`; built and tested (kernel tests, tiny-model parity, protocol suite, shape test). Applied once more to a clean checkout of the pin at the end of the night. The morning of 2026-10-13 changed `metal/src/main.cpp`, the shape test and two tools, no patch |
+| Repository source | Nine patches (`0001`-`0009`), engine with `--elastic`; built and tested (kernel tests, tiny-model parity, protocol suite, shape test). Applied once more to a clean checkout of the pin at the end of the night. The morning of 2026-10-13 changed `metal/src/main.cpp`, the shape test and two tools, no patch |
 | `build-metal/bin/strata` | Built from the current source (SHA-256 `b646b475...` on the morning of 2026-10-13; `f3f16987...` at the end of the night before, kept as `build-metal/refill/strata-before`) |
 | Default path | Same arithmetic as before; **not** the same memory plan: 450 MiB more reserved at 131,072 context with 4,096-token passes, host buffer subtracted |
 | Real-model exact gate on the final build | Passed again on the morning of 2026-10-13 (same four paths, no swap-out), and at the end of the night against `strata-reference` (re-recorded) at 32,768 context with a 3,000 MiB cache: chat, code, 7,900-token document, identical ids and reported logits on the default, indexed and `--elastic` paths, and with `--elastic --prefill 8192` |

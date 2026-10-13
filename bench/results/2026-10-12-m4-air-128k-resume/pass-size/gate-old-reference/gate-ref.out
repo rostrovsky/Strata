@@ -1,0 +1,7 @@
+memory: {'free_gib': 8.99, 'file_cache_gib': 9.23, 'apps_gib': 10.19, 'wired_gib': 2.79, 'swap_used_gib': 1.74, 'pressure_level': 1}
+lowlevel-128k/strata-reference: ready in 7.0 s; context 32768, expert cache 605 experts (1194 MiB), direct reads
+chat      prompt    20 tokens, 32 out (length), 3.34 tok/s; smallest margins between the two best tokens: 0.159, 0.249, 0.608; swap-outs 0
+code      prompt    37 tokens, 32 out (length), 3.71 tok/s; smallest margins between the two best tokens: 0.407, 0.752, 1.503; swap-outs 0
+doc8k     prompt  7900 tokens, 32 out (length), 2.73 tok/s; smallest margins between the two best tokens: 0.036, 0.315, 0.760; swap-outs 0
+reference written to build-metal/resume-128k/gate-ref.json
+swap-outs over the whole run: 0

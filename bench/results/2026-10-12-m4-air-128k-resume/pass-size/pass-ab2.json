@@ -1,0 +1,1947 @@
+{
+ "when": "2026-10-13 21:56",
+ "args": [
+  "--native",
+  "/Users/rafal/Projects/strata-air/Strata-data/models/IQ3_S/Qwen3.8-Flash-Next-GSQ-RCO-IQ3_S-00001-of-00002.gguf",
+  "--expert-profile",
+  "/Users/rafal/Projects/strata-air/Strata/data/expert-profile.bin",
+  "--expert-cache",
+  "auto",
+  "--max-context",
+  "131072",
+  "--kv",
+  "f16",
+  "--prefill",
+  "8192",
+  "--reserve-gib",
+  "3",
+  "--elastic",
+  "on",
+  "--reserve-gib",
+  "5",
+  "--verbose"
+ ],
+ "memory_before": {
+  "free_gib": 14.3,
+  "file_cache_gib": 2.07,
+  "apps_gib": 12.13,
+  "wired_gib": 2.69,
+  "swap_used_gib": 1.74,
+  "pressure_level": 1
+ },
+ "ab": {
+  "STRATA_ELASTIC_LONG=plan build-metal/bin/strata": [
+   {
+    "info": {
+     "context": "131072",
+     "kv": "f16",
+     "kv_resident": "0",
+     "expert_slots": "3682",
+     "expert_cache_mib": "7199",
+     "expert_slots_primary": "3682",
+     "expert_cache_primary_mib": "7199",
+     "spec": "0",
+     "mtp_max": "0",
+     "lookup": "0",
+     "prefetch": "10",
+     "vram_free_mib": "9794",
+     "arena_mib": "0",
+     "pool_workers": "8",
+     "backend": "metal",
+     "expert_io": "direct",
+     "engine": "0.1.42-metal"
+    },
+    "therm": null,
+    "temps_before": [
+     48.4,
+     36.4
+    ],
+    "memory_before": {
+     "free_gib": 14.84,
+     "file_cache_gib": 2.08,
+     "apps_gib": 11.61,
+     "wired_gib": 2.67,
+     "swap_used_gib": 1.74,
+     "pressure_level": 1
+    },
+    "ready_s": 5.342868804931641,
+    "prefill": {
+     "2000": {
+      "tokens": 2000,
+      "tps": 89.6933384757514,
+      "ttft_s": 22.298752069473267,
+      "ssd_gb": 69.878,
+      "swapouts": 0,
+      "gpu_wait_s": 14.3267,
+      "ssd_s": 6.7078999999999995,
+      "gpu_busy_s": 17.868599999999997,
+      "wall_s": 22.2982,
+      "passes": 3.0,
+      "read_ahead_gb": 35.6157,
+      "read_ahead_used_gb": 31.278599999999997,
+      "watts": 13.80315,
+      "decode_tps": 6.027323868202519,
+      "generated": 64,
+      "output": "<think>\nThe user wants me to summarize a technical document about \"Strata\" - which appears to be a local LLM inference engine. Let me identify the key information and provide a concise summary.\n\nThe document covers:\n1. What Strata is (a local LLM inference engine)\n2. Speed",
+      "progress": [
+       {
+        "tokens": 416,
+        "total": 2000,
+        "elapsed_s": 5.253
+       },
+       {
+        "tokens": 956,
+        "total": 2000,
+        "elapsed_s": 10.696
+       },
+       {
+        "tokens": 1456,
+        "total": 2000,
+        "elapsed_s": 15.779
+       },
+       {
+        "tokens": 1997,
+        "total": 2000,
+        "elapsed_s": 20.963
+       },
+       {
+        "tokens": 1999,
+        "total": 2000,
+        "elapsed_s": 22.036
+       }
+      ],
+      "decode_per_token": {
+       "total_ms": 166.46984126984128,
+       "gpu_wait_ms": 86.42063492063492,
+       "ssd_ms": 70.38095238095238,
+       "cpu_ms": 9.668253968253975,
+       "encode_ms": 3.477777777777778,
+       "gpu_busy_ms": 82.81587301587301,
+       "sample_ms": 0.13174603174603175,
+       "misses": 62.84126984126984,
+       "ssd_mb": 383.315873015873,
+       "waits": 49.0,
+       "ahead": 125.0,
+       "ahead_used": 85.39682539682539,
+       "ahead_waits": 24.523809523809526,
+       "predict_ms": 4.13968253968254
+      },
+      "token_s": [
+       22.299,
+       22.446,
+       22.574,
+       22.736,
+       22.953,
+       23.173,
+       23.307,
+       23.464,
+       23.645,
+       23.817,
+       24.037,
+       24.215,
+       24.387,
+       24.632,
+       24.871,
+       25.04,
+       25.18,
+       25.36,
+       25.535,
+       25.683,
+       25.842,
+       25.98,
+       26.127,
+       26.305,
+       26.47,
+       26.602,
+       26.735,
+       26.866,
+       27.094,
+       27.274,
+       27.414,
+       27.579,
+       27.739,
+       27.879,
+       28.008,
+       28.168,
+       28.304,
+       28.437,
+       28.565,
+       28.689,
+       28.804,
+       28.967,
+       29.107,
+       29.269,
+       29.413,
+       29.582,
+       29.705,
+       29.838,
+       29.973,
+       30.133,
+       30.382,
+       30.57,
+       30.74,
+       30.903,
+       31.08,
+       31.293,
+       31.464,
+       31.608,
+       31.753,
+       31.9,
+       32.112,
+       32.396,
+       32.598,
+       32.751
+      ]
+     },
+     "10000": {
+      "tokens": 10000,
+      "tps": 55.366141832552856,
+      "ttft_s": 180.61469507217407,
+      "ssd_gb": 238.3737,
+      "swapouts": 0,
+      "gpu_wait_s": 161.37320000000003,
+      "ssd_s": 16.084,
+      "gpu_busy_s": 166.8717,
+      "wall_s": 180.61579999999998,
+      "passes": 7.0,
+      "read_ahead_gb": 190.43079999999998,
+      "read_ahead_used_gb": 174.7237,
+      "watts": 19.537949438202247,
+      "decode_tps": 4.170942434373862,
+      "generated": 64,
+      "output": "<think>\nThe user wants me to summarize a lengthy technical document about a software project called \"Strata\" that appears to be an inference engine for running large language models (specifically Qwen3.8-Flash-Next quantized models) on consumer hardware. Let me organize the key information and provide a comprehensive summary",
+      "progress": [
+       {
+        "tokens": 426,
+        "total": 10000,
+        "elapsed_s": 5.257
+       },
+       {
+        "tokens": 938,
+        "total": 10000,
+        "elapsed_s": 10.321
+       },
+       {
+        "tokens": 1450,
+        "total": 10000,
+        "elapsed_s": 15.403
+       },
+       {
+        "tokens": 1962,
+        "total": 10000,
+        "elapsed_s": 20.559
+       },
+       {
+        "tokens": 2048,
+        "total": 10000,
+        "elapsed_s": 21.105
+       },
+       {
+        "tokens": 2474,
+        "total": 10000,
+        "elapsed_s": 26.415
+       },
+       {
+        "tokens": 2944,
+        "total": 10000,
+        "elapsed_s": 31.615,
+        "memory": {
+         "free_gib": 2.32,
+         "file_cache_gib": 2.48,
+         "apps_gib": 13.04,
+         "wired_gib": 13.36,
+         "swap_used_gib": 1.74,
+         "pressure_level": 1
+        },
+        "swapouts": 0
+       },
+       {
+        "tokens": 3370,
+        "total": 10000,
+        "elapsed_s": 36.734
+       },
+       {
+        "tokens": 3840,
+        "total": 10000,
+        "elapsed_s": 42.052
+       },
+       {
+        "tokens": 4096,
+        "total": 10000,
+        "elapsed_s": 45.08
+       },
+       {
+        "tokens": 4437,
+        "total": 10000,
+        "elapsed_s": 50.328
+       },
+       {
+        "tokens": 4821,
+        "total": 10000,
+        "elapsed_s": 55.471
+       },
+       {
+        "tokens": 5162,
+        "total": 10000,
+        "elapsed_s": 60.698
+       },
+       {
+        "tokens": 5461,
+        "total": 10000,
+        "elapsed_s": 65.971,
+        "memory": {
+         "free_gib": 1.92,
+         "file_cache_gib": 2.52,
+         "apps_gib": 13.76,
+         "wired_gib": 13.01,
+         "swap_used_gib": 1.74,
+         "pressure_level": 1
+        },
+        "swapouts": 0
+       },
+       {
+        "tokens": 5717,
+        "total": 10000,
+        "elapsed_s": 71.199
+       },
+       {
+        "tokens": 5973,
+        "total": 10000,
+        "elapsed_s": 76.716
+       },
+       {
+        "tokens": 6144,
+        "total": 10000,
+        "elapsed_s": 79.786
+       },
+       {
+        "tokens": 6314,
+        "total": 10000,
+        "elapsed_s": 85.259
+       },
+       {
+        "tokens": 6528,
+        "total": 10000,
+        "elapsed_s": 90.46
+       },
+       {
+        "tokens": 6741,
+        "total": 10000,
+        "elapsed_s": 95.767
+       },
+       {
+        "tokens": 6954,
+        "total": 10000,
+        "elapsed_s": 101.945,
+        "memory": {
+         "free_gib": 2.29,
+         "file_cache_gib": 2.56,
+         "apps_gib": 13.52,
+         "wired_gib": 12.84,
+         "swap_used_gib": 1.74,
+         "pressure_level": 1
+        },
+        "swapouts": 0
+       },
+       {
+        "tokens": 7125,
+        "total": 10000,
+        "elapsed_s": 107.557
+       },
+       {
+        "tokens": 7338,
+        "total": 10000,
+        "elapsed_s": 113.805
+       },
+       {
+        "tokens": 7466,
+        "total": 10000,
+        "elapsed_s": 119.18
+       },
+       {
+        "tokens": 7680,
+        "total": 10000,
+        "elapsed_s": 124.762
+       },
+       {
+        "tokens": 7893,
+        "total": 10000,
+        "elapsed_s": 130.824
+       },
+       {
+        "tokens": 8192,
+        "total": 10000,
+        "elapsed_s": 137.232,
+        "memory": {
+         "free_gib": 2.47,
+         "file_cache_gib": 2.17,
+         "apps_gib": 13.23,
+         "wired_gib": 13.33,
+         "swap_used_gib": 1.74,
+         "pressure_level": 1
+        },
+        "swapouts": 0
+       },
+       {
+        "tokens": 8417,
+        "total": 10000,
+        "elapsed_s": 142.606
+       },
+       {
+        "tokens": 8643,
+        "total": 10000,
+        "elapsed_s": 148.169
+       },
+       {
+        "tokens": 8868,
+        "total": 10000,
+        "elapsed_s": 153.283
+       },
+       {
+        "tokens": 9132,
+        "total": 10000,
+        "elapsed_s": 158.979
+       },
+       {
+        "tokens": 9357,
+        "total": 10000,
+        "elapsed_s": 164.776
+       },
+       {
+        "tokens": 9545,
+        "total": 10000,
+        "elapsed_s": 169.891,
+        "memory": {
+         "free_gib": 1.26,
+         "file_cache_gib": 2.68,
+         "apps_gib": 14.09,
+         "wired_gib": 13.18,
+         "swap_used_gib": 1.74,
+         "pressure_level": 1
+        },
+        "swapouts": 0
+       },
+       {
+        "tokens": 9808,
+        "total": 10000,
+        "elapsed_s": 175.648
+       },
+       {
+        "tokens": 9997,
+        "total": 10000,
+        "elapsed_s": 179.353
+       },
+       {
+        "tokens": 9999,
+        "total": 10000,
+        "elapsed_s": 180.321
+       }
+      ],
+      "decode_per_token": {
+       "total_ms": 240.75238095238095,
+       "gpu_wait_ms": 157.07619047619048,
+       "ssd_ms": 67.43968253968254,
+       "cpu_ms": 16.236507936507945,
+       "encode_ms": 6.258730158730159,
+       "gpu_busy_ms": 150.0126984126984,
+       "sample_ms": 0.20476190476190476,
+       "misses": 81.71428571428571,
+       "ssd_mb": 432.38730158730164,
+       "waits": 49.0,
+       "ahead": 129.61904761904762,
+       "ahead_used": 99.38095238095238,
+       "ahead_waits": 9.142857142857142,
+       "predict_ms": 6.9412698412698415
+      },
+      "token_s": [
+       180.615,
+       180.774,
+       180.912,
+       181.078,
+       181.297,
+       181.624,
+       181.855,
+       182.038,
+       182.259,
+       182.5,
+       182.801,
+       183.1,
+       183.346,
+       183.592,
+       183.794,
+       183.991,
+       184.178,
+       184.414,
+       184.736,
+       184.978,
+       185.169,
+       185.368,
+       185.58,
+       185.779,
+       185.971,
+       186.151,
+       186.35,
+       186.627,
+       187.002,
+       187.251,
+       187.444,
+       187.653,
+       187.846,
+       188.041,
+       188.325,
+       188.589,
+       188.806,
+       189.071,
+       189.309,
+       189.534,
+       189.864,
+       190.242,
+       190.499,
+       190.671,
+       190.871,
+       191.039,
+       191.276,
+       191.462,
+       191.668,
+       191.915,
+       192.269,
+       192.534,
+       192.713,
+       193.095,
+       193.5,
+       193.742,
+       194.034,
+       194.413,
+       194.731,
+       194.954,
+       195.211,
+       195.389,
+       195.561,
+       195.719
+      ]
+     }
+    },
+    "swapouts": 0,
+    "temps_after": [
+     57.9,
+     36.7
+    ]
+   },
+   {
+    "info": {
+     "context": "131072",
+     "kv": "f16",
+     "kv_resident": "0",
+     "expert_slots": "3682",
+     "expert_cache_mib": "7199",
+     "expert_slots_primary": "3682",
+     "expert_cache_primary_mib": "7199",
+     "spec": "0",
+     "mtp_max": "0",
+     "lookup": "0",
+     "prefetch": "10",
+     "vram_free_mib": "9794",
+     "arena_mib": "0",
+     "pool_workers": "8",
+     "backend": "metal",
+     "expert_io": "direct",
+     "engine": "0.1.42-metal"
+    },
+    "therm": null,
+    "temps_before": [
+     48.4,
+     36.6
+    ],
+    "memory_before": {
+     "free_gib": 12.22,
+     "file_cache_gib": 2.74,
+     "apps_gib": 13.23,
+     "wired_gib": 3.02,
+     "swap_used_gib": 1.74,
+     "pressure_level": 1
+    },
+    "ready_s": 5.34636378288269,
+    "prefill": {
+     "2000": {
+      "tokens": 2000,
+      "tps": 90.24863498939578,
+      "ttft_s": 22.161489725112915,
+      "ssd_gb": 72.98939999999999,
+      "swapouts": 0,
+      "gpu_wait_s": 14.2334,
+      "ssd_s": 6.6972,
+      "gpu_busy_s": 24.402099999999997,
+      "wall_s": 22.161,
+      "passes": 3.0,
+      "read_ahead_gb": 35.6157,
+      "read_ahead_used_gb": 31.278599999999997,
+      "watts": 16.29335,
+      "decode_tps": 5.801265228321224,
+      "generated": 64,
+      "output": "<think>\nThe user wants me to summarize a technical document about \"Strata\" - which appears to be a local LLM inference engine. Let me identify the key information and provide a concise summary.\n\nThe document covers:\n1. What Strata is (a local LLM inference engine)\n2. Speed",
+      "progress": [
+       {
+        "tokens": 416,
+        "total": 2000,
+        "elapsed_s": 5.244
+       },
+       {
+        "tokens": 956,
+        "total": 2000,
+        "elapsed_s": 10.686
+       },
+       {
+        "tokens": 1456,
+        "total": 2000,
+        "elapsed_s": 15.757
+       },
+       {
+        "tokens": 1997,
+        "total": 2000,
+        "elapsed_s": 20.916
+       },
+       {
+        "tokens": 1999,
+        "total": 2000,
+        "elapsed_s": 21.91
+       }
+      ],
+      "decode_per_token": {
+       "total_ms": 172.95555555555558,
+       "gpu_wait_ms": 83.10317460317461,
+       "ssd_ms": 80.48253968253968,
+       "cpu_ms": 9.369841269841286,
+       "encode_ms": 3.276190476190476,
+       "gpu_busy_ms": 81.19365079365079,
+       "sample_ms": 0.1253968253968254,
+       "misses": 71.4920634920635,
+       "ssd_mb": 433.42380952380955,
+       "waits": 49.0,
+       "ahead": 140.73015873015873,
+       "ahead_used": 98.28571428571429,
+       "ahead_waits": 31.523809523809526,
+       "predict_ms": 4.053968253968254
+      },
+      "token_s": [
+       22.161,
+       22.308,
+       22.431,
+       22.59,
+       22.802,
+       23.016,
+       23.149,
+       23.303,
+       23.479,
+       23.651,
+       23.872,
+       24.05,
+       24.224,
+       24.474,
+       24.717,
+       24.895,
+       25.037,
+       25.223,
+       25.417,
+       25.577,
+       25.755,
+       25.895,
+       26.054,
+       26.256,
+       26.432,
+       26.555,
+       26.695,
+       26.841,
+       27.088,
+       27.304,
+       27.47,
+       27.669,
+       27.863,
+       28.021,
+       28.155,
+       28.313,
+       28.446,
+       28.583,
+       28.719,
+       28.851,
+       29.017,
+       29.172,
+       29.345,
+       29.501,
+       29.657,
+       29.83,
+       29.948,
+       30.081,
+       30.214,
+       30.378,
+       30.619,
+       30.808,
+       30.985,
+       31.14,
+       31.315,
+       31.521,
+       31.691,
+       31.835,
+       31.977,
+       32.124,
+       32.371,
+       32.654,
+       32.852,
+       33.021
+      ]
+     },
+     "10000": {
+      "tokens": 10000,
+      "tps": 56.29635300965933,
+      "ttft_s": 177.63290095329285,
+      "ssd_gb": 236.8776,
+      "swapouts": 0,
+      "gpu_wait_s": 158.1716,
+      "ssd_s": 16.4523,
+      "gpu_busy_s": 195.5275,
+      "wall_s": 177.63139999999999,
+      "passes": 7.0,
+      "read_ahead_gb": 190.43079999999998,
+      "read_ahead_used_gb": 174.7237,
+      "watts": 18.62902808988764,
+      "decode_tps": 4.589194268606269,
+      "generated": 64,
+      "output": "<think>\nThe user wants me to summarize a lengthy technical document about a software project called \"Strata\" that appears to be an inference engine for running large language models (specifically Qwen3.8-Flash-Next quantized models) on consumer hardware. Let me organize the key information and provide a comprehensive summary",
+      "progress": [
+       {
+        "tokens": 426,
+        "total": 10000,
+        "elapsed_s": 5.165
+       },
+       {
+        "tokens": 981,
+        "total": 10000,
+        "elapsed_s": 10.568
+       },
+       {
+        "tokens": 1493,
+        "total": 10000,
+        "elapsed_s": 15.602
+       },
+       {
+        "tokens": 2048,
+        "total": 10000,
+        "elapsed_s": 20.715
+       },
+       {
+        "tokens": 2474,
+        "total": 10000,
+        "elapsed_s": 25.91
+       },
+       {
+        "tokens": 2944,
+        "total": 10000,
+        "elapsed_s": 30.934,
+        "memory": {
+         "free_gib": 2.54,
+         "file_cache_gib": 2.9,
+         "apps_gib": 14.09,
+         "wired_gib": 11.67,
+         "swap_used_gib": 1.74,
+         "pressure_level": 1
+        },
+        "swapouts": 0
+       },
+       {
+        "tokens": 3413,
+        "total": 10000,
+        "elapsed_s": 36.296
+       },
+       {
+        "tokens": 3882,
+        "total": 10000,
+        "elapsed_s": 41.82
+       },
+       {
+        "tokens": 4096,
+        "total": 10000,
+        "elapsed_s": 44.026
+       },
+       {
+        "tokens": 4437,
+        "total": 10000,
+        "elapsed_s": 49.204
+       },
+       {
+        "tokens": 4821,
+        "total": 10000,
+        "elapsed_s": 54.281
+       },
+       {
+        "tokens": 5162,
+        "total": 10000,
+        "elapsed_s": 59.475
+       },
+       {
+        "tokens": 5418,
+        "total": 10000,
+        "elapsed_s": 65.052,
+        "memory": {
+         "free_gib": 1.62,
+         "file_cache_gib": 2.94,
+         "apps_gib": 14.37,
+         "wired_gib": 12.27,
+         "swap_used_gib": 1.74,
+         "pressure_level": 1
+        },
+        "swapouts": 0
+       },
+       {
+        "tokens": 5674,
+        "total": 10000,
+        "elapsed_s": 70.447
+       },
+       {
+        "tokens": 5802,
+        "total": 10000,
+        "elapsed_s": 75.943
+       },
+       {
+        "tokens": 6016,
+        "total": 10000,
+        "elapsed_s": 81.701
+       },
+       {
+        "tokens": 6144,
+        "total": 10000,
+        "elapsed_s": 84.224
+       },
+       {
+        "tokens": 6314,
+        "total": 10000,
+        "elapsed_s": 90.141
+       },
+       {
+        "tokens": 6485,
+        "total": 10000,
+        "elapsed_s": 95.382,
+        "memory": {
+         "free_gib": 1.38,
+         "file_cache_gib": 2.98,
+         "apps_gib": 14.91,
+         "wired_gib": 11.93,
+         "swap_used_gib": 1.74,
+         "pressure_level": 1
+        },
+        "swapouts": 0
+       },
+       {
+        "tokens": 6698,
+        "total": 10000,
+        "elapsed_s": 101.245
+       },
+       {
+        "tokens": 6869,
+        "total": 10000,
+        "elapsed_s": 107.421
+       },
+       {
+        "tokens": 7040,
+        "total": 10000,
+        "elapsed_s": 113.006
+       },
+       {
+        "tokens": 7253,
+        "total": 10000,
+        "elapsed_s": 118.104
+       },
+       {
+        "tokens": 7466,
+        "total": 10000,
+        "elapsed_s": 124.498
+       },
+       {
+        "tokens": 7722,
+        "total": 10000,
+        "elapsed_s": 129.984,
+        "memory": {
+         "free_gib": 2.04,
+         "file_cache_gib": 3.01,
+         "apps_gib": 14.66,
+         "wired_gib": 11.49,
+         "swap_used_gib": 1.74,
+         "pressure_level": 1
+        },
+        "swapouts": 0
+       },
+       {
+        "tokens": 7978,
+        "total": 10000,
+        "elapsed_s": 136.017
+       },
+       {
+        "tokens": 8192,
+        "total": 10000,
+        "elapsed_s": 139.743
+       },
+       {
+        "tokens": 8417,
+        "total": 10000,
+        "elapsed_s": 145.292
+       },
+       {
+        "tokens": 8680,
+        "total": 10000,
+        "elapsed_s": 150.75
+       },
+       {
+        "tokens": 8944,
+        "total": 10000,
+        "elapsed_s": 156.136
+       },
+       {
+        "tokens": 9207,
+        "total": 10000,
+        "elapsed_s": 161.801,
+        "memory": {
+         "free_gib": 2.2,
+         "file_cache_gib": 2.91,
+         "apps_gib": 14.61,
+         "wired_gib": 11.49,
+         "swap_used_gib": 1.74,
+         "pressure_level": 1
+        },
+        "swapouts": 0
+       },
+       {
+        "tokens": 9508,
+        "total": 10000,
+        "elapsed_s": 167.633
+       },
+       {
+        "tokens": 9771,
+        "total": 10000,
+        "elapsed_s": 172.701
+       },
+       {
+        "tokens": 9997,
+        "total": 10000,
+        "elapsed_s": 176.488
+       },
+       {
+        "tokens": 9999,
+        "total": 10000,
+        "elapsed_s": 177.382
+       }
+      ],
+      "decode_per_token": {
+       "total_ms": 218.97301587301587,
+       "gpu_wait_ms": 136.9904761904762,
+       "ssd_ms": 66.8079365079365,
+       "cpu_ms": 15.174603174603174,
+       "encode_ms": 5.271428571428571,
+       "gpu_busy_ms": 130.0666666666667,
+       "sample_ms": 0.20158730158730157,
+       "misses": 76.9047619047619,
+       "ssd_mb": 408.51428571428573,
+       "waits": 49.0,
+       "ahead": 123.03174603174604,
+       "ahead_used": 94.3015873015873,
+       "ahead_waits": 10.873015873015873,
+       "predict_ms": 6.863492063492063
+      },
+      "token_s": [
+       177.633,
+       177.786,
+       177.926,
+       178.096,
+       178.319,
+       178.54,
+       178.721,
+       178.934,
+       179.18,
+       179.438,
+       179.701,
+       179.986,
+       180.249,
+       180.49,
+       180.702,
+       180.913,
+       181.113,
+       181.347,
+       181.61,
+       181.849,
+       182.042,
+       182.241,
+       182.452,
+       182.658,
+       182.847,
+       183.031,
+       183.237,
+       183.465,
+       183.657,
+       183.86,
+       184.143,
+       184.405,
+       184.622,
+       184.835,
+       185.092,
+       185.308,
+       185.518,
+       185.784,
+       185.974,
+       186.2,
+       186.525,
+       186.771,
+       187.03,
+       187.2,
+       187.385,
+       187.534,
+       187.763,
+       187.949,
+       188.187,
+       188.414,
+       188.636,
+       188.821,
+       188.984,
+       189.318,
+       189.71,
+       189.916,
+       190.14,
+       190.341,
+       190.519,
+       190.687,
+       190.869,
+       191.031,
+       191.198,
+       191.361
+      ]
+     }
+    },
+    "swapouts": 0,
+    "temps_after": [
+     58.1,
+     36.8
+    ]
+   }
+  ],
+  "build-metal/bin/strata": [
+   {
+    "info": {
+     "context": "131072",
+     "kv": "f16",
+     "kv_resident": "0",
+     "expert_slots": "3682",
+     "expert_cache_mib": "7199",
+     "expert_slots_primary": "3682",
+     "expert_cache_primary_mib": "7199",
+     "spec": "0",
+     "mtp_max": "0",
+     "lookup": "0",
+     "prefetch": "10",
+     "vram_free_mib": "9794",
+     "arena_mib": "0",
+     "pool_workers": "8",
+     "backend": "metal",
+     "expert_io": "direct",
+     "engine": "0.1.42-metal"
+    },
+    "therm": null,
+    "temps_before": [
+     49.0,
+     36.5
+    ],
+    "memory_before": {
+     "free_gib": 13.11,
+     "file_cache_gib": 2.48,
+     "apps_gib": 12.94,
+     "wired_gib": 2.67,
+     "swap_used_gib": 1.74,
+     "pressure_level": 1
+    },
+    "ready_s": 5.4410481452941895,
+    "prefill": {
+     "2000": {
+      "tokens": 2000,
+      "tps": 89.26260164778763,
+      "ttft_s": 22.40630602836609,
+      "ssd_gb": 72.708,
+      "swapouts": 0,
+      "gpu_wait_s": 14.4705,
+      "ssd_s": 6.6755,
+      "gpu_busy_s": 16.7042,
+      "wall_s": 22.4058,
+      "passes": 3.0,
+      "read_ahead_gb": 35.6157,
+      "read_ahead_used_gb": 31.278599999999997,
+      "watts": null,
+      "decode_tps": 5.816637429600222,
+      "generated": 64,
+      "output": "<think>\nThe user wants me to summarize a technical document about \"Strata\" - which appears to be a local LLM inference engine. Let me identify the key information and provide a concise summary.\n\nThe document covers:\n1. What Strata is (a local LLM inference engine)\n2. Speed",
+      "progress": [
+       {
+        "tokens": 416,
+        "total": 2000,
+        "elapsed_s": 5.341
+       },
+       {
+        "tokens": 915,
+        "total": 2000,
+        "elapsed_s": 10.384
+       },
+       {
+        "tokens": 1414,
+        "total": 2000,
+        "elapsed_s": 15.496
+       },
+       {
+        "tokens": 1913,
+        "total": 2000,
+        "elapsed_s": 20.614
+       },
+       {
+        "tokens": 1997,
+        "total": 2000,
+        "elapsed_s": 21.184
+       },
+       {
+        "tokens": 1999,
+        "total": 2000,
+        "elapsed_s": 22.187
+       }
+      ],
+      "decode_per_token": {
+       "total_ms": 172.4873015873016,
+       "gpu_wait_ms": 83.82063492063492,
+       "ssd_ms": 79.14603174603174,
+       "cpu_ms": 9.520634920634938,
+       "encode_ms": 3.4571428571428573,
+       "gpu_busy_ms": 81.88730158730158,
+       "sample_ms": 0.1253968253968254,
+       "misses": 70.7936507936508,
+       "ssd_mb": 428.8761904761905,
+       "waits": 49.0,
+       "ahead": 139.12698412698413,
+       "ahead_used": 97.01587301587301,
+       "ahead_waits": 30.714285714285715,
+       "predict_ms": 4.06984126984127
+      },
+      "token_s": [
+       22.406,
+       22.552,
+       22.677,
+       22.84,
+       23.051,
+       23.266,
+       23.398,
+       23.552,
+       23.729,
+       23.899,
+       24.118,
+       24.296,
+       24.471,
+       24.716,
+       24.955,
+       25.128,
+       25.273,
+       25.465,
+       25.657,
+       25.815,
+       25.991,
+       26.129,
+       26.288,
+       26.489,
+       26.664,
+       26.789,
+       26.928,
+       27.074,
+       27.314,
+       27.528,
+       27.693,
+       27.892,
+       28.083,
+       28.238,
+       28.372,
+       28.53,
+       28.664,
+       28.8,
+       28.936,
+       29.071,
+       29.235,
+       29.392,
+       29.561,
+       29.718,
+       29.872,
+       30.047,
+       30.167,
+       30.299,
+       30.433,
+       30.599,
+       30.839,
+       31.03,
+       31.207,
+       31.361,
+       31.536,
+       31.745,
+       31.91,
+       32.051,
+       32.193,
+       32.34,
+       32.586,
+       32.87,
+       33.068,
+       33.237
+      ]
+     },
+     "10000": {
+      "tokens": 10000,
+      "tps": 66.43317619672723,
+      "ttft_s": 150.52858901023865,
+      "ssd_gb": 161.9901,
+      "swapouts": 0,
+      "gpu_wait_s": 140.7577,
+      "ssd_s": 6.4781,
+      "gpu_busy_s": 162.2975,
+      "wall_s": 150.52720000000002,
+      "passes": 5.0,
+      "read_ahead_gb": 120.9011,
+      "read_ahead_used_gb": 111.61930000000001,
+      "watts": 20.994191011235955,
+      "decode_tps": 4.340068476635965,
+      "generated": 64,
+      "output": "<think>\nThe user wants me to summarize a lengthy technical document about a software project called \"Strata\" that appears to be an inference engine for running large language models (specifically Qwen3.8-Flash-Next quantized models) on consumer hardware. Let me organize the key information and provide a comprehensive summary",
+      "progress": [
+       {
+        "tokens": 426,
+        "total": 10000,
+        "elapsed_s": 5.551
+       },
+       {
+        "tokens": 1109,
+        "total": 10000,
+        "elapsed_s": 11.054
+       },
+       {
+        "tokens": 1706,
+        "total": 10000,
+        "elapsed_s": 16.081
+       },
+       {
+        "tokens": 2304,
+        "total": 10000,
+        "elapsed_s": 21.265
+       },
+       {
+        "tokens": 2986,
+        "total": 10000,
+        "elapsed_s": 27.203
+       },
+       {
+        "tokens": 3584,
+        "total": 10000,
+        "elapsed_s": 32.572,
+        "memory": {
+         "free_gib": 1.34,
+         "file_cache_gib": 3.07,
+         "apps_gib": 14.92,
+         "wired_gib": 11.87,
+         "swap_used_gib": 1.74,
+         "pressure_level": 1
+        },
+        "swapouts": 0
+       },
+       {
+        "tokens": 4096,
+        "total": 10000,
+        "elapsed_s": 36.893
+       },
+       {
+        "tokens": 4437,
+        "total": 10000,
+        "elapsed_s": 42.507
+       },
+       {
+        "tokens": 4949,
+        "total": 10000,
+        "elapsed_s": 47.978
+       },
+       {
+        "tokens": 5376,
+        "total": 10000,
+        "elapsed_s": 53.709
+       },
+       {
+        "tokens": 5802,
+        "total": 10000,
+        "elapsed_s": 59.288
+       },
+       {
+        "tokens": 6144,
+        "total": 10000,
+        "elapsed_s": 64.388,
+        "memory": {
+         "free_gib": 1.64,
+         "file_cache_gib": 3.21,
+         "apps_gib": 14.75,
+         "wired_gib": 11.6,
+         "swap_used_gib": 1.74,
+         "pressure_level": 1
+        },
+        "swapouts": 0
+       },
+       {
+        "tokens": 6485,
+        "total": 10000,
+        "elapsed_s": 70.213
+       },
+       {
+        "tokens": 6741,
+        "total": 10000,
+        "elapsed_s": 75.462
+       },
+       {
+        "tokens": 7082,
+        "total": 10000,
+        "elapsed_s": 82.427
+       },
+       {
+        "tokens": 7424,
+        "total": 10000,
+        "elapsed_s": 90.15
+       },
+       {
+        "tokens": 7680,
+        "total": 10000,
+        "elapsed_s": 95.595,
+        "memory": {
+         "free_gib": 1.62,
+         "file_cache_gib": 3.21,
+         "apps_gib": 14.14,
+         "wired_gib": 12.23,
+         "swap_used_gib": 1.74,
+         "pressure_level": 1
+        },
+        "swapouts": 0
+       },
+       {
+        "tokens": 7936,
+        "total": 10000,
+        "elapsed_s": 102.641
+       },
+       {
+        "tokens": 8192,
+        "total": 10000,
+        "elapsed_s": 107.192
+       },
+       {
+        "tokens": 8380,
+        "total": 10000,
+        "elapsed_s": 112.755
+       },
+       {
+        "tokens": 8605,
+        "total": 10000,
+        "elapsed_s": 118.503
+       },
+       {
+        "tokens": 8831,
+        "total": 10000,
+        "elapsed_s": 123.54
+       },
+       {
+        "tokens": 9056,
+        "total": 10000,
+        "elapsed_s": 129.199,
+        "memory": {
+         "free_gib": 2.15,
+         "file_cache_gib": 2.77,
+         "apps_gib": 14.9,
+         "wired_gib": 11.39,
+         "swap_used_gib": 1.74,
+         "pressure_level": 1
+        },
+        "swapouts": 0
+       },
+       {
+        "tokens": 9282,
+        "total": 10000,
+        "elapsed_s": 134.269
+       },
+       {
+        "tokens": 9508,
+        "total": 10000,
+        "elapsed_s": 139.496
+       },
+       {
+        "tokens": 9771,
+        "total": 10000,
+        "elapsed_s": 145.051
+       },
+       {
+        "tokens": 9997,
+        "total": 10000,
+        "elapsed_s": 149.427
+       },
+       {
+        "tokens": 9999,
+        "total": 10000,
+        "elapsed_s": 150.301
+       }
+      ],
+      "decode_per_token": {
+       "total_ms": 231.45238095238096,
+       "gpu_wait_ms": 148.4063492063492,
+       "ssd_ms": 67.83968253968253,
+       "cpu_ms": 15.206349206349206,
+       "encode_ms": 5.358730158730159,
+       "gpu_busy_ms": 140.65555555555554,
+       "sample_ms": 0.20158730158730157,
+       "misses": 81.73015873015873,
+       "ssd_mb": 432.6904761904762,
+       "waits": 49.0,
+       "ahead": 129.74603174603175,
+       "ahead_used": 99.5079365079365,
+       "ahead_waits": 9.285714285714286,
+       "predict_ms": 6.925396825396826
+      },
+      "token_s": [
+       150.529,
+       150.714,
+       150.895,
+       151.115,
+       151.391,
+       151.675,
+       151.926,
+       152.204,
+       152.494,
+       152.757,
+       152.999,
+       153.245,
+       153.485,
+       153.71,
+       153.916,
+       154.119,
+       154.318,
+       154.565,
+       154.84,
+       155.087,
+       155.294,
+       155.514,
+       155.743,
+       155.963,
+       156.171,
+       156.371,
+       156.584,
+       156.825,
+       157.048,
+       157.258,
+       157.457,
+       157.678,
+       157.88,
+       158.078,
+       158.356,
+       158.642,
+       158.902,
+       159.169,
+       159.375,
+       159.6,
+       159.941,
+       160.235,
+       160.494,
+       160.669,
+       160.869,
+       161.041,
+       161.28,
+       161.47,
+       161.681,
+       161.91,
+       162.138,
+       162.333,
+       162.513,
+       162.849,
+       163.131,
+       163.441,
+       163.69,
+       163.926,
+       164.121,
+       164.325,
+       164.519,
+       164.691,
+       164.872,
+       165.044
+      ]
+     }
+    },
+    "swapouts": 0,
+    "temps_after": [
+     57.2,
+     36.7
+    ]
+   },
+   {
+    "info": {
+     "context": "131072",
+     "kv": "f16",
+     "kv_resident": "0",
+     "expert_slots": "3682",
+     "expert_cache_mib": "7199",
+     "expert_slots_primary": "3682",
+     "expert_cache_primary_mib": "7199",
+     "spec": "0",
+     "mtp_max": "0",
+     "lookup": "0",
+     "prefetch": "10",
+     "vram_free_mib": "9794",
+     "arena_mib": "0",
+     "pool_workers": "8",
+     "backend": "metal",
+     "expert_io": "direct",
+     "engine": "0.1.42-metal"
+    },
+    "therm": null,
+    "temps_before": [
+     48.8,
+     36.4
+    ],
+    "memory_before": {
+     "free_gib": 12.74,
+     "file_cache_gib": 2.48,
+     "apps_gib": 13.11,
+     "wired_gib": 2.87,
+     "swap_used_gib": 1.74,
+     "pressure_level": 1
+    },
+    "ready_s": 5.335477113723755,
+    "prefill": {
+     "2000": {
+      "tokens": 2000,
+      "tps": 89.88966044180768,
+      "ttft_s": 22.249953031539917,
+      "ssd_gb": 72.22710000000001,
+      "swapouts": 0,
+      "gpu_wait_s": 14.291,
+      "ssd_s": 6.7119,
+      "gpu_busy_s": 24.5961,
+      "wall_s": 22.2495,
+      "passes": 3.0,
+      "read_ahead_gb": 35.6157,
+      "read_ahead_used_gb": 31.278599999999997,
+      "watts": 16.45640677966102,
+      "decode_tps": 5.892696797366058,
+      "generated": 64,
+      "output": "<think>\nThe user wants me to summarize a technical document about \"Strata\" - which appears to be a local LLM inference engine. Let me identify the key information and provide a concise summary.\n\nThe document covers:\n1. What Strata is (a local LLM inference engine)\n2. Speed",
+      "progress": [
+       {
+        "tokens": 416,
+        "total": 2000,
+        "elapsed_s": 5.276
+       },
+       {
+        "tokens": 956,
+        "total": 2000,
+        "elapsed_s": 10.724
+       },
+       {
+        "tokens": 1456,
+        "total": 2000,
+        "elapsed_s": 15.802
+       },
+       {
+        "tokens": 1997,
+        "total": 2000,
+        "elapsed_s": 20.985
+       },
+       {
+        "tokens": 1999,
+        "total": 2000,
+        "elapsed_s": 21.993
+       }
+      ],
+      "decode_per_token": {
+       "total_ms": 170.26190476190476,
+       "gpu_wait_ms": 83.08253968253968,
+       "ssd_ms": 77.82222222222222,
+       "cpu_ms": 9.357142857142858,
+       "encode_ms": 3.319047619047619,
+       "gpu_busy_ms": 81.19682539682539,
+       "sample_ms": 0.12857142857142856,
+       "misses": 69.47619047619048,
+       "ssd_mb": 421.4015873015873,
+       "waits": 49.0,
+       "ahead": 136.71428571428572,
+       "ahead_used": 95.11111111111111,
+       "ahead_waits": 30.285714285714285,
+       "predict_ms": 4.031746031746032
+      },
+      "token_s": [
+       22.25,
+       22.396,
+       22.519,
+       22.678,
+       22.89,
+       23.103,
+       23.236,
+       23.389,
+       23.564,
+       23.731,
+       23.951,
+       24.128,
+       24.304,
+       24.552,
+       24.79,
+       24.966,
+       25.105,
+       25.29,
+       25.482,
+       25.639,
+       25.811,
+       25.95,
+       26.108,
+       26.306,
+       26.473,
+       26.595,
+       26.732,
+       26.875,
+       27.112,
+       27.314,
+       27.476,
+       27.666,
+       27.854,
+       28.005,
+       28.137,
+       28.295,
+       28.434,
+       28.571,
+       28.706,
+       28.838,
+       29.0,
+       29.152,
+       29.311,
+       29.465,
+       29.617,
+       29.784,
+       29.903,
+       30.035,
+       30.168,
+       30.331,
+       30.573,
+       30.76,
+       30.934,
+       31.087,
+       31.261,
+       31.466,
+       31.63,
+       31.77,
+       31.912,
+       32.059,
+       32.302,
+       32.585,
+       32.776,
+       32.941
+      ]
+     },
+     "10000": {
+      "tokens": 10000,
+      "tps": 60.502363222307466,
+      "ttft_s": 165.28421187400818,
+      "ssd_gb": 161.363,
+      "swapouts": 0,
+      "gpu_wait_s": 155.1386,
+      "ssd_s": 6.819100000000001,
+      "gpu_busy_s": 171.9804,
+      "wall_s": 165.28279999999998,
+      "passes": 5.0,
+      "read_ahead_gb": 120.9011,
+      "read_ahead_used_gb": 111.61930000000001,
+      "watts": 18.673365168539327,
+      "decode_tps": 4.387583834191117,
+      "generated": 64,
+      "output": "<think>\nThe user wants me to summarize a lengthy technical document about a software project called \"Strata\" that appears to be an inference engine for running large language models (specifically Qwen3.8-Flash-Next quantized models) on consumer hardware. Let me organize the key information and provide a comprehensive summary",
+      "progress": [
+       {
+        "tokens": 426,
+        "total": 10000,
+        "elapsed_s": 5.613
+       },
+       {
+        "tokens": 1109,
+        "total": 10000,
+        "elapsed_s": 11.112
+       },
+       {
+        "tokens": 1706,
+        "total": 10000,
+        "elapsed_s": 16.158
+       },
+       {
+        "tokens": 2304,
+        "total": 10000,
+        "elapsed_s": 21.262
+       },
+       {
+        "tokens": 2986,
+        "total": 10000,
+        "elapsed_s": 27.12
+       },
+       {
+        "tokens": 3584,
+        "total": 10000,
+        "elapsed_s": 32.616,
+        "memory": {
+         "free_gib": 1.49,
+         "file_cache_gib": 3.08,
+         "apps_gib": 14.09,
+         "wired_gib": 12.54,
+         "swap_used_gib": 1.74,
+         "pressure_level": 1
+        },
+        "swapouts": 0
+       },
+       {
+        "tokens": 4096,
+        "total": 10000,
+        "elapsed_s": 37.19
+       },
+       {
+        "tokens": 4352,
+        "total": 10000,
+        "elapsed_s": 42.496
+       },
+       {
+        "tokens": 4778,
+        "total": 10000,
+        "elapsed_s": 48.083
+       },
+       {
+        "tokens": 5205,
+        "total": 10000,
+        "elapsed_s": 54.08
+       },
+       {
+        "tokens": 5546,
+        "total": 10000,
+        "elapsed_s": 61.486
+       },
+       {
+        "tokens": 5888,
+        "total": 10000,
+        "elapsed_s": 67.354,
+        "memory": {
+         "free_gib": 0.69,
+         "file_cache_gib": 3.23,
+         "apps_gib": 15.68,
+         "wired_gib": 11.6,
+         "swap_used_gib": 1.74,
+         "pressure_level": 1
+        },
+        "swapouts": 0
+       },
+       {
+        "tokens": 6144,
+        "total": 10000,
+        "elapsed_s": 72.83
+       },
+       {
+        "tokens": 6400,
+        "total": 10000,
+        "elapsed_s": 78.234
+       },
+       {
+        "tokens": 6656,
+        "total": 10000,
+        "elapsed_s": 83.494
+       },
+       {
+        "tokens": 6912,
+        "total": 10000,
+        "elapsed_s": 89.963
+       },
+       {
+        "tokens": 7082,
+        "total": 10000,
+        "elapsed_s": 95.721
+       },
+       {
+        "tokens": 7253,
+        "total": 10000,
+        "elapsed_s": 102.508,
+        "memory": {
+         "free_gib": 1.04,
+         "file_cache_gib": 3.24,
+         "apps_gib": 15.17,
+         "wired_gib": 11.76,
+         "swap_used_gib": 1.74,
+         "pressure_level": 1
+        },
+        "swapouts": 0
+       },
+       {
+        "tokens": 7424,
+        "total": 10000,
+        "elapsed_s": 108.111
+       },
+       {
+        "tokens": 7680,
+        "total": 10000,
+        "elapsed_s": 113.773
+       },
+       {
+        "tokens": 7936,
+        "total": 10000,
+        "elapsed_s": 119.961
+       },
+       {
+        "tokens": 8192,
+        "total": 10000,
+        "elapsed_s": 124.69
+       },
+       {
+        "tokens": 8342,
+        "total": 10000,
+        "elapsed_s": 129.785
+       },
+       {
+        "tokens": 8605,
+        "total": 10000,
+        "elapsed_s": 135.709,
+        "memory": {
+         "free_gib": 1.63,
+         "file_cache_gib": 2.79,
+         "apps_gib": 14.8,
+         "wired_gib": 11.98,
+         "swap_used_gib": 1.74,
+         "pressure_level": 1
+        },
+        "swapouts": 0
+       },
+       {
+        "tokens": 8868,
+        "total": 10000,
+        "elapsed_s": 141.173
+       },
+       {
+        "tokens": 9094,
+        "total": 10000,
+        "elapsed_s": 146.24
+       },
+       {
+        "tokens": 9357,
+        "total": 10000,
+        "elapsed_s": 151.883
+       },
+       {
+        "tokens": 9620,
+        "total": 10000,
+        "elapsed_s": 156.941
+       },
+       {
+        "tokens": 9884,
+        "total": 10000,
+        "elapsed_s": 162.383
+       },
+       {
+        "tokens": 9997,
+        "total": 10000,
+        "elapsed_s": 164.15
+       },
+       {
+        "tokens": 9999,
+        "total": 10000,
+        "elapsed_s": 165.032
+       }
+      ],
+      "decode_per_token": {
+       "total_ms": 228.96190476190478,
+       "gpu_wait_ms": 148.0,
+       "ssd_ms": 66.3,
+       "cpu_ms": 14.661904761904774,
+       "encode_ms": 5.138095238095238,
+       "gpu_busy_ms": 191.6968253968254,
+       "sample_ms": 0.19523809523809524,
+       "misses": 79.26984126984127,
+       "ssd_mb": 422.59999999999997,
+       "waits": 49.0,
+       "ahead": 127.39682539682539,
+       "ahead_used": 97.7936507936508,
+       "ahead_waits": 9.761904761904763,
+       "predict_ms": 6.5888888888888895
+      },
+      "token_s": [
+       165.284,
+       165.439,
+       165.583,
+       165.757,
+       165.986,
+       166.217,
+       166.416,
+       166.671,
+       166.978,
+       167.296,
+       167.605,
+       167.901,
+       168.156,
+       168.397,
+       168.607,
+       168.812,
+       169.006,
+       169.24,
+       169.5,
+       169.746,
+       169.94,
+       170.148,
+       170.361,
+       170.569,
+       170.782,
+       170.97,
+       171.176,
+       171.41,
+       171.612,
+       171.816,
+       172.012,
+       172.232,
+       172.436,
+       172.64,
+       172.947,
+       173.274,
+       173.491,
+       173.799,
+       174.065,
+       174.285,
+       174.61,
+       174.821,
+       175.076,
+       175.244,
+       175.437,
+       175.59,
+       175.844,
+       176.056,
+       176.269,
+       176.511,
+       176.736,
+       176.93,
+       177.105,
+       177.443,
+       177.723,
+       177.955,
+       178.2,
+       178.436,
+       178.64,
+       178.858,
+       179.069,
+       179.258,
+       179.453,
+       179.643
+      ]
+     }
+    },
+    "swapouts": 0,
+    "temps_after": [
+     57.6,
+     36.9
+    ]
+   }
+  ]
+ },
+ "memory_after": {
+  "free_gib": 12.22,
+  "file_cache_gib": 2.62,
+  "apps_gib": 13.7,
+  "wired_gib": 2.66,
+  "swap_used_gib": 1.74,
+  "pressure_level": 1
+ }
+}

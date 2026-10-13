@@ -1033,3 +1033,79 @@ SHA-256 `b646b475...`, under the swap watch with a per-second `vm_stat` beside i
   of 8,192 tokens took 73 s, 89 s, then 100-116 s each (72 s, 102 s, then 112-142 s in section 9).
 - The targets stand where they stood: 120 tok/s read and 10 tok/s written at full depth are not reached. At
   full depth a token is 108 ms of GPU alone.
+
+## 15. Evening of 2026-10-13: the long pass sized per prompt, and one tie rule for the top-k
+
+### Progress while a prompt is read
+
+The engine reported after each pass; a pass of 8,192 tokens takes a minute and a half. It now reports every 5 s from
+inside a pass (the pass's tokens times the share of its layers that are computed), and the server's line carries
+the share of the prompt: `reading the prompt: 2,645 of 5,077 tokens (52%), 27 s so far`.
+
+### The long pass sized per prompt
+
+With `--elastic` the size of the long passes was chosen once, at the start, for the worst case: a full context,
+the KV cache holding all of its memory. On an evening with less free memory that is 4,096 or 2,048 tokens for the
+whole session (seen in the owner's own log: "long prompts are read in passes of 2048"), although a conversation
+that is not that deep leaves the cache, and so the long passes, 3.28 GiB more. `Engine::reshape` now takes the
+largest of `--prefill` and its halves that fits what the cache and the answering work memory hold when the prompt
+arrives. `STRATA_ELASTIC_LONG=plan`: the plan's size for everything, as before.
+
+A B B A, `--reserve-gib 5` (the plan then has room for 2,048 with the context full), the same 7,199 MiB cache in all
+four starts, `--prefill 2000,10000 --prefill-new 64` ([pass-ab2.out](pass-size/pass-ab2.out)):
+
+| 10,000-token prompt | Plan's size (2,048) | Per prompt (4,096) | Per prompt | Plan's size |
+| --- | ---: | ---: | ---: | ---: |
+| First token | 180.61 s | **150.53 s** | **165.28 s** | 177.63 s |
+| Read | 55.4 tok/s | 66.4 tok/s | 60.5 tok/s | 56.3 tok/s |
+| From the SSD | 238 GB | 162 GB | 161 GB | 237 GB |
+
+The 2,000-token prompt (one pass either way) and the written speeds are the same. Nothing compressed in 14 minutes,
+no swap-out. The first prompt of an engine gets 8,192 in this state; this one was the second, after the cache
+had come back smaller. At the installed `--reserve-gib 3` the plan itself had room for 8,192 in three of four
+starts that evening and the two rules did the same ([pass-ab.out](pass-size/pass-ab.out)).
+
+### What it showed: the same prompt, other logits in other pass sizes
+
+Comparing the two rules on a 10,000-token prompt ([det-before-2048-vs-8192.txt](pass-size/det-before-2048-vs-8192.txt)):
+first logit 35.725 in passes of 2,048 and 35.851 in passes of 8,192. Not the pass size itself:
+
+- llama.cpp's Metal top-k has two kernels, a bitonic sort for rows of up to 2,048 candidates and a radix selection
+  for longer ones. Passes of 2,048 tokens at less than 8,192 tokens of context take the first, a pass of 8,192
+  and everything deeper the second.
+- This model's sparse attention rectifies its scores, so its threshold is often a tie at zero, and the two kernels
+  kept different ones of the tied candidates.
+- With the radix kernel taken for every row, the two pass sizes give identical logits
+  ([det-radix-forced.txt](pass-size/det-radix-forced.txt)). But it is slower on short rows: an 8,000-token prompt in
+  passes of 2,048 took 134 and 148 s instead of 119 and 131 ([topk-ab.out](pass-size/topk-ab.out)).
+
+So the sort got the radix kernel's rule instead (`metal/patches/0009-metal-topk-one-tie-rule.patch`): for a top-k,
+equal values go by their index, the lower first (the merge after it already did; negative zero counts as zero in
+the radix key). A plain argsort, which chooses the routed experts, is as it was. After it
+([det-four-ways.txt](pass-size/det-four-ways.txt), [det-final-build.txt](pass-size/det-final-build.txt)): passes of
+2,048, passes of 8,192, and passes of 2,048 with each kernel taken for every row all give 35.850872 and identical
+IDs and logits.
+
+Before this, which logits a long prompt got depended on the pass size the plan had chosen, that is on how much
+memory was free when the engine started.
+
+### Against the references
+
+- **Before the kernel change**, with the per-prompt size and the progress lines in: identical IDs and logits
+  against `strata-reference` on all four paths ([before-kernel-change.txt](pass-size/gate-old-reference/before-kernel-change.txt)).
+- **After it, against `strata-reference`** ([final-build-cap-1200.txt](pass-size/gate-old-reference/final-build-cap-1200.txt)):
+  chat and code identical in IDs and logits; the 7,900-token document identical in IDs, its logits differ by at
+  most **0.0065**, the same on all four paths. That is the tie rule, once.
+- **After it, against itself** ([gate-self/](pass-size/gate-self/)): the plain path recorded, and indexed attention,
+  `--elastic`, `--elastic --prefill 8192` and each kernel taken for every row identical to it.
+- **The gate itself needed a fix.** One run "failed" on every path by up to 0.14 in the logits: the reference
+  engine had been given 840 experts of cache instead of 1,529 (other programs held 14.7 GiB that evening). A cache
+  that small does not serve the gate's 2-token passes in every layer, those layers are computed another way, and
+  the reference's own logits move. `gate.sh` now stops unless the reference has the capped cache and prints
+  whether each engine reports the same count; that evening it ran with a 1,200 MiB cap (605 experts everywhere).
+
+Tests on the final build (SHA-256 `3c9fe8d8...`; [tests-pass-size/](tests-pass-size/)): kernel tests, the TOP_K and
+ARGSORT operator tests, the protocol suite, parity on eight paths and the shape test with its back-off variants,
+each also with `STRATA_KV_STEP=256`; the shape test with each kernel taken for every row, and with a plan made to
+say it only has room for passes of 1,024 while the prompt is read in passes of 2,048. Nine patch files, applied
+to a clean checkout of the pin: 33 files, none differs. No swap-out all day (the counter is at 1,586,587).

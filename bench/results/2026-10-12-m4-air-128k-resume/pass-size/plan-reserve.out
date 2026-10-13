@@ -1,0 +1,20 @@
+== --reserve-gib 3
+strata metal: memory now: 18.4 GiB free or file cache, 11.2 GiB held by other programs, 2.5 GiB wired, 1.8 GiB in swap
+strata metal: --elastic: with the context full there is no room for passes of 8192 tokens (5.62 GiB with the read-ahead buffer, of 5.53): long prompts are then read in passes of 4096, and before that in the largest there is room for
+strata metal: --elastic: answers are written with a 8.48 GiB expert cache (0.27 GiB of work memory). A long prompt is read in passes of at least 4096 with 2.61 GiB of work memory in the cache's place; up to 1024 new tokens in one pass beside the cache, where 0
+strata metal: --elastic: the KV cache has its memory for the first 16384 tokens; every 16384 more take 0.47 GiB from the expert cache (5.20 GiB of it at 131072 tokens)
+== --reserve-gib 5
+strata metal: memory now: 17.8 GiB free or file cache, 11.8 GiB held by other programs, 2.3 GiB wired, 1.8 GiB in swap
+strata metal: --elastic: with the context full there is no room for passes of 8192 tokens (5.62 GiB with the read-ahead buffer, of 4.10): long prompts are then read in passes of 2048, and before that in the largest there is room for
+strata metal: --elastic: answers are written with a 7.04 GiB expert cache (0.27 GiB of work memory). A long prompt is read in passes of at least 2048 with 1.54 GiB of work memory in the cache's place; up to 1024 new tokens in one pass beside the cache, where 0
+strata metal: --elastic: the KV cache has its memory for the first 16384 tokens; every 16384 more take 0.47 GiB from the expert cache (3.76 GiB of it at 131072 tokens)
+== --reserve-gib 6
+strata metal: memory now: 17.7 GiB free or file cache, 11.8 GiB held by other programs, 2.4 GiB wired, 1.8 GiB in swap
+strata metal: --elastic: with the context full there is no room for passes of 8192 tokens (5.62 GiB with the read-ahead buffer, of 4.10): long prompts are then read in passes of 2048, and before that in the largest there is room for
+strata metal: --elastic: answers are written with a 7.04 GiB expert cache (0.27 GiB of work memory). A long prompt is read in passes of at least 2048 with 1.54 GiB of work memory in the cache's place; up to 1024 new tokens in one pass beside the cache, where 0
+strata metal: --elastic: the KV cache has its memory for the first 16384 tokens; every 16384 more take 0.47 GiB from the expert cache (3.76 GiB of it at 131072 tokens)
+== --reserve-gib 7
+strata metal: memory now: 17.6 GiB free or file cache, 12.1 GiB held by other programs, 2.3 GiB wired, 1.8 GiB in swap
+strata metal: --elastic: with the context full there is no room for passes of 8192 tokens (5.62 GiB with the read-ahead buffer, of 4.10): long prompts are then read in passes of 2048, and before that in the largest there is room for
+strata metal: --elastic: answers are written with a 7.04 GiB expert cache (0.27 GiB of work memory). A long prompt is read in passes of at least 2048 with 1.54 GiB of work memory in the cache's place; up to 1024 new tokens in one pass beside the cache, where 0
+strata metal: --elastic: the KV cache has its memory for the first 16384 tokens; every 16384 more take 0.47 GiB from the expert cache (3.76 GiB of it at 131072 tokens)

@@ -1,0 +1,7 @@
+plan-size: ready in 5.4 s; context 131072, expert cache 3682 experts (7199 MiB), direct reads
+plan-size, prompt read: 10000 tokens, 24 written; this is what the others are compared with
+per-prompt: ready in 5.5 s; context 131072, expert cache 3682 experts (7199 MiB), direct reads
+per-prompt, prompt read: DIFFERENT from token 0 on (different IDs)
+    here  [248068, 248068, 35.850872, 248068, 35.850872, 248045, 15.533379, 248046, 14.029144]
+    first [248068, 248068, 35.725178, 248068, 35.725178, 248045, 15.530272, 248046, 14.084026]
+DIFFERENCES

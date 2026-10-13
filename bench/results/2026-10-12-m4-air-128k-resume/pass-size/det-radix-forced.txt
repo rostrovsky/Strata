@@ -1,0 +1,5 @@
+plan-size-radix: ready in 5.4 s; context 131072, expert cache 3682 experts (7199 MiB), direct reads
+plan-size-radix, prompt read: 10000 tokens, 24 written; this is what the others are compared with
+per-prompt-radix: ready in 6.0 s; context 131072, expert cache 3682 experts (7199 MiB), direct reads
+per-prompt-radix, prompt read: identical IDs and logits
+all identical
