@@ -1,0 +1,104 @@
+--- a/ggml/src/ggml-metal/ggml-metal-impl.h
++++ b/ggml/src/ggml-metal/ggml-metal-impl.h
+@@ -1218,6 +1218,7 @@
+     int32_t  ne2;
+     int32_t  ne3;
+     int32_t  top_k;
++    int32_t  ties_by_index; // equal values in the order of their indices (top-k: the same k as the radix selection takes)
+ } ggml_metal_kargs_argsort;
+ 
+ typedef struct {
+--- a/ggml/src/ggml-metal/ggml-metal-ops.cpp
++++ b/ggml/src/ggml-metal/ggml-metal-ops.cpp
+@@ -5493,6 +5493,7 @@
+         /*.ne2   =*/ ne2,
+         /*.ne3   =*/ ne3,
+         /*.top_k =*/ nth,
++        /*.ties_by_index =*/ 0,
+     };
+ 
+     ggml_metal_encoder_set_pipeline(enc, pipeline);
+@@ -5603,6 +5604,8 @@
+         /*.ne2   =*/ ne2,
+         /*.ne3   =*/ ne3,
+         /*.top_k =*/ std::min(nth, top_k), // for each block, keep just the top_k indices
++        // the same k of a row as the radix selection keeps (a plain argsort keeps the order it always had)
++        /*.ties_by_index =*/ 1,
+     };
+ 
+     if (npr > 1) {
+@@ -5822,6 +5825,14 @@
+     const int k     = op->ne[0];
+     const int nrows = ggml_nrows(op->src[0]);
+ 
++    // (experiment: GGML_METAL_TOP_K=radix|bitonic takes one of them for every row)
++    static const char * force = getenv("GGML_METAL_TOP_K");
++    if (force != nullptr && strcmp(force, "radix") == 0) {
++        return true;
++    }
++    if (force != nullptr && strcmp(force, "bitonic") == 0) {
++        return false;
++    }
+     return ncols > 2048 && (k > 64 || (nrows > 4 && ncols >= 8192));
+ }
+ 
+--- a/ggml/src/ggml-metal/kernels/argsort.metal
++++ b/ggml/src/ggml-metal/kernels/argsort.metal
+@@ -41,24 +41,28 @@
+ 
+     threadgroup_barrier(mem_flags::mem_threadgroup);
+ 
++    // For a top-k (args.ties_by_index), equal values go by their index, the lower one first: an order without ties,
++    // so the k that are kept do not depend on how the network happens to meet them. The merge that follows takes
++    // the left run on equal values, whose indices are the lower ones, and the radix selection (kernel_top_k_f32_i32)
++    // takes the lowest indices among the ties: all three then keep the same k of a row. (They did not: this model's
++    // sparse attention rectifies its scores, so its threshold is often a tie at zero, and the same prompt gave other
++    // logits read in passes of 2,048 tokens than in passes of 8,192, which take the radix path where shorter rows
++    // take this one.) A plain argsort keeps the order it always had.
++#define ARGSORT_AFTER(a, b) ((order == GGML_SORT_ORDER_ASC ? src0_row[a] > src0_row[b] : src0_row[a] < src0_row[b]) || \
++                             (args.ties_by_index != 0 && src0_row[a] == src0_row[b] && (a) > (b)))
++
+     for (int k = 2; k <= ntg.x; k *= 2) {
+         for (int j = k / 2; j > 0; j /= 2) {
+             int ixj = col ^ j;
+             if (ixj > col) {
++                const int32_t ia = shmem_i32[col];
++                const int32_t ib2 = shmem_i32[ixj];
+                 if ((col & k) == 0) {
+-                    if (shmem_i32[col] >= args.ne00 ||
+-                       (shmem_i32[ixj] <  args.ne00 && (order == GGML_SORT_ORDER_ASC ?
+-                            src0_row[shmem_i32[col]] > src0_row[shmem_i32[ixj]] :
+-                            src0_row[shmem_i32[col]] < src0_row[shmem_i32[ixj]]))
+-                    ) {
++                    if (ia >= args.ne00 || (ib2 < args.ne00 && ARGSORT_AFTER(ia, ib2))) {
+                         SWAP(shmem_i32[col], shmem_i32[ixj]);
+                     }
+                 } else {
+-                    if (shmem_i32[ixj] >= args.ne00 ||
+-                       (shmem_i32[col] <  args.ne00 && (order == GGML_SORT_ORDER_ASC ?
+-                            src0_row[shmem_i32[col]] < src0_row[shmem_i32[ixj]] :
+-                            src0_row[shmem_i32[col]] > src0_row[shmem_i32[ixj]]))
+-                    ) {
++                    if (ib2 >= args.ne00 || (ia < args.ne00 && ARGSORT_AFTER(ib2, ia))) {
+                         SWAP(shmem_i32[col], shmem_i32[ixj]);
+                     }
+                 }
+@@ -67,6 +71,8 @@
+             threadgroup_barrier(mem_flags::mem_threadgroup);
+         }
+     }
++
++#undef ARGSORT_AFTER
+ 
+     const int64_t i0 = ib*args.top_k;
+ 
+@@ -239,6 +245,9 @@
+ 
+ static inline uint ggml_top_k_f2ui(float x) {
+     uint y = as_type<uint>(x);
++    if (y == 0x80000000u) {
++        y = 0u; // -0.0 is +0.0, as it is where the values are compared as floats
++    }
+     if ((y & 0x80000000u) != 0u) {
+         y ^= 0xFFFFFFFFu; // negative floats: flip all bits
+     } else {

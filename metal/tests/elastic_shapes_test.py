@@ -9,6 +9,8 @@ with the short shape (`--elastic-short 128`) and without it (`--elastic-short 0`
 memory); without it also with the cache read back when it returns, whole (`--elastic-refill all`) and in part
 (0.003 GiB: two of the tiny model's four experts), where by default it fills as its experts are asked for.
 STRATA_ELASTIC_REFILL=all|G in the environment sets that for every variant that does not say it.
+One more variant reads with `--prefill 2048` under a plan that is made to say it only has room for passes of 1,024
+(STRATA_ELASTIC_PLAN_LONG): the size of a long pass is chosen per prompt, and this one has the room.
 STRATA_ELASTIC_TEST_BACKOFF=1 in the environment makes the cache give memory
 back before every request, as it does when macOS has swapped; =tight, as it does when macOS has compressed other
 programs' memory and little is free.
@@ -40,12 +42,15 @@ def main():
     variants = (("plain", []), ("elastic", ["--elastic", "on", "--elastic-short", "128"]),
                 ("elastic-long", ["--elastic", "on", "--elastic-short", "0"]),
                 ("elastic-long-refill", ["--elastic", "on", "--elastic-short", "0", "--elastic-refill", "all"]),
-                ("elastic-long-refill-part", ["--elastic", "on", "--elastic-short", "0", "--elastic-refill", "0.003"]))
+                ("elastic-long-refill-part", ["--elastic", "on", "--elastic-short", "0", "--elastic-refill", "0.003"]),
+                # passes of up to 2,048 where the others take 256, with a plan that only had room for 1,024
+                ("elastic-long-plan-small", ["--elastic", "on", "--elastic-short", "0", "--prefill", "2048"]))
+    plan_small = {"STRATA_ELASTIC_PLAN_LONG": "1024"}
     out, shapes, read_back = {}, {}, {}
     with tempfile.TemporaryDirectory(prefix="strata-elastic-") as temp:
         for name, extra in variants:
             log = Path(temp) / (name + ".log")
-            e = Engine(a.engine, base + extra, log, env)
+            e = Engine(a.engine, base + extra, log, {**env, **(plan_small if name == "elastic-long-plan-small" else {})})
             try:
                 out[name] = [(r["ids"], r["probes"], r["resume"], r["read"])
                              for r in (e.gen(ids, 10, " probe=1") for ids in requests)]
@@ -56,6 +61,8 @@ def main():
                             if "the context has its" in line]
             read_back[name] = [int(line.split("(")[1].split(" experts read back")[0]) for line in text.splitlines()
                                if "the context has its answering shape" in line]
+            if name == "elastic-long-plan-small":
+                larger = "this prompt is read in passes of 2048 (the plan has room for 1024" in text
             print(f"{name}: shapes taken: {', '.join(shapes[name]) or 'none'}"
                   + (f"; experts read back: {read_back[name]}" if read_back[name] else ""), flush=True)
     ok = True
@@ -75,6 +82,9 @@ def main():
     else:
         print(f"READ-BACK: {whole} experts with --elastic-refill all, {part} with 0.003 (expected 0 < part < whole)", flush=True)
         ok = False
+    print("a plan with room for passes of 1,024: " + ("the prompt was read in passes of 2,048" if larger else
+                                                      "THE LARGER PASSES WERE NOT TAKEN"), flush=True)
+    ok &= larger
     print("all passed" if ok else "FAILED")
     sys.exit(0 if ok else 1)
 

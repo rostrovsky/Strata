@@ -500,6 +500,18 @@ struct Engine {
     uint64_t cache_plan_bytes_ = 0;       // the answering cache as planned at the start: it never grows past this
     int short_batch_ = 0;                 // the Short shape's passes (0: there is none)
     int long_batch_ = 0;                  // the Long shape's passes: --prefill, or the largest half of it the memory has room for
+    // The sizes a long pass can have (--prefill and its halves, largest first) with their work memory, and the one
+    // the plan guarantees: it has room when the KV cache holds its memory for the whole context.  A conversation that
+    // is not that deep leaves more to the cache and so to the long passes: reshape() takes the largest that fits
+    // then.  (The plan's size was used for everything before: a desktop with less free memory at the engine's start
+    // read every prompt in passes of 2,048, also the first one of a new conversation.)
+    struct PassSize {
+        int batch;
+        double work;
+    };
+    std::vector<PassSize> long_shapes_;
+    int long_batch_plan_ = 0;
+    uint64_t cache_spare_ = 0;            // memory the plan had for the cache at full depth and a cap kept from it
     double short_work_ = 0.0, short_gpu_ = 0.0;   // what it takes on top of the Answer shape: in all, and on the GPU
     double answer_work_ = 0.0;            // the Answer shape's work memory (GPU and host)
     uint64_t answer_footprint_ = 0;       // this process's memory in the Answer shape, when it was last left for the Long one
@@ -877,6 +889,26 @@ struct Engine {
             ballast_ = nullptr;
         }
         const uint64_t cache_was = cache_bytes;
+        // (STRATA_ELASTIC_LONG=plan: the plan's size for every prompt, as before)
+        static const bool long_by_plan = std::getenv("STRATA_ELASTIC_LONG") != nullptr && std::strcmp(std::getenv("STRATA_ELASTIC_LONG"), "plan") == 0;
+        if (cache_goes && !long_shapes_.empty() && !long_by_plan) {
+            // the largest long pass there is room for now: in what the cache and this shape's work memory hold
+            // (the KV cache's share for this prompt is out of it already), and what a cap kept from the cache
+            const double staging = o.prefill_ahead ? (double) fetch.staging_bytes(true) : 0.0;
+            const double room = (double) cache_bytes + answer_work_ + (double) cache_spare_ + (double) kv_slack_;
+            const int was = long_batch_;
+            long_batch_ = long_shapes_.back().batch;
+            long_work_ = long_shapes_.back().work;
+            for (const PassSize& ls : long_shapes_)
+                if (ls.work + (double) cache_bulk_bytes_ + staging <= room) {
+                    long_batch_ = ls.batch;
+                    long_work_ = ls.work;
+                    break;
+                }
+            if (long_batch_ != was)
+                std::fprintf(stderr, "strata metal: this prompt is read in passes of %d (the plan has room for %d when the "
+                                     "context is full)\n", long_batch_, long_batch_plan_);
+        }
         const uint32_t batch = to == Shape::Long ? (uint32_t) long_batch_ : to == Shape::Short ? (uint32_t) short_batch_ : (uint32_t) kAnswerBatch;
         // (the Short shape borrows: its work memory is taken as its one pass needs it, and no more)
         if (!llama_context_resize(ctx, batch, to == Shape::Long ? cache_bulk_bytes_ : cache_bytes, cache_goes || cache_comes)) {
@@ -1192,10 +1224,22 @@ struct Engine {
                     long_batch_ = smaller_long[i].batch;
                     long_work_ = smaller_long[i].gpu + smaller_long[i].host;
                 }
+                // (STRATA_ELASTIC_PLAN_LONG=N: tests, as if the plan had only had room for passes of N)
+                if (const char* pl = std::getenv("STRATA_ELASTIC_PLAN_LONG"))
+                    for (const LongShape& sl : smaller_long)
+                        if (sl.batch == std::atoi(pl)) {
+                            long_batch_ = sl.batch;
+                            long_work_ = sl.gpu + sl.host;
+                        }
+                long_shapes_.clear();
+                long_shapes_.push_back({o.prefill, elastic_work});
+                for (const LongShape& sl : smaller_long) long_shapes_.push_back({sl.batch, sl.gpu + sl.host});
+                long_batch_plan_ = long_batch_;
                 const double bulk_need = long_work_ + (double) cache_bulk_bytes_ + staging;
                 if (long_batch_ != o.prefill && elastic_total >= bulk_need)
-                    std::fprintf(stderr, "strata metal: --elastic: no room for passes of %d tokens (%.2f GiB with the read-ahead "
-                                         "buffer, of %.2f): long prompts are read in passes of %d\n", o.prefill,
+                    std::fprintf(stderr, "strata metal: --elastic: with the context full there is no room for passes of %d tokens "
+                                         "(%.2f GiB with the read-ahead buffer, of %.2f): long prompts are then read in passes of "
+                                         "%d, and before that in the largest there is room for\n", o.prefill,
                                  (elastic_work + (double) cache_bulk_bytes_ + staging) / kGiB, elastic_total / kGiB, long_batch_);
                 short_batch_ = std::min(short_batch_, long_batch_);
                 if (mtp || fixed || o.prefill <= 32 || answer_work_ <= 0.0 || elastic_total < bulk_need) {   // (no room: hardly any memory is free)
@@ -1227,9 +1271,11 @@ struct Engine {
             // graphs) and the cache, which gets the rest of the total
             const double margin = 64 * kMiB;
             double all = std::min(elastic_total - answer_work_ - margin, elastic_metal - elastic_answer_gpu - margin);
+            const double all_plan = all;
             all = std::min(all, (double) files.expert_bytes + 64 * kMiB);
             if (o.expert_cache_cap_mib > 0.0) all = std::min(all, o.expert_cache_cap_mib * kMiB);
             cache_bytes = (uint64_t) std::max(all, (double) want);
+            cache_spare_ = all_plan > (double) cache_bytes ? (uint64_t) (all_plan - (double) cache_bytes) : 0;
             // what the KV cache has not taken yet goes to the cache (as far as the cache may grow: the rest is kept
             // as slack, used up first when the KV cache takes its memory)
             if (kv_rest > 0.0) {
@@ -1242,8 +1288,9 @@ struct Engine {
             cache_plan_bytes_ = cache_bytes;
             ctx = llama_init_from_model(model, ctx_params(cache_bytes, kAnswerBatch));
             std::fprintf(stderr, "strata metal: --elastic: answers are written with a %.2f GiB expert cache (%.2f GiB of work "
-                                 "memory). A long prompt is read in passes of %d with %.2f GiB of work memory in the cache's "
-                                 "place", (double) cache_bytes / kGiB, answer_work_ / kGiB, long_batch_, long_work_ / kGiB);
+                                 "memory). A long prompt is read in passes of %s%d with %.2f GiB of work memory in the cache's "
+                                 "place", (double) cache_bytes / kGiB, answer_work_ / kGiB,
+                         long_batch_ != o.prefill ? "at least " : "", long_batch_, long_work_ / kGiB);
             if (short_batch_ > 0)
                 std::fprintf(stderr, "; up to %d new tokens in one pass beside the cache, where %.2f GiB are free for it",
                              short_batch_, short_work_ / kGiB);
@@ -1680,6 +1727,7 @@ struct Engine {
                         if (want != Shape::Answer) stage(want == Shape::Short ? short_work_ : 0.0);
                     }
                     if (!kv_take(err)) return false;
+                    if (shape_ == Shape::Long) most = long_batch_;   // (reshape chose it for this prompt)
                     if (shape_ == Shape::Short) most = short_batch_;
                 }
                 const int32_t take = (int32_t) (long_pass ? std::min<int64_t>(most, rem) : std::min<int64_t>(o.chunk, rem));
