@@ -1,0 +1,28 @@
+temperature before the run: SoC 44.0 C, battery 32.3 C
+build-metal/bin/strata --elastic-refill all: ready in 5.3 s; context 131072, expert cache 3682 experts (7199 MiB), direct reads
+  turn 1: 2000 tokens read (0 reused), t1=24.28 t2=24.42 t10=25.53 t25=28.12 t50=31.51 t64=33.74 t100=39.53; written 6.49 tok/s, misses/token 59.5, SSD 85.3 GB, swap-outs 0
+  turn 2: 525 tokens read (2099 reused), t1=12.15 t2=12.30 t10=13.59 t25=15.64 t50=19.24 t64=21.66 t100=27.40; written 6.49 tok/s, misses/token 65.2, SSD 65.6 GB, swap-outs 0
+  turn 3: 20 tokens read (2723 reused), t1=2.47 t2=2.59 t10=3.69 t25=5.73 t50=9.84 t64=12.07 t100=17.96; written 6.39 tok/s, misses/token 69.0, SSD 37.9 GB, swap-outs 0
+temperature before the run: SoC 44.9 C, battery 32.5 C
+build-metal/bin/strata --elastic-refill 0: ready in 5.6 s; context 131072, expert cache 3986 experts (7792 MiB), direct reads
+  turn 1: 2000 tokens read (0 reused), t1=22.48 t2=22.62 t10=23.96 t25=26.43 t50=29.68 t64=31.77 t100=37.31; written 6.67 tok/s, misses/token 57.8, SSD 77.8 GB, swap-outs 0
+  turn 2: 525 tokens read (2099 reused), t1=11.69 t2=11.84 t10=13.09 t25=15.13 t50=18.62 t64=20.93 t100=26.48; written 6.69 tok/s, misses/token 61.4, SSD 63.0 GB, swap-outs 0
+  turn 3: 20 tokens read (2723 reused), t1=2.33 t2=2.44 t10=3.50 t25=5.46 t50=9.29 t64=11.52 t100=17.21; written 6.65 tok/s, misses/token 64.9, SSD 35.4 GB, swap-outs 0
+temperature before the run: SoC 44.6 C, battery 32.8 C
+build-metal/bin/strata --elastic-refill 0: ready in 5.6 s; context 131072, expert cache 3986 experts (7792 MiB), direct reads
+  turn 1: 2000 tokens read (0 reused), t1=22.48 t2=22.62 t10=23.97 t25=26.43 t50=29.68 t64=31.77 t100=37.33; written 6.66 tok/s, misses/token 57.8, SSD 77.8 GB, swap-outs 0
+  turn 2: 525 tokens read (2099 reused), t1=11.71 t2=11.87 t10=13.11 t25=15.16 t50=18.65 t64=20.97 t100=26.53; written 6.68 tok/s, misses/token 61.4, SSD 63.0 GB, swap-outs 0
+  turn 3: 20 tokens read (2723 reused), t1=2.34 t2=2.45 t10=3.51 t25=5.47 t50=9.32 t64=11.53 t100=17.31; written 6.61 tok/s, misses/token 64.9, SSD 35.4 GB, swap-outs 0
+temperature before the run: SoC 44.4 C, battery 32.9 C
+build-metal/bin/strata --elastic-refill all: ready in 5.5 s; context 131072, expert cache 3986 experts (7792 MiB), direct reads
+  turn 1: 2000 tokens read (0 reused), t1=24.55 t2=24.69 t10=25.75 t25=28.10 t50=31.35 t64=33.44 t100=39.00; written 6.85 tok/s, misses/token 55.3, SSD 83.3 GB, swap-outs 0
+  turn 2: 525 tokens read (2099 reused), t1=11.77 t2=11.92 t10=13.19 t25=15.25 t50=18.77 t64=21.13 t100=26.77; written 6.60 tok/s, misses/token 61.4, SSD 63.0 GB, swap-outs 0
+  turn 3: 20 tokens read (2723 reused), t1=2.36 t2=2.47 t10=3.55 t25=5.52 t50=9.43 t64=11.63 t100=17.39; written 6.59 tok/s, misses/token 64.9, SSD 35.3 GB, swap-outs 0
+
+same written ids in every run, per turn: [True, True, True]
+  build-metal/bin/strata --elastic-refill all: turn 1: first token 24.42 s, token 50 31.43 s, 6.67 tok/s (mean of 2); swap-outs 0
+  build-metal/bin/strata --elastic-refill all: turn 2: first token 11.96 s, token 50 19.01 s, 6.55 tok/s (mean of 2); swap-outs 0
+  build-metal/bin/strata --elastic-refill all: turn 3: first token 2.42 s, token 50 9.63 s, 6.49 tok/s (mean of 2); swap-outs 0
+  build-metal/bin/strata --elastic-refill 0: turn 1: first token 22.48 s, token 50 29.68 s, 6.67 tok/s (mean of 2); swap-outs 0
+  build-metal/bin/strata --elastic-refill 0: turn 2: first token 11.70 s, token 50 18.63 s, 6.69 tok/s (mean of 2); swap-outs 0
+  build-metal/bin/strata --elastic-refill 0: turn 3: first token 2.34 s, token 50 9.30 s, 6.63 tok/s (mean of 2); swap-outs 0

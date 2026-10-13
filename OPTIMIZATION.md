@@ -1,6 +1,6 @@
 # Strata optimization handoff — M4 MacBook Air, 32 GiB
 
-Updated **2026-10-12, night** (the newest part is the first block of "Read this first"). The work was stopped in the morning at the user's request, resumed in the
+Updated **2026-10-13, morning** (the newest part is the first block of "Read this first"). The work was stopped in the morning at the user's request, resumed in the
 afternoon ("continue the OPTIMIZATION.md work"), and stopped again where every next step either takes the Mac for
 half an hour or risks swap, which is the user's call. In the evening the user asked for the first of those steps:
 a full-context prompt with the corrected plan ran **without a swap-out**, and the 128k configuration was installed.
@@ -8,11 +8,46 @@ The performance goal is **not complete**.
 
 Reports: [morning](bench/results/2026-10-12-m4-air-128k/README.md),
 [afternoon](bench/results/2026-10-12-m4-air-128k-resume/README.md), [evening](bench/results/2026-10-12-m4-air-128k-resume/README.md#8-evening-the-full-context-prompt-with-the-new-plan-and-the-install) (section 8 of the
-afternoon's). Sections below that describe the morning are marked where the afternoon or the evening changed them.
+afternoon's), [the morning after](bench/results/2026-10-12-m4-air-128k-resume/README.md#12-morning-of-2026-10-13-the-expert-cache-is-not-read-back)
+(its section 12). Sections below that describe the morning are marked where the afternoon or the evening changed them.
 
 ## Read this first
 
-**Night, 2026-10-12 — the newest state; read this before the rest.** The owner asked to "install the faster
+**Morning, 2026-10-13 — the newest state; read this before the rest.** The first two steps of the night's list,
+done in a side session. Section 12 of the
+[report](bench/results/2026-10-12-m4-air-128k-resume/README.md#12-morning-of-2026-10-13-the-expert-cache-is-not-read-back)
+has the numbers.
+
+- **The expert cache is not read back any more** when `--elastic` brings it back after a long prompt. It was:
+  everything it had held, 4.0 s for 10.5 GiB, before the first token. Now it comes back empty and fills as its
+  experts are asked for. `--elastic-refill G` reads the most used G GiB back first and `--elastic-refill all`
+  everything, as before (`STRATA_ELASTIC_REFILL=all` in the config's `env` does the same).
+- A B B A at the installed settings, caches of 10.4-11.0 GiB: after a 2,000-token prompt the **first token comes
+  after 22.5-22.6 s instead of 25.5-25.8** and the 50th after 29.4 instead of 31.5-31.7; after 10,000 tokens
+  104.3 instead of 106.1-106.4 s, and 113.1-113.2 instead of 114.1-114.6. The first 63 tokens are written at
+  7.4-7.5 tok/s instead of 8.3-8.5: the experts they need are read while they are written, 0.9 s in all. No token
+  comes later than before, and later turns write at the same speed either way.
+- **How much to read back was measured, and it is nothing.** At one cache size (6.99 GiB), reading back 1 GiB,
+  2 GiB or all of it made the next 49 tokens 0.13, 0.24 and 0.38 s faster, for reads of 0.32, 0.65 and 2.2 s. Of
+  3,986 experts read back, 583 saved a read later; the cache is replaced once within 70 tokens anyway.
+- **A KV step outside a long prompt** (the cache is made anew, smaller) takes 0.6-0.9 s instead of 3.7-3.8; the
+  longest wait inside an answer that crosses one is 1.4 s instead of 4.0. The back-off goes the same way.
+- Output is identical: the tiny-model tests in both modes (22 runs), the real-model exact gate on four paths, IDs
+  and logits of one mode against the other on the real model. No swap-out all morning (the counter is at
+  1,586,587).
+- The installed configuration is the same file; the engine it points at (`build-metal/bin/strata`, SHA-256
+  `b646b475...`) now does the above. The patched llama.cpp tree and the eight patch files were not touched.
+- **Seen on the way, not changed** (the list at the end of section 12): the engine's start still fills the cache
+  from the profile (3.5 s for 11 GiB), which the same numbers call into question; the short-prompt shape borrowed
+  2.1 GiB with 0.7-1.1 GiB really free, and macOS compressed up to 0.97 GiB of other programs' memory in that
+  second; a KV step in the middle of an answer made it compress 0.3-0.4 GiB (the cache is freed and made anew in
+  one go), with and without the read-back.
+- **Next, in order of likely value:** (1) a full-context prompt on this build; (2) the two points above about
+  memory that is not really free; (3) both back-off signs have only fired on the tiny model; (4) the 0.4-0.9 s of
+  expert reads in the first tokens after a long prompt could go behind the tokens (a change to the cache's
+  read-ahead in patch 0001; not built).
+
+**Night, 2026-10-12.** The owner asked to "install the faster
 config and keep optimizing". Section 10 of the
 [report](bench/results/2026-10-12-m4-air-128k-resume/README.md#10-night-the-model-in-the-file-cache-n-gram-rows-and-a-top-k-that-was-not-reproducible)
 has the numbers.
@@ -58,11 +93,11 @@ has the numbers.
   version re-made it and macOS compressed 1.4 GiB of other programs' memory in that second).
   `STRATA_KV_STEP=0`: as before. A 24,000-token prompt on the final build: 85 tok/s read, 7.5 tok/s written at
   that depth (5.6 before), five records of five, no swap-out.
-- **Next, in order of likely value:** (1) after a long prompt the cache is read back whole before the first
-  token (3.6 s for 11 GiB): read back the most used part and let the rest fill as it is asked for; (2) passing a
-  KV step outside a long prompt reads the whole cache back (4 s) where only 0.47 GiB had to go; (3) a
-  full-context prompt on this build (not repeated tonight); (4) both back-off signs have only fired on the tiny
-  model.
+- **Next, as it stood that night** ((1) and (2) were done the next morning: the block above): (1) after a long
+  prompt the cache is read back whole before the first token (3.6 s for 11 GiB): read back the most used part and
+  let the rest fill as it is asked for; (2) passing a KV step outside a long prompt reads the whole cache back
+  (4 s) where only 0.47 GiB had to go; (3) a full-context prompt on this build (not repeated tonight); (4) both
+  back-off signs have only fired on the tiny model.
 - The targets (120 and 10 tok/s at full depth) are still not reached; a warm Air reads at about 77 tok/s.
 
 **Late evening, 2026-10-12.** The largest finding of the day came last, and it changes
@@ -146,13 +181,13 @@ Mac with the apps open: the GPU alone takes 82-126 ms per written token, and a w
 | Production Strata configuration | **131,072** context. Since the night of 2026-10-12: `--kv f16 --prefill 8192 --reserve-gib 3 --elastic on`, indexed QSA, the alias pi asks for (`pending/desktop-128k-elastic.json`). The evening's plain one (`--prefill 4096 --reserve-gib 4`, no `--elastic`) is `installed/strata-iq3_s.before-elastic.json`. The 32,768 file is kept as `bench/results/2026-10-12-m4-air-128k-resume/installed/strata-iq3_s.before.json` |
 | pi local-provider configuration | `contextWindow` **131,072** (backup: `~/.pi/agent/models.json.backup-20261012-165047-32k`). The smoke test against the 128k server passed: a real `read` tool call and the marker. A long pi session was not tested |
 | Completed full-context run | Two: the morning's (`build-metal/lowlevel-128k/strata-indexed-topk`, old plan, 61.7 MiB swapped) and the evening's (`build-metal/bin/strata`, new plan, **0 swap-outs**) |
-| Repository source | Eight patches (`0001`-`0008`), engine with `--elastic`; built and tested (kernel tests, tiny-model parity, protocol suite, shape test). Applied once more to a clean checkout of the pin at the end of the night |
-| `build-metal/bin/strata` | Built from the current source (SHA-256 `f3f16987...` at the end of the night) |
+| Repository source | Eight patches (`0001`-`0008`), engine with `--elastic`; built and tested (kernel tests, tiny-model parity, protocol suite, shape test). Applied once more to a clean checkout of the pin at the end of the night. The morning of 2026-10-13 changed `metal/src/main.cpp`, the shape test and two tools, no patch |
+| `build-metal/bin/strata` | Built from the current source (SHA-256 `b646b475...` on the morning of 2026-10-13; `f3f16987...` at the end of the night before, kept as `build-metal/refill/strata-before`) |
 | Default path | Same arithmetic as before; **not** the same memory plan: 450 MiB more reserved at 131,072 context with 4,096-token passes, host buffer subtracted |
-| Real-model exact gate on the final build | Passed again at the end of the night against `strata-reference` (re-recorded) at 32,768 context with a 3,000 MiB cache: chat, code, 7,900-token document, identical ids and reported logits on the default, indexed and `--elastic` paths, and with `--elastic --prefill 8192` |
-| Swap | The afternoon's `--elastic` tests wrote 1,066 MiB to swap (68,248 pages). macOS had 0.92 GiB in swap before, 1.95 GiB after. The evening's full-context run, server start and pi test wrote none (1,975.69 MiB in use before and after). The late evening's experiments before the reads were aligned wrote 6.2 MiB; nothing since (1,941.88 MiB in use at the end of the night) |
+| Real-model exact gate on the final build | Passed again on the morning of 2026-10-13 (same four paths, no swap-out), and at the end of the night against `strata-reference` (re-recorded) at 32,768 context with a 3,000 MiB cache: chat, code, 7,900-token document, identical ids and reported logits on the default, indexed and `--elastic` paths, and with `--elastic --prefill 8192` |
+| Swap | The afternoon's `--elastic` tests wrote 1,066 MiB to swap (68,248 pages). macOS had 0.92 GiB in swap before, 1.95 GiB after. The evening's full-context run, server start and pi test wrote none (1,975.69 MiB in use before and after). The late evening's experiments before the reads were aligned wrote 6.2 MiB; nothing since (1,941.88 MiB in use at the end of the night; 1,925.88 MiB before and after the morning of 2026-10-13) |
 | Running work | Nothing was left running; the server was stopped again after each test |
-| Git | The afternoon is committed as `8bfdb751` (source) and `cb36a298` (documents and results); the evening's result is the commit after them. `main` is ahead of `origin/main`; nothing was pushed. The night's work is the last commits on `main`; nothing was pushed by the assistant |
+| Git | The afternoon is committed as `8bfdb751` (source) and `cb36a298` (documents and results); the evening's result is the commit after them. `main` is ahead of `origin/main`; nothing was pushed. The night's work and the morning of 2026-10-13 are the last commits on `main`; nothing was pushed by the assistant |
 
 Commit `29c52020` contains the morning's optimization source, `2daacf82` its handoff and results. A commit is not
 evidence that its contents were validated.
@@ -373,7 +408,7 @@ The engine keeps the context in one of three shapes:
 | --- | --- | --- | --- |
 | Answer | 16 tokens | everything the budget has | writing; stretches of up to 32 new tokens |
 | Short | `--elastic-short` (1,024) | kept | a stretch one such pass reads, if its 0.94 GiB + 1.5 GiB are free at that moment |
-| Long | `--prefill` | 256 MiB (it only carries the engine's read hooks) | anything longer; the cache is read back afterwards, 1.7-2.4 s for 6.5 GiB |
+| Long | `--prefill` | 256 MiB (it only carries the engine's read hooks) | anything longer; afterwards the cache comes back empty and fills as its experts are asked for (until 2026-10-13 it was read back, 1.7-2.4 s for 6.5 GiB: `--elastic-refill all`) |
 
 Why 16 and not 32 for Answer: from 32 tokens llama.cpp computes a layer the cache does not serve on the GPU from
 copies of whole expert tensors, which costs 0.56 GiB of work memory and makes the shape's size depend on the
@@ -569,9 +604,10 @@ What is open now, each needing the user's go-ahead because it takes the Mac for 
 4. **`--prefill 8192` in the Long shape.** With `--elastic` the Long shape has about 2.9 GiB to spare at 131,072
    context, enough for 8,192-token passes (3.28 GiB on the GPU + 0.92 GiB host), which halve the SSD traffic of
    a long prompt. Not measured.
-5. The read-back after a long prompt (about 2 s for 6.5 GiB) could be shortened by keeping the hottest part of
-   the cache through the Long shape, or made free by reading back while the first tokens are written. Neither is
-   written.
+5. ~~The read-back after a long prompt (about 2 s for 6.5 GiB) could be shortened by keeping the hottest part of
+   the cache through the Long shape, or made free by reading back while the first tokens are written.~~ **Dropped
+   on 2026-10-13**: the cache is not read back at all, which measured better than reading back any part of it
+   (section 12 of the report).
 
 Further ideas, in approximate order of likely value:
 

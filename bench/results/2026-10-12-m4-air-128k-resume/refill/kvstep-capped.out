@@ -1,0 +1,20 @@
+== 900 tokens in one short pass, 64 written; the cache gives memory before the pass
+read-back: ready in 5.2 s; context 131072, expert cache 3576 experts (6992 MiB), direct reads
+read-back, prompt read: 900 tokens, 64 written; this is what the others are compared with
+as-asked-for: ready in 5.3 s; context 131072, expert cache 3576 experts (6992 MiB), direct reads
+as-asked-for, prompt read: identical IDs and logits
+all identical
+== 700 tokens, 120 written; the cache gives memory in the middle of the answer
+read-back: ready in 5.3 s; context 131072, expert cache 3576 experts (6992 MiB), direct reads
+read-back, prompt read: 700 tokens, 120 written; this is what the others are compared with
+as-asked-for: ready in 5.2 s; context 131072, expert cache 3576 experts (6992 MiB), direct reads
+as-asked-for, prompt read: identical IDs and logits
+all identical
+kvstep-900 read-back: the conversation reaches 900 tokens: the KV cache takes its memory for 2048 (0.03 GiB more), the expert cache gives it: 6.84 -> 6.84 GiB, 0.00 s
+    first token 12.65 s, token 50 19.50 s, last (64) 22.00 s; longest wait between two tokens 0.27 s (before token 53)
+kvstep-900 as-asked-for: the conversation reaches 900 tokens: the KV cache takes its memory for 2048 (0.03 GiB more), the expert cache gives it: 6.84 -> 6.84 GiB, 0.00 s
+    first token 12.57 s, token 50 19.36 s, last (64) 21.84 s; longest wait between two tokens 0.27 s (before token 53)
+kvstep-700 read-back: the conversation reaches 769 tokens: the KV cache takes its memory for 2048 (0.03 GiB more), the expert cache gives it: 6.84 -> 6.84 GiB, 0.00 s
+    first token 11.44 s, token 50 18.27 s, last (120) 29.90 s; longest wait between two tokens 0.31 s (before token 61)
+kvstep-700 as-asked-for: the conversation reaches 769 tokens: the KV cache takes its memory for 2048 (0.03 GiB more), the expert cache gives it: 6.84 -> 6.84 GiB, 0.00 s
+    first token 11.71 s, token 50 18.89 s, last (120) 31.11 s; longest wait between two tokens 0.32 s (before token 61)

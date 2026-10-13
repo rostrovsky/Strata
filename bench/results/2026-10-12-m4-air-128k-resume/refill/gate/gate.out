@@ -1,0 +1,5 @@
+record rc=0 swapouts=0
+default rc=0 swapouts=0
+indexed rc=0 swapouts=0
+elastic rc=0 swapouts=0
+elastic, 8192-token passes (near-ties allowed) rc=0 swapouts=0

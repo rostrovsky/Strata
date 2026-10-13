@@ -22,6 +22,12 @@ fixed the `--elastic` configuration was installed. Then: 8 GiB of the model were
 (given back now), the n-gram rows were read one page fault at a time (read ahead now), and the same long prompt
 did not give the same logits twice (a top-k kernel of llama.cpp; fixed).
 
+**Late night and the morning of 2026-10-13** ([section 11](#11-late-night-the-kv-cache-takes-its-memory-as-the-conversation-grows),
+[section 12](#12-morning-of-2026-10-13-the-expert-cache-is-not-read-back)): the KV cache takes its memory as the
+conversation grows, and the expert cache is no longer read back from the SSD after a long prompt: it fills as its
+experts are asked for, and the first token after a 2,000-token prompt comes 3.1 s sooner (A B B A, caches of
+10.4-11.0 GiB).
+
 ## In short
 
 - **The memory plan is honest now.** The 442 MiB by which the compute buffer grew during the morning's full-context
@@ -804,3 +810,167 @@ Not done, in order of likely value:
 4. Both back-off signs have only fired on the tiny model.
 5. The targets (120 tok/s read, 10 tok/s written at full depth) are not reached. Written: 8.5-8.7 tok/s up to
    16,000 tokens, 7.5 at 24,000. Read: 114 tok/s for a cool first pass, 77-87 once the Air is warm.
+
+## 12. Morning of 2026-10-13: the expert cache is not read back
+
+Points 1 and 2 of the list above. With `--elastic` the expert cache is given up for a long prompt and comes back
+for the answer; it was then read back whole from the SSD (what it had held, most used first) before the first
+token: 4.0 s for 10.5 GiB. It also was whenever the cache was made smaller: for a step of the KV cache outside a
+long prompt, and for a back-off.
+
+Now it comes back empty and fills as its experts are asked for. `--elastic-refill G` reads the most used G GiB
+back first, `--elastic-refill all` everything, as before (`STRATA_ELASTIC_REFILL` in the environment does the same
+where the option is not given). The default is 0, because nothing else measured better. Everything below is the
+real model on the desktop as it was this morning (browser, VM, VS Code, the Claude app), the SoC cooled to 45 C
+before every engine start, every run under `metal/tools/swapwatch.py`.
+
+### How much to read back: nothing
+
+The same 6,992 MiB cache in all eight engine starts (`--expert-cache-cap 7000`), a 2,000-token prompt, in the order
+0, 1, 2, all, all, 2, 1, 0 ([refill-x2.out](refill/refill-x2.out), [refill-x2.json](refill/refill-x2.json)):
+
+| Read back | First token | 50th token | The 49 tokens after the first |
+| --- | ---: | ---: | ---: |
+| nothing | 22.40, 23.08 s | 29.82, 30.56 s | 7.42, 7.48 s |
+| 1 GiB | 22.54, 23.42 s | 29.80, 30.79 s | 7.26, 7.37 s |
+| 2 GiB | 22.84, 22.92 s | 30.05, 30.12 s | 7.21, 7.20 s |
+| all (6.83 GiB) | 24.26, 24.23 s | 31.32, 31.30 s | 7.06, 7.07 s |
+
+Reading all of it back makes the next 49 tokens 0.4 s faster and the first one 1.5 s later. Reading the most used
+1 or 2 GiB back gives 0.13 and 0.24 s over those tokens, for reads of 0.32 and 0.65 s at the SSD's 3.08 GiB/s. Two
+starts with the same setting differ by up to 0.9 s at the first token (heat: the first and the last of eight),
+which is more than the settings 0, 1 and 2 differ, there and at the 50th token: no amount came out ahead of none.
+An earlier run without the cap ([refill-x1.out](refill/refill-x1.out): 0, 2, 5 GiB and all, 200 tokens written,
+caches of 8.0-10.1 GiB) had the first tokens in that order (22.7-23.1, 23.2-23.6, 24.3 and 24.6-25.5 s) and the
+200th of 0, 2 and 5 GiB within a second of each other (50.3-51.3 s), with "all" at 53.6 s.
+
+Why it helps so little, from a conversation of three turns ([turns.py](refill/turns.py),
+[turns1.out](refill/turns1.out); `--expert-cache-cap 7800`; the three starts that got the same 7,792 MiB):
+
+| | Read back (one run) | Not read back (two runs) |
+| --- | ---: | ---: |
+| Turn 1, a 2,000-token document: first token | 24.55 s | 22.48, 22.48 s |
+| ... 50th and 100th token | 31.35, 39.00 s | 29.68, 37.31 and 29.68, 37.33 s |
+| ... experts missed by the prompt's last passes and by the 100 tokens | 260 + 5,471 | 594 + 5,720 and 596 + 5,719 |
+| Turn 2, 525 more tokens (one pass beside the cache): first token | 11.77 s | 11.69, 11.71 s |
+| ... 50th token; experts missed by the answer | 18.77 s; 6,080 | 18.62 s; 6,080 and 18.65 s; 6,079 |
+| Turn 3, a 20-token question: first token | 2.36 s | 2.33, 2.34 s |
+| ... 50th token; experts missed by the answer | 9.43 s; 6,426 | 9.29 s; 6,429 and 9.32 s; 6,428 |
+
+- 3,986 experts (7.6 GiB) were read back (the context took 2.92 s to get its answering shape; 0.44 s without, at
+  6.99 GiB), and it saved 583 reads in the passes that followed. A pass that finds the cache empty reads the
+  experts it needs and no others.
+- What is read back and not used does not stay: 100 tokens miss 5,500-5,700 times in a cache of 3,986 experts, so
+  the cache is replaced once within 70 tokens. From the second turn on it holds the same experts either way (the
+  same misses, the same bytes from the SSD: 63.0 and 35.4 GB).
+- The written ids are the same in all four runs, in every turn. (The fourth run, read back, came first and got a
+  7,199 MiB cache, below the cap: 24.28 s to the first token, 31.51 s to the 50th.)
+
+### A B B A at the installed configuration
+
+`trace_run.sh refill-ab --prefill 2000,10000 --prefill-new 64 --cool 45 --ab "STRATA_ELASTIC_REFILL=all
+build-metal/bin/strata" "build-metal/bin/strata" --runs 2 -- --verbose`: A reads the cache back whole, B is the
+default now; no cache cap ([refill-ab.out](refill/refill-ab.out), [refill-ab.json](refill/refill-ab.json)).
+
+| 2,000-token prompt | A | B | B | A |
+| --- | ---: | ---: | ---: | ---: |
+| Expert cache | 11,305 MiB | 10,630 MiB | 10,966 MiB | 10,745 MiB |
+| First token | 25.79 s | **22.52 s** | **22.59 s** | 25.52 s |
+| 10th token | 26.83 s | 24.02 s | 24.06 s | 26.57 s |
+| 50th token | 31.66 s | **29.40 s** | **29.36 s** | 31.48 s |
+| 64th token | 33.23 s | 31.02 s | 30.94 s | 33.07 s |
+| Written, the 63 tokens after the first | 8.47 tok/s | 7.41 tok/s | 7.54 tok/s | 8.34 tok/s |
+| Experts missed per written token | 29.5 | 40.6 | 40.1 | 31.1 |
+
+| 10,000-token prompt | A | B | B | A |
+| --- | ---: | ---: | ---: | ---: |
+| First token | 106.08 s | **104.33 s** | **104.31 s** | 106.43 s |
+| 50th token | 114.14 s | **113.11 s** | **113.18 s** | 114.63 s |
+| 64th token | 116.64 s | 115.56 s | 115.69 s | 117.17 s |
+| Written, the 63 tokens after the first | 5.97 tok/s | 5.61 tok/s | 5.54 tok/s | 5.87 tok/s |
+
+- After 2,000 tokens the first token comes **3.1 s sooner** (12%), the 50th and the 64th 2.2 s sooner. After
+  10,000 tokens: 1.9 s and 1.2-1.3 s.
+- The rate over the first 64 tokens is lower with B, 7.4-7.5 against 8.3-8.5 tok/s: the experts those tokens need
+  are read while they are written (0.9 s more for the 63 tokens; 10 more misses a token, about 630 experts),
+  where A had read them before the first, among the 5,499 it read back. No token of the answer comes later than
+  with A. Once the cache is full again the rate is what it was: in the three-turn run above the second and third
+  turn wrote at the same speed either way (6.60 and 6.59 tok/s read back, 6.68-6.69 and 6.61-6.65 not).
+- After the 10,000-token prompt both wrote at 5.5-6.0 tok/s: the SoC was at 88 C after 100 s of reading.
+- A's last engine took 4.01 s to give the context its answering shape after the first prompt (5,499 experts read
+  back) and 3.69 s after the second (the cache came back with 9.63 GiB of its 10.50). Without the read-back that
+  change took 0.44 s for a 6.99 GiB cache.
+- No swap-out. What macOS compressed while each engine was loaded ([memory-per-engine.txt](refill/memory-per-engine.txt),
+  from the per-second `vm_stat` traces): 0.85, 0.00, 0.11, 0.01 GiB in the order A B B A
+  (`memsum.py`: 0.97 GiB in 578 s; [memsum.txt](refill/memsum.txt)). Nearly all of it is the first engine start
+  of the series, during its 10,000-token prompt, where A and B do the same. refill-x1 had it the same way
+  (1.52, 1.27 and 0.70 GiB in its first three starts, 0.27 GiB in the other five together); the capped run
+  compressed nothing in eight starts.
+
+### A step of the KV cache outside a long prompt, and a back-off
+
+The cache is made anew, smaller, when the KV cache takes its next step while the cache is there. It is no longer
+read back then either. [kvstep.sh](refill/kvstep.sh), as section 11's det5.sh: `STRATA_KV_STEP=1024`, so that a
+short conversation crosses a step; no cache cap, caches of 9.8-11.1 GiB, every run a fresh start
+([kvstep.out](refill/kvstep.out)):
+
+| | Read back (as before) | Not read back |
+| --- | ---: | ---: |
+| 900 tokens in one pass, the cache gives memory before it: the step | 3.67 s (5,051 experts) | 0.62 s |
+| ... first token; 50th token | 15.81 s; 22.11 s | 14.35 s; 21.30 s |
+| 700 tokens and 120 written, the step before the 70th token: the step | 3.79 s (5,074 experts) | 0.93 s |
+| ... longest wait between two tokens | 4.01 s | 1.37 s |
+| ... 120th token | 30.77 s (9.95 GiB cache) | 30.24 s (11.05 GiB cache) |
+
+Identical IDs and logits between the two, in both cases (`metal/tools/determinism.py`). The pass of 900 tokens
+finds no experts in the cache to copy and reads them from the SSD, which is why its first token gains 1.5 s and
+not 3. With a capped cache the step is paid from what the cap left unused and the cache is not touched at all
+([kvstep-capped.out](refill/kvstep-capped.out): "6.84 -> 6.84 GiB, 0.00 s").
+
+The back-off (the cache gives memory back when macOS swapped or ran short) goes the same way. Its two signs have
+still only fired on the tiny model, where they are simulated.
+
+### Same output
+
+- **Tiny model**, 22 runs ([refill/tests/](refill/tests/), [run_tests.sh](refill/tests/run_tests.sh)): the shape
+  test, also with `STRATA_KV_STEP=256`, with each back-off simulation, and with both; parity against
+  `strata-reference` on eight paths, also with `STRATA_KV_STEP=256`; the protocol suite (29 checks), also with
+  `STRATA_KV_STEP=256` and with `STRATA_VERIFY_CACHE=1`. Each as it is and with `STRATA_ELASTIC_REFILL=all`. The
+  shape test has two more variants, the cache read back whole and in part (4 and 2 of the tiny model's 4 experts
+  after every long prompt but the first), and fails if the part is not smaller than the whole.
+- **Real-model exact gate** ([refill/gate/](refill/gate/)): identical IDs and reported logits against
+  `strata-reference` on the default, indexed and `--elastic` paths and with `--elastic --prefill 8192`; no
+  swap-out.
+- **Real model, one setting against the other**: the two KV-step cases above (IDs and logits), the three-turn
+  conversation (IDs).
+
+`build-metal/bin/strata`, SHA-256 `b646b475...`. The patched llama.cpp tree was not touched: the eight patch files
+are as they were.
+
+### Tools
+
+`metal/tools/bench.py` records when every token arrived (`token_s` in the JSON) and prints the 2nd, 10th and 50th;
+`metal/tools/determinism.py` stores the same. In [refill/](refill/): `turns.py` (the three-turn conversation,
+A B B A), `summ.py` (token times per engine start of an `--ab` run), `compr.py` and `per_engine.py` (the seconds
+in which macOS compressed, and the sum per engine start, from a `vm_stat` trace), `trace_any.sh` (any command under
+the swap watch with a trace beside it; `trace_run.sh` for bench.py is in `build-metal/resume-128k/`).
+
+### Not done, and seen on the way
+
+1. **The 0.4-0.9 s that are left.** The experts the first tokens after a long prompt ask for (0.4 s over 49
+   tokens with a 7 GiB cache, 0.9 s over 63 with 11 GiB) could be read behind the tokens instead of in them, with
+   the cache's read-ahead tickets (fills that are not dropped when their layer routes elsewhere). That is a change
+   to the cache in patch 0001. Not built; those figures are all it could gain per long prompt.
+2. **The engine's start fills the cache from the profile the same way** (3.5 s for 11 GiB; ready in 6.3-6.8 s
+   with a 10-11 GiB cache, 5.2 s with 7 GiB). Whether a start without it answers its first request sooner was not
+   measured (`--no-preload` exists). The server starts the engine afresh after 900 s without a request.
+3. **The short-prompt shape takes memory that is not free.** It borrows 2.1 GiB for its one pass if that much is
+   "free or file cache"; in the three-turn run 0.7-1.1 GiB were free and macOS compressed 0.97, 0.17 and 0.72 GiB
+   of other programs' memory in that second (nothing in the fourth run). Both settings.
+4. **A KV step in the middle of an answer frees the cache and makes it anew in one go**: 0.31 and 0.42 GiB
+   compressed in that second ([kvstep-vmstat.txt](refill/kvstep-vmstat.txt), 07:09:32 and 07:10:10), with and
+   without the read-back. It could be paid from memory kept aside for it, as it is with a capped cache.
+5. Points 3-5 of section 11's list stand: a full-context prompt on this build, the back-off on the real model,
+   the targets.
+
+No run of the morning wrote to swap: the system's counter is at 1,586,587, where it was last night.

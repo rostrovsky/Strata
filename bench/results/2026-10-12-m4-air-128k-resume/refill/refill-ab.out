@@ -1,0 +1,35 @@
+memory: {'free_gib': 17.63, 'file_cache_gib': 2.63, 'apps_gib': 8.85, 'wired_gib': 2.09, 'swap_used_gib': 1.88, 'pressure_level': 1}
+temperature before the run: SoC 44.8 C, battery 34.5 C
+bin/strata: ready in 6.8 s; context 131072, expert cache 5786 experts (11305 MiB), direct reads
+prefill   2000 tokens:    77.6 tok/s, first token after 25.79 s, 67.8 GB from the SSD, 3 passes; 25.8 s = SSD 10.0 + GPU wait 14.0 + CPU 1.8 (GPU busy 25.5; 35.6 GB read ahead, 31.3 used); swap-outs 0, 14.8 W
+  decode at 2000 tokens: 8.47 tok/s, 64 tokens, token 2 after 25.91 s, token 10 after 26.83 s, token 50 after 31.66 s; '<think>\nThe user wants me to summarize a technical document about "Strata" - which appears to be a local LLM inference engine. Let me identify the key information and provide a concise summary.\n\nThe document covers:\n1. What Strata is (a local LLM inference engine)\n2. Speed'
+  read 8192/10000 tokens in 75.6 s; swap-outs 0
+  read 9999/10000 tokens in 106.0 s; swap-outs 0
+prefill  10000 tokens:    94.3 tok/s, first token after 106.08 s, 115.8 GB from the SSD, 4 passes; 106.1 s = SSD 9.9 + GPU wait 91.6 + CPU 4.6 (GPU busy 127.2; 82.7 GB read ahead, 75.8 used); swap-outs 0, 22.4 W
+  decode at 10000 tokens: 5.97 tok/s, 64 tokens, token 2 after 106.21 s, token 10 after 107.08 s, token 50 after 114.14 s; '<think>\nThe user wants me to summarize a lengthy technical document about a software project called "Strata" that appears to be an inference engine for running large language models (specifically Qwen3.8-Flash-Next quantized models) on consumer hardware. Let me organize the key information and provide a comprehensive summary'
+temperature before the run: SoC 44.8 C, battery 34.5 C
+bin/strata: ready in 6.6 s; context 131072, expert cache 5440 experts (10630 MiB), direct reads
+prefill   2000 tokens:    88.8 tok/s, first token after 22.52 s, 61.8 GB from the SSD, 3 passes; 22.5 s = SSD 6.7 + GPU wait 14.2 + CPU 1.7 (GPU busy 24.3; 35.6 GB read ahead, 31.3 used); swap-outs 0, 7.7 W
+  decode at 2000 tokens: 7.41 tok/s, 64 tokens, token 2 after 22.66 s, token 10 after 24.02 s, token 50 after 29.40 s; '<think>\nThe user wants me to summarize a technical document about "Strata" - which appears to be a local LLM inference engine. Let me identify the key information and provide a concise summary.\n\nThe document covers:\n1. What Strata is (a local LLM inference engine)\n2. Speed'
+  read 8192/10000 tokens in 76.0 s; swap-outs 0
+prefill  10000 tokens:    95.9 tok/s, first token after 104.33 s, 110.9 GB from the SSD, 4 passes; 104.3 s = SSD 6.9 + GPU wait 92.9 + CPU 4.6 (GPU busy 128.6; 82.7 GB read ahead, 75.8 used); swap-outs 0, 23.7 W
+  decode at 10000 tokens: 5.61 tok/s, 64 tokens, token 2 after 104.47 s, token 10 after 105.82 s, token 50 after 113.11 s; '<think>\nThe user wants me to summarize a lengthy technical document about a software project called "Strata" that appears to be an inference engine for running large language models (specifically Qwen3.8-Flash-Next quantized models) on consumer hardware. Let me organize the key information and provide a comprehensive summary'
+temperature before the run: SoC 45.0 C, battery 34.7 C
+bin/strata: ready in 6.7 s; context 131072, expert cache 5612 experts (10966 MiB), direct reads
+prefill   2000 tokens:    88.5 tok/s, first token after 22.59 s, 61.6 GB from the SSD, 3 passes; 22.6 s = SSD 6.6 + GPU wait 14.2 + CPU 1.7 (GPU busy 22.4; 35.6 GB read ahead, 31.3 used); swap-outs 0
+  decode at 2000 tokens: 7.54 tok/s, 64 tokens, token 2 after 22.73 s, token 10 after 24.06 s, token 50 after 29.36 s; '<think>\nThe user wants me to summarize a technical document about "Strata" - which appears to be a local LLM inference engine. Let me identify the key information and provide a concise summary.\n\nThe document covers:\n1. What Strata is (a local LLM inference engine)\n2. Speed'
+  read 8192/10000 tokens in 75.8 s; swap-outs 0
+prefill  10000 tokens:    95.9 tok/s, first token after 104.31 s, 111.1 GB from the SSD, 4 passes; 104.3 s = SSD 6.8 + GPU wait 92.9 + CPU 4.5 (GPU busy 107.9; 82.7 GB read ahead, 75.8 used); swap-outs 0, 24.0 W
+  decode at 10000 tokens: 5.54 tok/s, 64 tokens, token 2 after 104.45 s, token 10 after 105.81 s, token 50 after 113.18 s; '<think>\nThe user wants me to summarize a lengthy technical document about a software project called "Strata" that appears to be an inference engine for running large language models (specifically Qwen3.8-Flash-Next quantized models) on consumer hardware. Let me organize the key information and provide a comprehensive summary'
+temperature before the run: SoC 44.7 C, battery 34.7 C
+bin/strata: ready in 6.6 s; context 131072, expert cache 5499 experts (10745 MiB), direct reads
+prefill   2000 tokens:    78.4 tok/s, first token after 25.52 s, 67.9 GB from the SSD, 3 passes; 25.5 s = SSD 9.8 + GPU wait 14.0 + CPU 1.7 (GPU busy 26.1; 35.6 GB read ahead, 31.3 used); swap-outs 0
+  decode at 2000 tokens: 8.34 tok/s, 64 tokens, token 2 after 25.65 s, token 10 after 26.57 s, token 50 after 31.48 s; '<think>\nThe user wants me to summarize a technical document about "Strata" - which appears to be a local LLM inference engine. Let me identify the key information and provide a concise summary.\n\nThe document covers:\n1. What Strata is (a local LLM inference engine)\n2. Speed'
+  read 8192/10000 tokens in 75.6 s; swap-outs 0
+  read 9999/10000 tokens in 106.3 s; swap-outs 0
+prefill  10000 tokens:    94.0 tok/s, first token after 106.43 s, 115.7 GB from the SSD, 4 passes; 106.4 s = SSD 9.7 + GPU wait 92.2 + CPU 4.5 (GPU busy 122.4; 82.7 GB read ahead, 75.8 used); swap-outs 0, 21.3 W
+  decode at 10000 tokens: 5.87 tok/s, 64 tokens, token 2 after 106.56 s, token 10 after 107.43 s, token 50 after 114.63 s; '<think>\nThe user wants me to summarize a lengthy technical document about a software project called "Strata" that appears to be an inference engine for running large language models (specifically Qwen3.8-Flash-Next quantized models) on consumer hardware. Let me organize the key information and provide a comprehensive summary'
+
+medians of 2 runs:
+  STRATA_ELASTIC_REFILL=all build-metal/bin/strata: cache 11305 MiB, prefill 2000: 78.0 tok/s, prefill 10000: 94.1 tok/s, swap-outs 0
+  build-metal/bin/strata: cache 10630 MiB, prefill 2000: 88.7 tok/s, prefill 10000: 95.9 tok/s, swap-outs 0

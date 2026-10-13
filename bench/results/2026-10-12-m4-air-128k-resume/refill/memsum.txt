@@ -1,0 +1,1 @@
+build-metal/resume-128k/refill-ab: 578 s loaded; free min 0.05, median 0.67 GiB; file cache median 3.01; free + file cache min 3.05; page-ins 10.2 GiB, compressions 0.97 GiB, decompressions 1.25; other programs in RAM median 6.42, stored compressed max 12.2; swap-outs 0 pages

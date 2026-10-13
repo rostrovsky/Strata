@@ -1,0 +1,5 @@
+07:08:04 BASELINE swapouts 1586587, swap used 1925.88 MiB, pressure 1, free 16.78 + file cache 2.36 GiB, compressor 10.73 in 3.74 GiB, SoC 48.4 C, battery 34.7 C
+07:08:04 STARTED pid 95509: bench/results/2026-10-12-m4-air-128k-resume/refill/kvstep.sh
+07:08:09 ok +5 s: swap-outs new 0, pressure 1, free 2.0 + file 2.36 GiB, compressor 10.73 in 3.73 GiB, SoC 50.7 C | == 900 tokens in one short pass, 64 written; the cache gives memory before the pass
+07:10:10 ok +126 s: swap-outs new 0, pressure 1, free 4.66 + file 1.96 GiB, compressor 11.32 in 4.02 GiB, SoC 67.3 C | as-asked-for: ready in 6.8 s; context 131072, expert cache 5657 experts (11053 MiB), direct reads
+07:11:28 DONE exit code 0, new swap-outs over the whole run 0 pages, swap used 1925.88 MiB (was 1925.88), peak pressure level 1, engine still running: [], stopped: False

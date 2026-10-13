@@ -1,0 +1,20 @@
+== 900 tokens in one short pass, 64 written; the cache gives memory before the pass
+read-back: ready in 6.3 s; context 131072, expert cache 5065 experts (9898 MiB), direct reads
+read-back, prompt read: 900 tokens, 64 written; this is what the others are compared with
+as-asked-for: ready in 6.3 s; context 131072, expert cache 5005 experts (9781 MiB), direct reads
+as-asked-for, prompt read: identical IDs and logits
+all identical
+== 700 tokens, 120 written; the cache gives memory in the middle of the answer
+read-back: ready in 6.4 s; context 131072, expert cache 5092 experts (9951 MiB), direct reads
+read-back, prompt read: 700 tokens, 120 written; this is what the others are compared with
+as-asked-for: ready in 6.8 s; context 131072, expert cache 5657 experts (11053 MiB), direct reads
+as-asked-for, prompt read: identical IDs and logits
+all identical
+kvstep-900 read-back: the conversation reaches 900 tokens: the KV cache takes its memory for 2048 (0.03 GiB more), the expert cache gives it: 9.67 -> 9.65 GiB (5051 experts read back), 3.67 s
+    first token 15.81 s, token 50 22.11 s, last (64) 24.19 s; longest wait between two tokens 0.25 s (before token 53)
+kvstep-900 as-asked-for: the conversation reaches 900 tokens: the KV cache takes its memory for 2048 (0.03 GiB more), the expert cache gives it: 9.56 -> 9.53 GiB (it fills again as its experts are asked for), 0.62 s
+    first token 14.35 s, token 50 21.30 s, last (64) 23.39 s; longest wait between two tokens 0.25 s (before token 53)
+kvstep-700 read-back: the conversation reaches 769 tokens: the KV cache takes its memory for 2048 (0.03 GiB more), the expert cache gives it: 9.72 -> 9.70 GiB (5074 experts read back), 3.79 s
+    first token 10.86 s, token 50 16.80 s, last (120) 30.77 s; longest wait between two tokens 4.01 s (before token 70)
+kvstep-700 as-asked-for: the conversation reaches 769 tokens: the KV cache takes its memory for 2048 (0.03 GiB more), the expert cache gives it: 10.80 -> 10.77 GiB (it fills again as its experts are asked for), 0.93 s
+    first token 10.87 s, token 50 17.36 s, last (120) 30.24 s; longest wait between two tokens 1.37 s (before token 70)

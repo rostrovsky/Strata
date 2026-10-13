@@ -1,0 +1,39 @@
+memory: {'free_gib': 15.33, 'file_cache_gib': 3.75, 'apps_gib': 9.89, 'wired_gib': 2.23, 'swap_used_gib': 1.88, 'pressure_level': 1}
+temperature before the run: SoC 44.8 C, battery 33.0 C
+bin/strata: ready in 5.2 s; context 131072, expert cache 3576 experts (6992 MiB), direct reads
+prefill   2000 tokens:    89.3 tok/s, first token after 22.40 s, 67.6 GB from the SSD, 3 passes; 22.4 s = SSD 6.7 + GPU wait 14.3 + CPU 1.3 (GPU busy 19.1; 35.6 GB read ahead, 31.3 used); swap-outs 0
+  decode at 2000 tokens: 6.48 tok/s, 64 tokens, token 2 after 22.54 s, token 10 after 23.89 s, token 50 after 29.82 s; '<think>\nThe user wants me to summarize a technical document about "Strata" - which appears to be a local LLM inference engine. Let me identify the key information and provide a concise summary.\n\nThe document covers:\n1. What Strata is (a local LLM inference engine)\n2. Speed'
+temperature before the run: SoC 44.8 C, battery 33.0 C
+bin/strata: ready in 5.2 s; context 131072, expert cache 3576 experts (6992 MiB), direct reads
+prefill   2000 tokens:    88.7 tok/s, first token after 22.54 s, 68.0 GB from the SSD, 3 passes; 22.5 s = SSD 6.9 + GPU wait 14.3 + CPU 1.3 (GPU busy 18.8; 35.6 GB read ahead, 31.3 used); swap-outs 0
+  decode at 2000 tokens: 6.61 tok/s, 64 tokens, token 2 after 22.68 s, token 10 after 23.96 s, token 50 after 29.80 s; '<think>\nThe user wants me to summarize a technical document about "Strata" - which appears to be a local LLM inference engine. Let me identify the key information and provide a concise summary.\n\nThe document covers:\n1. What Strata is (a local LLM inference engine)\n2. Speed'
+temperature before the run: SoC 44.8 C, battery 33.0 C
+bin/strata: ready in 5.2 s; context 131072, expert cache 3576 experts (6992 MiB), direct reads
+prefill   2000 tokens:    87.6 tok/s, first token after 22.84 s, 68.6 GB from the SSD, 3 passes; 22.8 s = SSD 7.3 + GPU wait 14.3 + CPU 1.3 (GPU busy 19.0; 35.6 GB read ahead, 31.3 used); swap-outs 0, 16.0 W
+  decode at 2000 tokens: 6.63 tok/s, 64 tokens, token 2 after 22.98 s, token 10 after 24.20 s, token 50 after 30.05 s; '<think>\nThe user wants me to summarize a technical document about "Strata" - which appears to be a local LLM inference engine. Let me identify the key information and provide a concise summary.\n\nThe document covers:\n1. What Strata is (a local LLM inference engine)\n2. Speed'
+temperature before the run: SoC 44.8 C, battery 33.0 C
+bin/strata: ready in 5.2 s; context 131072, expert cache 3576 experts (6992 MiB), direct reads
+prefill   2000 tokens:    82.4 tok/s, first token after 24.26 s, 72.7 GB from the SSD, 3 passes; 24.3 s = SSD 8.8 + GPU wait 14.2 + CPU 1.3 (GPU busy 18.9; 35.6 GB read ahead, 31.3 used); swap-outs 0
+  decode at 2000 tokens: 6.75 tok/s, 64 tokens, token 2 after 24.40 s, token 10 after 25.50 s, token 50 after 31.32 s; '<think>\nThe user wants me to summarize a technical document about "Strata" - which appears to be a local LLM inference engine. Let me identify the key information and provide a concise summary.\n\nThe document covers:\n1. What Strata is (a local LLM inference engine)\n2. Speed'
+temperature before the run: SoC 45.0 C, battery 33.0 C
+bin/strata: ready in 5.2 s; context 131072, expert cache 3576 experts (6992 MiB), direct reads
+prefill   2000 tokens:    82.6 tok/s, first token after 24.23 s, 72.7 GB from the SSD, 3 passes; 24.2 s = SSD 8.7 + GPU wait 14.2 + CPU 1.3 (GPU busy 19.0; 35.6 GB read ahead, 31.3 used); swap-outs 0, 13.0 W
+  decode at 2000 tokens: 6.75 tok/s, 64 tokens, token 2 after 24.36 s, token 10 after 25.48 s, token 50 after 31.30 s; '<think>\nThe user wants me to summarize a technical document about "Strata" - which appears to be a local LLM inference engine. Let me identify the key information and provide a concise summary.\n\nThe document covers:\n1. What Strata is (a local LLM inference engine)\n2. Speed'
+temperature before the run: SoC 44.4 C, battery 32.9 C
+bin/strata: ready in 5.2 s; context 131072, expert cache 3576 experts (6992 MiB), direct reads
+prefill   2000 tokens:    87.3 tok/s, first token after 22.92 s, 68.6 GB from the SSD, 3 passes; 22.9 s = SSD 7.3 + GPU wait 14.3 + CPU 1.3 (GPU busy 19.1; 35.6 GB read ahead, 31.3 used); swap-outs 0
+  decode at 2000 tokens: 6.65 tok/s, 64 tokens, token 2 after 23.06 s, token 10 after 24.29 s, token 50 after 30.12 s; '<think>\nThe user wants me to summarize a technical document about "Strata" - which appears to be a local LLM inference engine. Let me identify the key information and provide a concise summary.\n\nThe document covers:\n1. What Strata is (a local LLM inference engine)\n2. Speed'
+temperature before the run: SoC 44.8 C, battery 32.9 C
+bin/strata: ready in 5.2 s; context 131072, expert cache 3576 experts (6992 MiB), direct reads
+prefill   2000 tokens:    85.4 tok/s, first token after 23.42 s, 68.0 GB from the SSD, 3 passes; 23.4 s = SSD 6.8 + GPU wait 15.3 + CPU 1.3 (GPU busy 16.0; 35.6 GB read ahead, 31.3 used); swap-outs 0
+  decode at 2000 tokens: 6.52 tok/s, 64 tokens, token 2 after 23.56 s, token 10 after 24.86 s, token 50 after 30.79 s; '<think>\nThe user wants me to summarize a technical document about "Strata" - which appears to be a local LLM inference engine. Let me identify the key information and provide a concise summary.\n\nThe document covers:\n1. What Strata is (a local LLM inference engine)\n2. Speed'
+temperature before the run: SoC 44.9 C, battery 32.9 C
+bin/strata: ready in 5.3 s; context 131072, expert cache 3576 experts (6992 MiB), direct reads
+prefill   2000 tokens:    86.7 tok/s, first token after 23.08 s, 67.6 GB from the SSD, 3 passes; 23.1 s = SSD 6.6 + GPU wait 15.2 + CPU 1.3 (GPU busy 16.0; 35.6 GB read ahead, 31.3 used); swap-outs 0, 12.0 W
+  decode at 2000 tokens: 6.43 tok/s, 64 tokens, token 2 after 23.23 s, token 10 after 24.58 s, token 50 after 30.56 s; '<think>\nThe user wants me to summarize a technical document about "Strata" - which appears to be a local LLM inference engine. Let me identify the key information and provide a concise summary.\n\nThe document covers:\n1. What Strata is (a local LLM inference engine)\n2. Speed'
+
+medians of 2 runs:
+  build-metal/bin/strata --elastic-refill 0: cache 6992 MiB, prefill 2000: 88.0 tok/s, swap-outs 0
+  build-metal/bin/strata --elastic-refill 1: cache 6992 MiB, prefill 2000: 87.1 tok/s, swap-outs 0
+  build-metal/bin/strata --elastic-refill 2: cache 6992 MiB, prefill 2000: 87.4 tok/s, swap-outs 0
+  build-metal/bin/strata --elastic-refill all: cache 6992 MiB, prefill 2000: 82.5 tok/s, swap-outs 0

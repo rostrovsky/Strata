@@ -1,0 +1,38 @@
+== refill-ab
+578 s loaded; free min 0.05, median 0.67 GiB; file cache median 3.01; free + file cache min 3.05; page-ins 10.2 GiB, compressions 0.97 GiB, decompressions 1.25; other programs in RAM median 6.42, stored compressed max 12.2; swap-outs 0 pages
+engine 1: 06:47:28-06:50:01 (145 s): compressed 0.85 GiB, decompressed 0.66, free min 0.05 median 0.21 GiB, free + file cache min 3.05, swap-outs 0
+engine 2: 06:51:46-06:54:17 (144 s): compressed 0.00 GiB, decompressed 0.25, free min 0.06 median 1.05 GiB, free + file cache min 3.62, swap-outs 0
+engine 3: 06:56:02-06:58:32 (143 s): compressed 0.11 GiB, decompressed 0.13, free min 0.06 median 1.07 GiB, free + file cache min 3.33, swap-outs 0
+engine 4: 07:00:23-07:02:56 (146 s): compressed 0.01 GiB, decompressed 0.20, free min 0.06 median 1.53 GiB, free + file cache min 3.41, swap-outs 0
+== refill-x1
+425 s loaded; free min 0.04, median 0.36 GiB; file cache median 3.90; free + file cache min 3.79; page-ins 9.4 GiB, compressions 3.75 GiB, decompressions 0.96; other programs in RAM median 7.82, stored compressed max 10.7; swap-outs 0 pages
+engine 1: 05:52:13-05:53:09 (55 s): compressed 1.52 GiB, decompressed 0.26, free min 0.06 median 0.14 GiB, free + file cache min 4.25, swap-outs 0
+engine 2: 05:53:27-05:54:23 (53 s): compressed 1.27 GiB, decompressed 0.12, free min 0.06 median 0.15 GiB, free + file cache min 4.09, swap-outs 0
+engine 3: 05:55:02-05:55:55 (52 s): compressed 0.70 GiB, decompressed 0.24, free min 0.04 median 0.08 GiB, free + file cache min 3.80, swap-outs 0
+engine 4: 05:56:49-05:57:44 (53 s): compressed 0.01 GiB, decompressed 0.07, free min 0.06 median 0.41 GiB, free + file cache min 3.96, swap-outs 0
+engine 5: 05:58:58-05:59:52 (53 s): compressed 0.00 GiB, decompressed 0.07, free min 0.23 median 0.40 GiB, free + file cache min 4.09, swap-outs 0
+engine 6: 06:00:57-06:01:50 (52 s): compressed 0.26 GiB, decompressed 0.08, free min 0.06 median 0.29 GiB, free + file cache min 3.79, swap-outs 0
+engine 7: 06:02:50-06:03:43 (52 s): compressed 0.00 GiB, decompressed 0.03, free min 0.27 median 0.41 GiB, free + file cache min 4.14, swap-outs 0
+engine 8: 06:04:52-06:05:48 (55 s): compressed 0.00 GiB, decompressed 0.10, free min 0.05 median 0.68 GiB, free + file cache min 4.03, swap-outs 0
+== refill-x2
+269 s loaded; free min 1.67, median 2.57 GiB; file cache median 4.03; free + file cache min 5.59; page-ins 6.3 GiB, compressions 0.00 GiB, decompressions 0.01; other programs in RAM median 8.14, stored compressed max 9.9; swap-outs 0 pages
+engine 1: 06:19:25-06:19:58 (32 s): compressed 0.00 GiB, decompressed 0.00, free min 2.47 median 2.48 GiB, free + file cache min 6.48, swap-outs 0
+engine 2: 06:20:58-06:21:31 (33 s): compressed 0.00 GiB, decompressed 0.00, free min 2.57 median 2.95 GiB, free + file cache min 6.34, swap-outs 0
+engine 3: 06:22:31-06:23:05 (33 s): compressed 0.00 GiB, decompressed 0.00, free min 2.88 median 2.89 GiB, free + file cache min 6.77, swap-outs 0
+engine 4: 06:24:06-06:24:41 (34 s): compressed 0.00 GiB, decompressed 0.00, free min 2.69 median 2.71 GiB, free + file cache min 6.59, swap-outs 0
+engine 5: 06:25:40-06:26:16 (34 s): compressed 0.00 GiB, decompressed 0.00, free min 2.21 median 2.24 GiB, free + file cache min 6.26, swap-outs 0
+engine 6: 06:27:20-06:27:54 (34 s): compressed 0.00 GiB, decompressed 0.00, free min 2.21 median 2.31 GiB, free + file cache min 6.13, swap-outs 0
+engine 7: 06:29:04-06:29:39 (35 s): compressed 0.00 GiB, decompressed 0.00, free min 1.67 median 2.15 GiB, free + file cache min 5.59, swap-outs 0
+engine 8: 06:30:44-06:31:19 (34 s): compressed 0.00 GiB, decompressed 0.00, free min 2.12 median 2.12 GiB, free + file cache min 6.04, swap-outs 0
+== turns1
+325 s loaded; free min 0.05, median 1.55 GiB; file cache median 3.77; free + file cache min 3.76; page-ins 2.6 GiB, compressions 1.95 GiB, decompressions 0.19; other programs in RAM median 7.79, stored compressed max 10.3; swap-outs 0 pages
+engine 1: 06:07:37-06:09:03 (83 s): compressed 1.07 GiB, decompressed 0.07, free min 0.05 median 0.68 GiB, free + file cache min 3.83, swap-outs 0
+engine 2: 06:10:23-06:11:47 (80 s): compressed 0.17 GiB, decompressed 0.02, free min 0.05 median 1.01 GiB, free + file cache min 3.76, swap-outs 0
+engine 3: 06:13:37-06:15:01 (80 s): compressed 0.70 GiB, decompressed 0.07, free min 0.06 median 1.07 GiB, free + file cache min 3.76, swap-outs 0
+engine 4: 06:16:25-06:17:51 (82 s): compressed 0.00 GiB, decompressed 0.02, free min 0.37 median 2.49 GiB, free + file cache min 4.22, swap-outs 0
+== kvstep2
+118 s loaded; free min 0.06, median 1.99 GiB; file cache median 2.11; free + file cache min 2.23; page-ins 2.0 GiB, compressions 1.05 GiB, decompressions 0.32; other programs in RAM median 6.68, stored compressed max 11.3; swap-outs 0 pages
+engine 1: 07:08:07-07:08:34 (27 s): compressed 0.09 GiB, decompressed 0.03, free min 0.07 median 2.06 GiB, free + file cache min 2.23, swap-outs 0
+engine 2: 07:08:38-07:09:05 (26 s): compressed 0.25 GiB, decompressed 0.05, free min 0.31 median 2.38 GiB, free + file cache min 2.48, swap-outs 0
+engine 3: 07:09:09-07:09:42 (33 s): compressed 0.30 GiB, decompressed 0.11, free min 0.07 median 2.22 GiB, free + file cache min 2.23, swap-outs 0
+engine 4: 07:09:46-07:10:19 (32 s): compressed 0.41 GiB, decompressed 0.13, free min 0.06 median 1.42 GiB, free + file cache min 2.31, swap-outs 0
