@@ -1,0 +1,425 @@
+{
+ "when": "2026-10-13 08:01",
+ "args": [
+  "--native",
+  "/Users/rafal/Projects/strata-air/Strata-data/models/IQ3_S/Qwen3.8-Flash-Next-GSQ-RCO-IQ3_S-00001-of-00002.gguf",
+  "--expert-profile",
+  "/Users/rafal/Projects/strata-air/Strata/data/expert-profile.bin",
+  "--expert-cache",
+  "auto",
+  "--max-context",
+  "131072",
+  "--kv",
+  "f16",
+  "--prefill",
+  "8192",
+  "--reserve-gib",
+  "3",
+  "--elastic",
+  "on",
+  "--verbose"
+ ],
+ "memory_before": {
+  "free_gib": 16.84,
+  "file_cache_gib": 3.22,
+  "apps_gib": 8.99,
+  "wired_gib": 2.16,
+  "swap_used_gib": 1.87,
+  "pressure_level": 1
+ },
+ "info": {
+  "context": "131072",
+  "kv": "f16",
+  "kv_resident": "0",
+  "expert_slots": "5383",
+  "expert_cache_mib": "10519",
+  "expert_slots_primary": "5383",
+  "expert_cache_primary_mib": "10519",
+  "spec": "0",
+  "mtp_max": "0",
+  "lookup": "0",
+  "prefetch": "10",
+  "vram_free_mib": "6474",
+  "arena_mib": "0",
+  "pool_workers": "8",
+  "backend": "metal",
+  "expert_io": "direct",
+  "engine": "0.1.42-metal"
+ },
+ "prefill": {
+  "130944": {
+   "tokens": 130944,
+   "tps": 79.56096617869063,
+   "ttft_s": 1645.8900408744812,
+   "ssd_gb": 809.2508,
+   "swapouts": 0,
+   "gpu_wait_s": 1572.2742,
+   "ssd_s": 19.0333,
+   "gpu_busy_s": 2060.6322,
+   "wall_s": 1645.8322,
+   "passes": 18.0,
+   "read_ahead_gb": 737.3466,
+   "read_ahead_used_gb": 720.8475,
+   "watts": 16.21496394230769,
+   "decode_tps": 5.950775187647778,
+   "generated": 76,
+   "output": "STRATA_TEST_RECORD ALPHA = cedar-58317\nSTRATA_TEST_RECORD BRAVO = quartz-92406\nSTRATA_TEST_RECORD CHARLIE = lilac-76183\nSTRATA_TEST_RECORD DELTA = maple-40952\nSTRATA_TEST_RECORD ECHO = coral-63821<|im_end|>",
+   "progress": [
+    {
+     "tokens": 8192,
+     "total": 130944,
+     "elapsed_s": 73.457,
+     "memory": {
+      "free_gib": 1.79,
+      "file_cache_gib": 2.75,
+      "apps_gib": 10.34,
+      "wired_gib": 16.33,
+      "swap_used_gib": 1.87,
+      "pressure_level": 1
+     },
+     "swapouts": 0
+    },
+    {
+     "tokens": 16384,
+     "total": 130944,
+     "elapsed_s": 162.151,
+     "memory": {
+      "free_gib": 1.78,
+      "file_cache_gib": 2.6,
+      "apps_gib": 10.51,
+      "wired_gib": 16.32,
+      "swap_used_gib": 1.87,
+      "pressure_level": 1
+     },
+     "swapouts": 0
+    },
+    {
+     "tokens": 24576,
+     "total": 130944,
+     "elapsed_s": 262.098,
+     "memory": {
+      "free_gib": 1.48,
+      "file_cache_gib": 2.54,
+      "apps_gib": 10.85,
+      "wired_gib": 16.32,
+      "swap_used_gib": 1.87,
+      "pressure_level": 1
+     },
+     "swapouts": 0
+    },
+    {
+     "tokens": 32768,
+     "total": 130944,
+     "elapsed_s": 362.006,
+     "memory": {
+      "free_gib": 1.57,
+      "file_cache_gib": 2.54,
+      "apps_gib": 10.53,
+      "wired_gib": 16.56,
+      "swap_used_gib": 1.87,
+      "pressure_level": 1
+     },
+     "swapouts": 0
+    },
+    {
+     "tokens": 40960,
+     "total": 130944,
+     "elapsed_s": 462.071,
+     "memory": {
+      "free_gib": 1.9,
+      "file_cache_gib": 2.63,
+      "apps_gib": 10.35,
+      "wired_gib": 16.32,
+      "swap_used_gib": 1.87,
+      "pressure_level": 1
+     },
+     "swapouts": 0
+    },
+    {
+     "tokens": 49152,
+     "total": 130944,
+     "elapsed_s": 563.312,
+     "memory": {
+      "free_gib": 1.87,
+      "file_cache_gib": 2.71,
+      "apps_gib": 10.31,
+      "wired_gib": 16.32,
+      "swap_used_gib": 1.87,
+      "pressure_level": 1
+     },
+     "swapouts": 0
+    },
+    {
+     "tokens": 57344,
+     "total": 130944,
+     "elapsed_s": 666.231,
+     "memory": {
+      "free_gib": 1.76,
+      "file_cache_gib": 2.73,
+      "apps_gib": 10.4,
+      "wired_gib": 16.32,
+      "swap_used_gib": 1.87,
+      "pressure_level": 1
+     },
+     "swapouts": 0
+    },
+    {
+     "tokens": 65536,
+     "total": 130944,
+     "elapsed_s": 778.627,
+     "memory": {
+      "free_gib": 1.8,
+      "file_cache_gib": 2.69,
+      "apps_gib": 10.47,
+      "wired_gib": 16.24,
+      "swap_used_gib": 1.87,
+      "pressure_level": 1
+     },
+     "swapouts": 0
+    },
+    {
+     "tokens": 73728,
+     "total": 130944,
+     "elapsed_s": 894.25,
+     "memory": {
+      "free_gib": 1.97,
+      "file_cache_gib": 2.71,
+      "apps_gib": 10.33,
+      "wired_gib": 16.2,
+      "swap_used_gib": 1.87,
+      "pressure_level": 1
+     },
+     "swapouts": 0
+    },
+    {
+     "tokens": 81920,
+     "total": 130944,
+     "elapsed_s": 1006.501,
+     "memory": {
+      "free_gib": 2.23,
+      "file_cache_gib": 2.57,
+      "apps_gib": 10.23,
+      "wired_gib": 16.16,
+      "swap_used_gib": 1.87,
+      "pressure_level": 1
+     },
+     "swapouts": 0
+    },
+    {
+     "tokens": 90112,
+     "total": 130944,
+     "elapsed_s": 1112.058,
+     "memory": {
+      "free_gib": 1.68,
+      "file_cache_gib": 2.72,
+      "apps_gib": 10.64,
+      "wired_gib": 16.16,
+      "swap_used_gib": 1.87,
+      "pressure_level": 1
+     },
+     "swapouts": 0
+    },
+    {
+     "tokens": 98304,
+     "total": 130944,
+     "elapsed_s": 1217.026,
+     "memory": {
+      "free_gib": 1.73,
+      "file_cache_gib": 2.73,
+      "apps_gib": 10.58,
+      "wired_gib": 16.16,
+      "swap_used_gib": 1.87,
+      "pressure_level": 1
+     },
+     "swapouts": 0
+    },
+    {
+     "tokens": 106496,
+     "total": 130944,
+     "elapsed_s": 1323.062,
+     "memory": {
+      "free_gib": 2.13,
+      "file_cache_gib": 2.75,
+      "apps_gib": 10.16,
+      "wired_gib": 16.16,
+      "swap_used_gib": 1.87,
+      "pressure_level": 1
+     },
+     "swapouts": 0
+    },
+    {
+     "tokens": 114688,
+     "total": 130944,
+     "elapsed_s": 1429.839,
+     "memory": {
+      "free_gib": 2.0,
+      "file_cache_gib": 2.77,
+      "apps_gib": 10.27,
+      "wired_gib": 16.16,
+      "swap_used_gib": 1.87,
+      "pressure_level": 1
+     },
+     "swapouts": 0
+    },
+    {
+     "tokens": 122880,
+     "total": 130944,
+     "elapsed_s": 1537.583,
+     "memory": {
+      "free_gib": 2.05,
+      "file_cache_gib": 2.75,
+      "apps_gib": 10.26,
+      "wired_gib": 16.16,
+      "swap_used_gib": 1.87,
+      "pressure_level": 1
+     },
+     "swapouts": 0
+    },
+    {
+     "tokens": 130937,
+     "total": 130944,
+     "elapsed_s": 1644.348,
+     "memory": {
+      "free_gib": 1.99,
+      "file_cache_gib": 2.83,
+      "apps_gib": 10.34,
+      "wired_gib": 16.05,
+      "swap_used_gib": 1.87,
+      "pressure_level": 1
+     },
+     "swapouts": 0
+    },
+    {
+     "tokens": 130943,
+     "total": 130944,
+     "elapsed_s": 1645.667
+    }
+   ],
+   "decode_per_token": {
+    "total_ms": 168.58933333333334,
+    "gpu_wait_ms": 108.27733333333333,
+    "ssd_ms": 50.396,
+    "cpu_ms": 9.91600000000001,
+    "encode_ms": 3.5813333333333337,
+    "gpu_busy_ms": 206.74666666666667,
+    "sample_ms": 0.14,
+    "misses": 58.093333333333334,
+    "ssd_mb": 274.0973333333333,
+    "waits": 49.0,
+    "ahead": 76.4,
+    "ahead_used": 33.42666666666667,
+    "ahead_waits": 4.733333333333333,
+    "predict_ms": 4.5680000000000005
+   },
+   "token_s": [
+    1645.89,
+    1646.145,
+    1646.382,
+    1646.611,
+    1646.792,
+    1647.0,
+    1647.196,
+    1647.421,
+    1647.594,
+    1647.788,
+    1647.989,
+    1648.142,
+    1648.31,
+    1648.466,
+    1648.61,
+    1648.792,
+    1648.952,
+    1649.139,
+    1649.296,
+    1649.468,
+    1649.639,
+    1649.813,
+    1649.996,
+    1650.167,
+    1650.351,
+    1650.525,
+    1650.694,
+    1650.864,
+    1651.029,
+    1651.201,
+    1651.4,
+    1651.581,
+    1651.745,
+    1651.908,
+    1652.06,
+    1652.232,
+    1652.376,
+    1652.527,
+    1652.684,
+    1652.851,
+    1653.007,
+    1653.158,
+    1653.333,
+    1653.486,
+    1653.622,
+    1653.765,
+    1653.931,
+    1654.099,
+    1654.258,
+    1654.413,
+    1654.578,
+    1654.73,
+    1654.88,
+    1655.046,
+    1655.21,
+    1655.376,
+    1655.522,
+    1655.679,
+    1655.836,
+    1655.986,
+    1656.131,
+    1656.293,
+    1656.442,
+    1656.592,
+    1656.756,
+    1656.91,
+    1657.081,
+    1657.229,
+    1657.38,
+    1657.542,
+    1657.695,
+    1657.845,
+    1658.001,
+    1658.152,
+    1658.318,
+    1658.493
+   ],
+   "needle_positions": {
+    "ALPHA": 6560,
+    "BRAVO": 32736,
+    "CHARLIE": 65457,
+    "DELTA": 98177,
+    "ECHO": 124353
+   },
+   "needle_found": {
+    "ALPHA": true,
+    "BRAVO": true,
+    "CHARLIE": true,
+    "DELTA": true,
+    "ECHO": true
+   },
+   "repeat": {
+    "read": 1,
+    "resume": 130943,
+    "ttft_s": 0.270050048828125,
+    "decode_tps": 6.279355989249743,
+    "same_ids": true,
+    "swapouts": 0
+   }
+  }
+ },
+ "swapouts": 0,
+ "memory_after": {
+  "free_gib": 17.81,
+  "file_cache_gib": 2.83,
+  "apps_gib": 8.7,
+  "wired_gib": 1.87,
+  "swap_used_gib": 1.87,
+  "pressure_level": 1
+ }
+}

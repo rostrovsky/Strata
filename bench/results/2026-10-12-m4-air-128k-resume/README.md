@@ -1004,3 +1004,32 @@ to; that was settled with a 6 GiB cache. Asked again ([prefetch/](prefetch/)):
 
 What a written token costs now, at the installed settings with a 10-11 GiB cache: 116-124 ms, of which 80-83 ms
 are the GPU, 29-35 ms the SSD and 8.5 ms the CPU (4.0 ms of it the prediction).
+
+## 14. The full-context prompt on the current build (2026-10-13, 08:02)
+
+The same 130,944-token prompt as in sections 8 and 9, the installed configuration, `build-metal/bin/strata`
+SHA-256 `b646b475...`, under the swap watch with a per-second `vm_stat` beside it
+([full-128k-final/](full-128k-final/)):
+
+| | Section 9 (night of 10-12) | Now |
+| --- | ---: | ---: |
+| Read | 70.1 tok/s (31 min 7 s) | **79.6 tok/s (27 min 26 s)** |
+| ... waiting for the GPU / SSD / CPU | 1,751 / 22 / 94 s | 1,572 / 19 / 55 s |
+| Written at full depth (76 tokens) | 5.27 tok/s | **5.95 tok/s** |
+| ... per token | 190 ms = GPU 135 + SSD 45 + CPU 10 | 169 ms = GPU 108 + SSD 50 + CPU 10 |
+| Records found | 5/5 | 5/5 |
+| The prompt again | 130,943 reused, 0.25 s, same ids | 130,943 reused, 0.27 s, same output |
+| Expert cache before / after the prompt | 7.12 / 7.12 GiB | 10.28 / 7.00 GiB |
+| Read from the SSD | 804.8 GB | 809.3 GB |
+| Compressed while loaded | not summed | 1.10 GiB in 26 minutes |
+| Free + file cache, minimum | 5.4 GiB (most of it the model's own pages) | 4.00 GiB |
+| Swap-outs | 0 | 0 |
+
+- The KV cache took its memory for all 131,072 tokens in one step before the first pass (3.28 GiB, 0.18 s), out
+  of the buffer that holds the cache's place; the cache came back with 7.00 GiB, empty, and the 76 tokens were
+  written while it filled (58 experts waited for per token).
+- The CPU's 39 s less are the n-gram rows read ahead. The GPU's 179 s less are not a measured gain of anything:
+  another day, a cooler start, and since the top-k change another (and now repeatable) set of ties. The passes
+  of 8,192 tokens took 73 s, 89 s, then 100-116 s each (72 s, 102 s, then 112-142 s in section 9).
+- The targets stand where they stood: 120 tok/s read and 10 tok/s written at full depth are not reached. At
+  full depth a token is 108 ms of GPU alone.

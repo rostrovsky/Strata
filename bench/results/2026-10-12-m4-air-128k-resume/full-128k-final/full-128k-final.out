@@ -1,0 +1,24 @@
+memory: {'free_gib': 16.84, 'file_cache_gib': 3.22, 'apps_gib': 8.99, 'wired_gib': 2.16, 'swap_used_gib': 1.87, 'pressure_level': 1}
+temperature before the run: SoC 42.0 C, battery 32.8 C
+bin/strata: ready in 6.6 s; context 131072, expert cache 5383 experts (10519 MiB), direct reads
+  read 8192/130944 tokens in 73.5 s; swap-outs 0
+  read 16384/130944 tokens in 162.2 s; swap-outs 0
+  read 24576/130944 tokens in 262.1 s; swap-outs 0
+  read 32768/130944 tokens in 362.0 s; swap-outs 0
+  read 40960/130944 tokens in 462.1 s; swap-outs 0
+  read 49152/130944 tokens in 563.3 s; swap-outs 0
+  read 57344/130944 tokens in 666.2 s; swap-outs 0
+  read 65536/130944 tokens in 778.6 s; swap-outs 0
+  read 73728/130944 tokens in 894.2 s; swap-outs 0
+  read 81920/130944 tokens in 1006.5 s; swap-outs 0
+  read 90112/130944 tokens in 1112.1 s; swap-outs 0
+  read 98304/130944 tokens in 1217.0 s; swap-outs 0
+  read 106496/130944 tokens in 1323.1 s; swap-outs 0
+  read 114688/130944 tokens in 1429.8 s; swap-outs 0
+  read 122880/130944 tokens in 1537.6 s; swap-outs 0
+  read 130937/130944 tokens in 1644.3 s; swap-outs 0
+prefill 130944 tokens:    79.6 tok/s, first token after 1645.89 s, 809.3 GB from the SSD, 18 passes; 1645.8 s = SSD 19.0 + GPU wait 1572.3 + CPU 54.5 (GPU busy 2060.6; 737.3 GB read ahead, 720.8 used); swap-outs 0, 16.2 W
+  decode at 130944 tokens: 5.95 tok/s, 76 tokens, token 2 after 1646.14 s, token 10 after 1647.79 s, token 50 after 1654.41 s; 'STRATA_TEST_RECORD ALPHA = cedar-58317\nSTRATA_TEST_RECORD BRAVO = quartz-92406\nSTRATA_TEST_RECORD CHARLIE = lilac-76183\nSTRATA_TEST_RECORD DELTA = maple-40952\nSTRATA_TEST_RECORD ECHO = coral-63821<|im_end|>'
+  retrieval: 5/5 exact values
+  repeat: 130943 tokens reused, first token after 0.27 s, same output: True
+swap-outs over the whole run: 0

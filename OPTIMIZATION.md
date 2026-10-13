@@ -42,10 +42,22 @@ has the numbers.
   2.1 GiB with 0.7-1.1 GiB really free, and macOS compressed up to 0.97 GiB of other programs' memory in that
   second; a KV step in the middle of an answer made it compress 0.3-0.4 GiB (the cache is freed and made anew in
   one go), with and without the read-back.
-- **Next, in order of likely value:** (1) a full-context prompt on this build; (2) the two points above about
-  memory that is not really free; (3) both back-off signs have only fired on the tiny model; (4) the 0.4-0.9 s of
-  expert reads in the first tokens after a long prompt could go behind the tokens (a change to the cache's
-  read-ahead in patch 0001; not built).
+- **The full-context prompt on this build** (later that morning, section 14 of the report): 130,944 tokens read
+  at **79.6 tok/s** (27 min 26 s; 70.1 and 31 min 7 s the night before), **5.95 tok/s** written at full depth
+  (5.27), five records of five, the prompt again in 0.27 s with the same output, no swap-out, 1.10 GiB compressed
+  in 26 minutes. Of the 221 s saved, 39 are the n-gram rows; the rest is a cooler start, not a measured gain.
+- **Reading ahead more than the ten predicted experts is slower** (section 13): 16 per layer with a negative
+  `--prefetch-margin` halves the experts a token waits for and doubles the SSD's traffic; 4-5% fewer tok/s.
+  `--prefetch N` above 10 does nothing without the margin.
+- **The model's name**: Qwen3.8-Flash-Next (125B + 51B n-gram embeddings, 6B active per token), not "27B". The
+  alias `qwen3.8-27b-iq3_s` is gone from the config and pi asks for `qwen3.8-flash-next-iq3_s`; checked through
+  the server and pi (a real `read` tool call).
+- **Next, in order of likely value:** (1) the two points above about memory that is not really free; (2) both
+  back-off signs have only fired on the tiny model; (3) the 0.4-0.9 s of expert reads in the first tokens after
+  a long prompt could go behind the tokens (a change to the cache's read-ahead in patch 0001; not built). What a
+  written token costs at the installed settings: 116-124 ms up to 16,000 tokens (GPU 80-83, SSD 29-35, CPU 8.5),
+  169 ms at full depth (GPU 108, SSD 50, CPU 10). No measured lever is left on the SSD part; the GPU part reads
+  about 5 GiB of weights per token.
 
 **Night, 2026-10-12.** The owner asked to "install the faster
 config and keep optimizing". Section 10 of the
