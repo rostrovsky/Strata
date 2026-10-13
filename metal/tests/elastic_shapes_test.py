@@ -6,7 +6,10 @@ requests and inside them, and every request answers with the ids and logits of a
 Six requests in one engine: a long prompt, a short continuation (read through the cache), a long continuation, a
 continuation that one short pass reads, the first prompt again (back to a checkpoint), an unrelated prompt.  Run
 with the short shape (`--elastic-short 128`) and without it (`--elastic-short 0`: every long pass takes the cache's
-memory and the cache is read back).  STRATA_ELASTIC_TEST_BACKOFF=1 in the environment makes the cache give memory
+memory); without it also with the cache read back when it returns, whole (`--elastic-refill all`) and in part
+(0.003 GiB: two of the tiny model's four experts), where by default it fills as its experts are asked for.
+STRATA_ELASTIC_REFILL=all|G in the environment sets that for every variant that does not say it.
+STRATA_ELASTIC_TEST_BACKOFF=1 in the environment makes the cache give memory
 back before every request, as it does when macOS has swapped; =tight, as it does when macOS has compressed other
 programs' memory and little is free.
 """
@@ -35,8 +38,10 @@ def main():
     p4 = p3 + [1 + (i * 3) % 90 for i in range(90)]
     requests = (p1, p2, p3, p4, p1, [7, 8, 9] * 30)
     variants = (("plain", []), ("elastic", ["--elastic", "on", "--elastic-short", "128"]),
-                ("elastic-long", ["--elastic", "on", "--elastic-short", "0"]))
-    out, shapes = {}, {}
+                ("elastic-long", ["--elastic", "on", "--elastic-short", "0"]),
+                ("elastic-long-refill", ["--elastic", "on", "--elastic-short", "0", "--elastic-refill", "all"]),
+                ("elastic-long-refill-part", ["--elastic", "on", "--elastic-short", "0", "--elastic-refill", "0.003"]))
+    out, shapes, read_back = {}, {}, {}
     with tempfile.TemporaryDirectory(prefix="strata-elastic-") as temp:
         for name, extra in variants:
             log = Path(temp) / (name + ".log")
@@ -49,9 +54,12 @@ def main():
             text = log.read_text(errors="replace")
             shapes[name] = [line.split("has its ")[1].split(" shape")[0] for line in text.splitlines()
                             if "the context has its" in line]
-            print(f"{name}: shapes taken: {', '.join(shapes[name]) or 'none'}", flush=True)
+            read_back[name] = [int(line.split("(")[1].split(" experts read back")[0]) for line in text.splitlines()
+                               if "the context has its answering shape" in line]
+            print(f"{name}: shapes taken: {', '.join(shapes[name]) or 'none'}"
+                  + (f"; experts read back: {read_back[name]}" if read_back[name] else ""), flush=True)
     ok = True
-    for name in ("elastic", "elastic-long"):
+    for name in [v[0] for v in variants[1:]]:
         same = all(x[:2] == y[:2] for x, y in zip(out["plain"], out[name]))
         reuse = [x[2:] for x in out["plain"]] == [x[2:] for x in out[name]]
         print(f"{name}: {'identical ids and logits' if same else 'DIFFERENT OUTPUT'}, "
@@ -59,6 +67,14 @@ def main():
         ok &= same and reuse
     ok &= "short-prompt" in shapes["elastic"] and "long-prompt" in shapes["elastic"]
     ok &= "long-prompt" in shapes["elastic-long"] and "short-prompt" not in shapes["elastic-long"] and not shapes["plain"]
+    # the read-back happened where it was asked for, and the partial one read less than the whole one
+    # (the back-off tests give the cache up before requests too, with lines of their own: only the sums are compared)
+    whole, part = sum(read_back["elastic-long-refill"]), sum(read_back["elastic-long-refill-part"])
+    if 0 < part < whole:
+        print(f"read back after long prompts: {whole} experts with --elastic-refill all, {part} with 0.003", flush=True)
+    else:
+        print(f"READ-BACK: {whole} experts with --elastic-refill all, {part} with 0.003 (expected 0 < part < whole)", flush=True)
+        ok = False
     print("all passed" if ok else "FAILED")
     sys.exit(0 if ok else 1)
 

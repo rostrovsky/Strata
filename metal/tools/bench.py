@@ -204,7 +204,8 @@ class Engine:
                         "tps_first": first / (stamps[first] - stamps[0]) if first > 0 else 0.0,
                         "tps": (gen - 1) / (dms / 1000) if gen > 1 and dms > 0 else 0.0,
                         "hits": hits, "lookups": look, "hit_rate": hits / max(1, look), "ssd_gb": fmb / 1000,
-                        "wall_s": time.time() - start, "stamps": stamps, "progress": progress_rows, "swapouts": swapouts() - s0,
+                        "wall_s": time.time() - start, "stamps": stamps, "token_s": [round(t - start, 3) for t in stamps],
+                        "progress": progress_rows, "swapouts": swapouts() - s0,
                         "watts": watts(p0, power_counters())}
         sys.exit("the engine ended inside a request (see the log)")
 
@@ -445,7 +446,7 @@ def run_prefill(e, tok, a, sizes):
                   "passes": st.get("passes", 0), "read_ahead_gb": st.get("staged_mb", 0) / 1000,
                   "read_ahead_used_gb": st.get("staged_used_mb", 0) / 1000, "watts": r["watts"],
                   "decode_tps": r["tps"], "generated": r["generated"], "output": tok.decode(r["ids"]),
-                  "progress": r["progress"], "decode_per_token": per_token(r)}
+                  "progress": r["progress"], "decode_per_token": per_token(r), "token_s": r["token_s"]}
         if needles:
             out[n]["needle_positions"] = positions
             out[n]["needle_found"] = {name: value in out[n]["output"] for name, value in needles.items()}
@@ -457,7 +458,10 @@ def run_prefill(e, tok, a, sizes):
               + (f"; {o['read_ahead_gb']:.1f} GB read ahead, {o['read_ahead_used_gb']:.1f} used" if o["read_ahead_gb"] else "")
               + f"); swap-outs {r['swapouts']}" + (f", {o['watts']:.1f} W" if o["watts"] else ""), flush=True)
         if r["generated"] > 1:
-            print(f"  decode at {n} tokens: {r['tps']:.2f} tok/s, {r['generated']} tokens; {tok.decode(r['ids'])!r}", flush=True)
+            at = r["token_s"]
+            print(f"  decode at {n} tokens: {r['tps']:.2f} tok/s, {r['generated']} tokens"
+                  + "".join(f", token {k} after {at[k - 1]:.2f} s" for k in (2, 10, 50) if k <= len(at))
+                  + f"; {tok.decode(r['ids'])!r}", flush=True)
         if needles:
             print(f"  retrieval: {sum(out[n]['needle_found'].values())}/{len(needles)} exact values", flush=True)
         if a.prefill_repeat:

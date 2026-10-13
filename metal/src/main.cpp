@@ -79,6 +79,8 @@ struct Options {
     int prefill_from = 33;               // --prefill-from N: stretches of N or more new tokens go in such passes (33: llama.cpp's own limit)
     bool elastic = false;                // --elastic on: the long passes' work memory and the expert cache take turns in one budget
     int elastic_short = 1024;            // --elastic-short N: a stretch of up to N new tokens is read in one pass beside the cache
+    double elastic_refill_gib = 0.0;     // --elastic-refill G|all: a cache that comes back reads G GiB of what it held at once (< 0: all)
+    bool elastic_refill_given = false;
     bool prefill_ahead = true;           // --prefill-ahead: read the next expert tensors while the GPU computes with this one
     int prefill_ahead_tensors = 3;       // ... a layer's three (STRATA_PREFILL_AHEAD_TENSORS=1: one)
     bool preload = true;
@@ -160,6 +162,9 @@ void usage() {
         "  --elastic on|off         (experiment, default off) answer with the memory of the --prefill passes added to the expert\n"
         "                           cache, and give it back to them for a long prompt; up to --elastic-short N new tokens (1024)\n"
         "                           are read in one pass beside the cache, in memory that is free at that moment\n"
+        "  --elastic-refill G|all   with --elastic: an expert cache that comes back (after a long prompt, or made smaller) first\n"
+        "                           reads G GiB of what it held from the SSD (default 0: it fills as its experts are asked for;\n"
+        "                           all: everything it held, about a second per 3 GiB before the next token)\n"
         "  --kv f16|q8_0            KV cache type (default f16)\n");
 }
 
@@ -205,6 +210,11 @@ int parse_args(int argc, char** argv, Options& o) {
         else if (a == "--prefill-ahead") o.prefill_ahead = std::string(next("--prefill-ahead")) != "off";
         else if (a == "--elastic") o.elastic = std::string(next("--elastic")) != "off";
         else if (a == "--elastic-short") o.elastic_short = std::max(0, std::atoi(next("--elastic-short")));
+        else if (a == "--elastic-refill") {
+            const std::string v = next("--elastic-refill");
+            o.elastic_refill_gib = v == "all" ? -1.0 : std::max(0.0, std::atof(v.c_str()));
+            o.elastic_refill_given = true;
+        }
         else if (a == "--no-preload") o.preload = false;
         else if (a == "--mtp") o.mtp = next("--mtp");
         else if (a == "--spec") o.spec = std::clamp(std::atoi(next("--spec")), 0, 8);
@@ -516,7 +526,8 @@ struct Engine {
     struct KvNote {
         int64_t tokens;
         uint64_t grow, was;
-        int64_t filled;
+        bool emptied;         // the cache was there and was made anew, smaller
+        int64_t filled;       // ... and so many experts were read back into it
         double ms;
     } kv_note_{};
     uint64_t swapouts_seen_ = 0;          // macOS's count of pages written to swap, at the last look
@@ -666,8 +677,18 @@ struct Engine {
 
     // Reads back into a new cache what the last one held, most used first by the profile (a cache that comes back
     // smaller keeps the best of it), then the rest of the profile (one that comes back larger is filled up).
+    // --elastic-refill G: the first G GiB of that list, and by default none of it: the cache fills as its experts
+    // are asked for.  (At first all of it was read back, at 3 GiB/s, before the next token.)  Measured on the M4 Air,
+    // IQ3_S, a 2,000-token prompt, the same 6.99 GiB cache in every run, two runs each: the first token came after
+    // 24.2 s with all of it read back and after 22.4-23.1 s with none, the 50th after 31.3 s against 29.8-30.6.  A
+    // pass that finds the cache empty reads the experts it needs and no others, and the next tokens need mostly the
+    // same ones: the 49 tokens after the first took 0.4 s longer than with the cache read back, which takes 2.2 s.
+    // Reading back the first 1 or 2 GiB returned 0.13 and 0.24 s over those tokens for the 0.3 and 0.65 s it took.
+    // What is read back and not used does not stay either: at 55 misses a token that cache (3,576 experts) is
+    // replaced within 65 tokens, and a second and third turn of the conversation had the same misses whether it
+    // had been read back or not (7.6 GiB cache: 6,080 and 6,426 against 6,080 and 6,429).
     int64_t refill_cache() {
-        if (!o.preload) return 0;
+        if (!o.preload || o.elastic_refill_gib == 0.0) return 0;
         const size_t ne = (size_t) std::max<int64_t>(1, files.n_expert);
         std::vector<uint8_t> held((size_t) llama_model_n_layer(model) * ne, 0);
         for (size_t i = 0; i < kept_layers_.size(); ++i) held[(size_t) kept_layers_[i] * ne + (size_t) kept_experts_[i]] = 1;
@@ -689,7 +710,11 @@ struct Engine {
                 e.push_back(kept_experts_[i]);
             }
         take(0, 2);   // not held
-        return l.empty() ? 0 : llama_moe_cache_preload(ctx, l.data(), e.data(), l.size());
+        size_t n = l.size();
+        llama_moe_cache_stats st{};
+        if (o.elastic_refill_gib >= 0.0 && llama_moe_cache_get_stats(ctx, &st) && st.n_slots > 0)
+            n = std::min(n, (size_t) (o.elastic_refill_gib * kGiB * (double) st.n_slots / (double) st.size));
+        return n == 0 ? 0 : llama_moe_cache_preload(ctx, l.data(), e.data(), n);
     }
 
     // --elastic, before a request: has macOS run short of memory since the last look?  Two signs:
@@ -750,8 +775,9 @@ struct Engine {
     //     smaller, and kv_take() maps the cells once it is.  (Making that buffer first and a smaller one after it
     //     was tried: Metal lets go of a released buffer's memory a second late, and for that second macOS
     //     compressed 1.4 GiB of other programs' memory.)
-    //   the cache is there: it is made smaller and read back (4 s; once per kv_step_ tokens of a conversation that
-    //     grows in short turns or in the middle of an answer);
+    //   the cache is there: it is made anew, smaller, and fills again as its experts are asked for (once per
+    //     kv_step_ tokens of a conversation that grows in short turns or in the middle of an answer; with
+    //     --elastic-refill it is read back first: 4 s for 11 GiB);
     //   the context has its long-prompt shape already (llama.cpp had to map cells by itself): the books only.
     bool make_room_for_kv(int64_t tokens, bool before_long, std::string& err) {
         if (kv_step_ == 0 || tokens + 256 <= (int64_t) kv_paid_) return true;
@@ -786,7 +812,7 @@ struct Engine {
         }
         cache_bytes -= give;
         cache_plan_bytes_ = cache_plan_bytes_ > give ? cache_plan_bytes_ - give : 0;
-        kv_note_ = {tokens, grow, was, filled, ms_since(t0)};
+        kv_note_ = {tokens, grow, was, give > 0 && there, filled, ms_since(t0)};
         if (before_long && shape_ != Shape::Long) {
             kv_due_ = want;
             return true;
@@ -807,15 +833,19 @@ struct Engine {
         kv_due_ = 0;
         const double ms = kv_note_.ms + ms_since(t0);
         reshape_ms_ += ms;
+        const std::string how = shape_ == Shape::Long ? " when it comes back"
+                              : !kv_note_.emptied ? ""
+                              : kv_note_.filled > 0 ? " (" + std::to_string(kv_note_.filled) + " experts read back)"
+                              : " (it fills again as its experts are asked for)";
         std::fprintf(stderr, "strata metal: the conversation reaches %lld tokens: the KV cache takes its memory for %u (%.2f GiB "
                              "more), the expert cache gives it: %.2f -> %.2f GiB%s, %.2f s\n", (long long) kv_note_.tokens, kv_paid_,
-                     (double) kv_note_.grow / kGiB, (double) kv_note_.was / kGiB, (double) cache_bytes / kGiB,
-                     shape_ == Shape::Long ? " when it comes back" : kv_note_.filled > 0 ? " (read back)" : "", ms / 1000.0);
+                     (double) kv_note_.grow / kGiB, (double) kv_note_.was / kGiB, (double) cache_bytes / kGiB, how.c_str(), ms / 1000.0);
         return true;
     }
 
     // --elastic: gives the context another shape.  The cache goes when the Long shape comes; with the Answer shape it
-    // comes back holding the experts it held, read again from the SSD (some GiB: a few seconds).
+    // comes back empty and fills as its experts are asked for (--elastic-refill: the experts it held are read again
+    // from the SSD first, a second per 3 GiB).
     bool reshape(Shape to, std::string& err) {
         if (!o.elastic || to == shape_) return true;
         const auto t0 = Clock::now();
@@ -1045,6 +1075,10 @@ struct Engine {
         }
         std::fprintf(stderr, "strata metal: weights loaded in %.1f s, %.2f GiB on the GPU\n", ms_since(t0) / 1000.0,
                      (double) (used1 - used0 - mtp_bytes) / kGiB);
+
+        // (STRATA_ELASTIC_REFILL=all|G: --elastic-refill from the environment where the option is not given; tests)
+        if (const char* rf = std::getenv("STRATA_ELASTIC_REFILL"); rf != nullptr && !o.elastic_refill_given)
+            o.elastic_refill_gib = std::strcmp(rf, "all") == 0 ? -1.0 : std::max(0.0, std::atof(rf));
 
         // --elastic: the KV cache takes its memory 16,384 cells at a time, as the conversation reaches them
         // (STRATA_KV_STEP=N: another step; 0: all of it at the start, as without --elastic)
@@ -1638,7 +1672,7 @@ struct Engine {
                     // context still has its answering shape, or (below) from what holds the cache's place once it
                     // has the long-prompt one - the cache is then not read back just to be given up.
                     // (before a long prompt for 2,048 tokens beyond it: the answer and the next turns then do not
-                    // cross a step, which costs nothing here and 4 s of reading the cache back while it is there)
+                    // cross a step, which costs nothing here and a cache made anew while it is there)
                     if (shape_ != Shape::Long && !make_room_for_kv(want == Shape::Long ? n + 2048 : n, want == Shape::Long, err)) return false;
                     if (want != shape_) {
                         bulk.finish();

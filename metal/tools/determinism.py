@@ -68,7 +68,8 @@ def main():
             x, y = (r["probes"][at], first["probes"][at]) if at < min(len(r["probes"]), len(first["probes"])) else (None, None)
             print(f"{label}: DIFFERENT from token {at} on ({'same' if same_ids else 'different'} IDs)\n    here  {x}\n    first {y}", flush=True)
         (out / f"{name}.json").write_text(json.dumps({"spec": spec, "swapouts": swapped, "requests": [
-            {"ids": r["ids"], "probes": r["probes"], "resume": r["resume"]} for r in got]}), encoding="utf-8")
+            {"ids": r["ids"], "probes": r["probes"], "resume": r["resume"], "token_s": r["token_s"]} for r in got]}),
+            encoding="utf-8")
     print("all identical" if ok else "DIFFERENCES", flush=True)
     sys.exit(0 if ok else 1)
 
