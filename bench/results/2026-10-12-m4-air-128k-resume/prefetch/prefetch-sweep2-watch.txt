@@ -1,0 +1,9 @@
+07:47:40 BASELINE swapouts 1586587, swap used 1925.88 MiB, pressure 1, free 16.24 + file cache 3.66 GiB, compressor 11.49 in 3.98 GiB, SoC 43.9 C, battery 31.9 C
+07:47:40 STARTED pid 99171: .venv/bin/python -u metal/tools/bench.py --config strata-iq3_s.json --json build-metal/resume-128k/prefetch-sweep2.json --log build-metal/resume-128k/prefetch-sweep2.log --prefill 500,2000 --prefill-n
+07:47:45 ok +5 s: swap-outs new 0, pressure 1, free 0.45 + file 3.66 GiB, compressor 11.48 in 3.98 GiB, SoC 45.6 C | temperature before the run: SoC 44.4 C, battery 31.9 C
+07:49:46 ok +126 s: swap-outs new 0, pressure 1, free 0.21 + file 3.31 GiB, compressor 11.54 in 4.01 GiB, SoC 55.6 C | bin/strata: ready in 6.4 s; context 131072, expert cache 5113 experts (9992 MiB), direct reads
+07:51:47 ok +247 s: swap-outs new 0, pressure 1, free 1.87 + file 4.23 GiB, compressor 11.51 in 3.99 GiB, SoC 50.3 C | temperature before the run: SoC 44.7 C, battery 32.3 C
+07:53:49 ok +368 s: swap-outs new 0, pressure 1, free 16.07 + file 4.73 GiB, compressor 11.53 in 4.0 GiB, SoC 45.5 C | decode at 2000 tokens: 6.66 tok/s, 96 tokens, token 2 after 23.65 s, token 10 after 25.09 s, token 50 after 30.90 s; '<think>\nThe user wants me to su
+07:55:49 ok +489 s: swap-outs new 0, pressure 1, free 17.91 + file 3.03 GiB, compressor 11.66 in 4.04 GiB, SoC 48.0 C | decode at 2000 tokens: 6.68 tok/s, 96 tokens, token 2 after 23.70 s, token 10 after 25.12 s, token 50 after 30.93 s; '<think>\nThe user wants me to su
+07:57:51 ok +610 s: swap-outs new 0, pressure 1, free 17.81 + file 2.98 GiB, compressor 11.65 in 4.04 GiB, SoC 49.7 C | decode at 2000 tokens: 6.80 tok/s, 96 tokens, token 2 after 23.63 s, token 10 after 25.04 s, token 50 after 30.73 s; '<think>\nThe user wants me to su
+08:00:40 DONE exit code 0, new swap-outs over the whole run 0 pages, swap used 1917.88 MiB (was 1925.88), peak pressure level 1, engine still running: [], stopped: False

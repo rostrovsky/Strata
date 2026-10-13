@@ -974,3 +974,33 @@ the swap watch with a trace beside it; `trace_run.sh` for bench.py is in `build-
    the targets.
 
 No run of the morning wrote to swap: the system's counter is at 1,586,587, where it was last night.
+
+## 13. Reading ahead more than the ten predicted experts: slower
+
+With the cache at 10-11 GiB the SSD is no longer the busy part of a written token (0.2 GB per token, about
+1.6 GB/s at 8 tok/s, of the 3.2 it reads), and 25-35 ms of each token are still spent waiting for experts that
+were neither cached nor read ahead. The read-ahead takes the ten experts the next layer is predicted to route
+to; that was settled with a 6 GiB cache. Asked again ([prefetch/](prefetch/)):
+
+- `--prefetch 14` and `--prefetch 18` change nothing by themselves ([prefetch-sweep.out](prefetch/prefetch-sweep.out):
+  55-61 experts read ahead per token with all three). The predictor stops at its predicted tenth score
+  (`--prefetch-margin 0`); what that run shows is the cache size, which differed between the starts.
+- With a negative margin the 16 experts the predictor looks at are let through
+  ([prefetch-sweep2.out](prefetch/prefetch-sweep2.out); the same 9,992 MiB cache in all six starts, order
+  A B C C B A, 96 tokens written after a 500- and after a 2,000-token prompt):
+
+| | 10, margin 0 (installed) | 16, margin -0.5 | 16, margin -8 |
+| --- | ---: | ---: | ---: |
+| Written after 500 tokens | **8.08, 8.09 tok/s** | 7.67, 7.81 | 7.70, 7.71 |
+| Written after 2,000 tokens | **7.06, 7.21 tok/s** | 6.79, 6.80 | 6.66, 6.68 |
+| Experts a token waits for | 36.6 | 22.3 | 22.0 |
+| Read ahead per token, and used | 63, 38.7 | 181, 53.4 | 207, 53.9 |
+| From the SSD per token | 201 MB | 410 MB | 463 MB |
+| Waiting for the SSD per token | 35 ms | 39 ms | 39 ms |
+
+  Fifteen more experts arrive in time per token and 118-144 more are read for it: one in eight of the extra
+  reads is used, the SSD's traffic doubles, and the reads a layer waits for wait longer behind it. 4-5% slower.
+  The installed setting stays. No swap-out in either run.
+
+What a written token costs now, at the installed settings with a 10-11 GiB cache: 116-124 ms, of which 80-83 ms
+are the GPU, 29-35 ms the SSD and 8.5 ms the CPU (4.0 ms of it the prediction).
