@@ -1684,7 +1684,22 @@ struct Engine {
                 }
                 const int32_t take = (int32_t) (long_pass ? std::min<int64_t>(most, rem) : std::min<int64_t>(o.chunk, rem));
                 fetch.more_passes = bulk.on && mark - (at + take) >= o.prefill_from;
-                if (!decode(ids.data() + at, take, err)) return false;
+                // A long pass says how far it is while it runs, every 5 s: its tokens times the share of the
+                // layers that are computed (all of a pass's tokens go through a layer together, so no token is
+                // read before the last layer; the figure is the work done, and exact again when the pass ends).
+                // (STRATA_PASS_PROGRESS_MS: another interval; tests use 0, a line per layer)
+                if (long_pass) {
+                    static const double every = std::getenv("STRATA_PASS_PROGRESS_MS") ? std::atof(std::getenv("STRATA_PASS_PROGRESS_MS")) : 5000.0;
+                    fetch.layer_told = -1;
+                    fetch.on_layer = [&, at, take](int layer) {
+                        if (layer <= 0 || files.n_layer <= 0 || ms_since(last_pp) < every) return;
+                        on_progress(at + std::min<int64_t>(take - 1, (int64_t) take * layer / files.n_layer), n, ms_since(tp));
+                        last_pp = Clock::now();
+                    };
+                }
+                const bool decoded = decode(ids.data() + at, take, err);
+                fetch.on_layer = nullptr;
+                if (!decoded) return false;
                 live.insert(live.end(), ids.begin() + at, ids.begin() + at + take);
                 at += take;
                 if (long_pass) drop_rows();
@@ -1695,7 +1710,7 @@ struct Engine {
                                          "compressed\n", (int) take, (long long) at, (double) used / kMiB, (double) own_footprint() / kMiB,
                                  (double) own_compressed() / kMiB);
                 }
-                if (ms_since(last_pp) >= 500.0 && at < n) {
+                if ((long_pass || ms_since(last_pp) >= 500.0) && at < n) {
                     on_progress(at, n, ms_since(tp));
                     last_pp = Clock::now();
                 }

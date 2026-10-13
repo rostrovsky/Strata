@@ -24,6 +24,7 @@
 #include <cstdio>
 #include <cstring>
 #include <deque>
+#include <functional>
 #include <mutex>
 #include <string>
 #include <thread>
@@ -642,6 +643,11 @@ struct ExpertFetch {
     bool wire_staging = false;                            // the staging buffer is wired when it is made: taken at once, never compressed
     bool read_ahead = false;                              // the engine allows it for this prompt
     bool more_passes = false;                             // the engine: another long pass follows the one under way
+    // A long pass computes all of its tokens layer by layer and asks for each layer's experts when it gets there:
+    // on_layer is called with that layer, once per layer (everything before it is computed).  The engine's
+    // progress line comes from it: a pass of 8,192 tokens takes a minute and a half.
+    std::function<void(int)> on_layer;
+    int layer_told = -1;
     double ahead_from = 0.5;                              // the next layer is read ahead if this share of this layer's experts was used
     std::vector<std::vector<uint8_t>> last_used;          // per layer: the experts the last long pass asked for
     std::vector<std::vector<int32_t>> by_profile;         // per layer: its experts, most used first (the engine sets it)
@@ -792,6 +798,10 @@ struct ExpertFetch {
             if (f.dst == nullptr || f.n < 0 || (f.n > 0 ? f.size != each * (uint64_t) f.n : f.size > each) || f.expert < 0 ||
                 (int64_t) f.expert + std::max(f.n, 1) > t.n_expert)
                 return false;
+            if (i == 0 && f.il < 0 && t.layer > layer_told) {
+                layer_told = t.layer;
+                if (on_layer) on_layer(t.layer);
+            }
             if (i == 0 && read_ahead && f.il < 0 && t.kind >= 0) {
                 bulk = &t;
                 // what was read ahead and is not this tensor or one of the next three will not be asked for

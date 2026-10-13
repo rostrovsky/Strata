@@ -354,6 +354,11 @@ done). None of this is fixed or decided; the numbers are under "Measured" unless
 | `--plan` / `--load-only` | print the memory plan without loading / load, print it as it came out, exit |
 | `--verbose` | llama.cpp's own log, and the engine's memory after every prompt pass and every change of shape |
 
+While a long prompt is read the engine reports how far it is every 5 seconds, not only after each pass (a pass of
+8,192 tokens takes a minute and a half): the tokens of the passes that are done, plus the pass under way times the
+share of its layers that are computed. The server's line shows it with the share of the prompt:
+`reading the prompt: 2,645 of 5,077 tokens (52%), 27 s so far`. `STRATA_PASS_PROGRESS_MS` sets another interval.
+
 `metal/tools/swapwatch.py NAME -- <command>` runs a benchmark under a watch on macOS's swap-out counter and stops the
 engine the moment it moves; use it for every run on the real model. `metal/tools/determinism.py` starts the engine
 afresh several times with one long prompt and compares IDs and logits between the starts.

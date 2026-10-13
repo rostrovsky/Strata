@@ -3581,8 +3581,9 @@ class Service:
         el = now - s.get("started", now)
         if s.get("first_token") is None:
             pr = getattr(self.engine, "progress", None)   # (position reached, prompt tokens): a reused prefix counts
-            done = f"{pr[0]:,} of {pr[1]:,}" if pr and pr[1] else f"{s.get('prompt_tokens', 0):,}"   # as read (#29)
-            print(f"[strata] reading the prompt: {done} tokens, {el:.0f} s so far", flush=True)
+            done = (f"{pr[0]:,} of {pr[1]:,} tokens ({100 * pr[0] // pr[1]}%)" if pr and pr[1]   # as read (#29)
+                    else f"{s.get('prompt_tokens', 0):,} tokens")
+            print(f"[strata] reading the prompt: {done}, {el:.0f} s so far", flush=True)
         else:
             rate = s["generated"] / max(1e-6, now - s["first_token"])
             # #984: while a thinking budget applies, the thinking line shows it, not the request's max_tokens
