@@ -303,9 +303,20 @@ struct HostMemory {
     uint64_t swapped = 0;   // what macOS has in swap already: memory of open programs that will want to come back
     uint64_t swapouts = 0;  // pages macOS has written to swap since it started
     uint64_t compressed = 0;   // bytes of programs' memory macOS has compressed since it started (it does when it runs short)
+    uint64_t free = 0;         // free pages (with the speculative ones: file pages read ahead that nothing asked for yet)
+    uint64_t free_target = 0;  // ... how many of them macOS keeps free (vm.vm_page_free_target)
 
     // what the engine may take: memory in swap is counted as owed to the programs it belongs to
     double usable() const { return std::max(0.0, (double) available - (double) swapped); }
+
+    // What the engine can take at once without making macOS compress other programs' memory: the free pages.  Not the
+    // file cache, which `available` counts: measured on the M4 Air (2026-10-14, a probe that wires 64 MiB steps until
+    // macOS compresses), macOS compressed as soon as the free pages were gone - with the file cache below the floor the
+    // kernel keeps of it (2.9-3.2 GiB, vm.vm_page_filecache_min 4.5-4.9 GiB), and also with it 0.4-1.6 GiB above
+    // (then it dropped 0.02-0.18 GiB of files in the second it compressed 11-142 MiB).  A pass that took 2.1 GiB of
+    // "free or file cache" within a second with 0.7-1.1 GiB free had macOS compress 0.2-1.0 GiB of other programs'
+    // memory in that second.
+    double givable() const { return std::max(0.0, (double) free - (double) free_target); }
 };
 
 HostMemory host_memory() {
@@ -319,6 +330,8 @@ HostMemory host_memory() {
     m.wired = (uint64_t) vm.wire_count * page;
     m.swapouts = vm.swapouts;
     m.compressed = vm.compressions * page;
+    m.free = (uint64_t) vm.free_count * page;
+    m.free_target = sysctl_u64("vm.vm_page_free_target") * page;
     xsw_usage sw{};
     size_t len = sizeof sw;
     if (sysctlbyname("vm.swapusage", &sw, &len, nullptr, 0) == 0) m.swapped = sw.xsu_used;
@@ -582,15 +595,63 @@ struct Engine {
     uint32_t kv_step_ = 0;                // 0: the KV cache has all of its memory from the start
     uint64_t kv_cell_bytes_ = 0;
     uint32_t kv_paid_ = 0;                // cells the KV cache has its memory for
-    uint64_t kv_slack_ = 0;               // of what it has not taken, what the cache did not use (a capped cache)
+    uint64_t kv_slack_ = 0;               // of what it has not taken, what the cache does not use (kv_hold_, and a capped cache's rest)
     uint32_t kv_due_ = 0;                 // cells that are paid for and not mapped yet (kv_take)
     struct KvNote {
         int64_t tokens;
         uint64_t grow, was;
         bool emptied;         // the cache was there and was made anew, smaller
         int64_t filled;       // ... and so many experts were read back into it
+        uint64_t held;        // what of it came from kv_hold_
         double ms;
     } kv_note_{};
+    // The memory of the KV cache's next step, held (wired, as the cache's is) while the cache is there, so that a step
+    // taken then does not make the cache anew: it is let go of just before the KV cache maps its cells, and unmapping it
+    // gives its pages back at once (they are not a Metal buffer's: Metal lets go of those a second late).  A step the
+    // cache paid freed the cache and made a smaller one in the same second; macOS compressed 0.3-0.4 GiB of other
+    // programs' memory then.  The hold is part of kv_slack_; it comes from the cache's memory (or what a cap left
+    // unused) at the start, and again when the cache comes back after a long prompt.  STRATA_KV_HOLD=0: no hold.
+    struct Hold {
+        std::vector<std::pair<char*, size_t>> parts;
+        size_t n = 0;
+        bool wired = true;
+        void take(size_t bytes) {
+            const size_t page = (size_t) sysconf(_SC_PAGESIZE);
+            bytes = (bytes + page - 1) / page * page;
+            if (bytes == 0) return;
+            void* p = ::mmap(nullptr, bytes, PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANON, -1, 0);
+            if (p == MAP_FAILED) return;
+            if (::mlock(p, bytes) != 0) {   // (then touched: it is this process's, though macOS may compress it)
+                std::memset(p, 0, bytes);
+                wired = false;
+            }
+            parts.emplace_back((char*) p, bytes);
+            n += bytes;
+        }
+        // lets go of `bytes` of it (all of it if that is more), the last taken first
+        void give(size_t bytes) {
+            const size_t page = (size_t) sysconf(_SC_PAGESIZE);
+            bytes = (bytes + page - 1) / page * page;
+            while (bytes > 0 && !parts.empty()) {
+                auto& [p, size] = parts.back();
+                const size_t cut = std::min(bytes, size);
+                ::munlock(p + size - cut, cut);
+                ::munmap(p + size - cut, cut);
+                size -= cut;
+                n -= cut;
+                bytes -= cut;
+                if (size == 0) parts.pop_back();
+            }
+        }
+        ~Hold() { give(n); }
+    } kv_hold_;
+    bool kv_hold_on_ = true;
+    uint64_t kv_hold_due_ = 0;            // of the hold, what goes to the cells kv_take maps next
+    // the next step of the KV cache, in bytes (0: it has all of its memory)
+    uint64_t kv_next_step() const {
+        const uint32_t n_ctx = (uint32_t) o.max_context;
+        return kv_step_ == 0 || kv_paid_ >= n_ctx ? 0 : (uint64_t) std::min(kv_step_, n_ctx - kv_paid_) * kv_cell_bytes_;
+    }
     uint64_t swapouts_seen_ = 0;          // macOS's count of pages written to swap, at the last look
     uint64_t compressed_seen_ = 0;        // ... and of the bytes it compressed
     llama_moe_cache_stats stats_gone_{};  // what the caches that were given up had counted
@@ -718,13 +779,36 @@ struct Engine {
 
     static const char* shape_name(Shape x) { return x == Shape::Long ? "long-prompt" : x == Shape::Short ? "short-prompt" : "answering"; }
 
-    // --elastic: is the memory the Short shape adds free now (with 1.5 GiB left over, and within Metal's working set)?
-    bool can_borrow() const {
-        if (short_batch_ <= 0) return false;
+    // --elastic: is the memory the Short shape adds free now, within Metal's working set?  It is that shape's work
+    // memory and the read-ahead buffer it takes then.  Returns which buffer (2: a layer's three tensors, 1: one tensor,
+    // 0: none), or -1: no room, the stretch takes the long-prompt shape (the cache's memory) instead.
+    // The memory must be free pages (HostMemory::givable), with kBorrowSpare left over.  Before, it was "free or file
+    // cache" with 1.5 GiB left over (STRATA_ELASTIC_BORROW=available: that rule): the pass then took 2.1 GiB (0.94 of
+    // work memory, 1.1 of read-ahead buffer) with 0.7-1.1 GiB free, and macOS compressed 0.2-1.0 GiB of other
+    // programs' memory in that second.
+    static constexpr double kBorrowSpare = 0.25 * kGiB;
+    int can_borrow() const {
+        if (short_batch_ <= 0) return -1;
         uint64_t used = 0, ws = 0;
         gpu_memory(used, ws);
-        return (double) host_memory().available >= short_work_ + 1.5 * kGiB &&
-               (double) used + short_gpu_ <= (double) ws + o.overcommit_gib * kGiB;
+        if ((double) used + short_gpu_ > (double) ws + o.overcommit_gib * kGiB) return -1;
+        const HostMemory hm = host_memory();
+        static const bool by_available = std::getenv("STRATA_ELASTIC_BORROW") != nullptr && std::strcmp(std::getenv("STRATA_ELASTIC_BORROW"), "available") == 0;
+        const double layer = (double) fetch.staging_bytes(true), tensor = (double) fetch.staging_bytes(false);
+        const bool layers = o.prefill_ahead && o.prefill_ahead_tensors >= 3;
+        if (by_available) {   // (as before: the buffer was chosen after the shape, from what was "free" then)
+            const double rest = (double) hm.available - short_work_ - 1.5 * kGiB;
+            if (rest < 0.0) return -1;
+            return !o.prefill_ahead ? 0 : layers && rest >= layer ? 2 : rest >= tensor ? 1 : 0;
+        }
+        const double rest = hm.givable() - short_work_ - kBorrowSpare;
+        if (rest < 0.0) return -1;
+        return !o.prefill_ahead ? 0 : layers && rest >= layer ? 2 : rest >= tensor ? 1 : 0;
+    }
+    // (STRATA_ELASTIC_SHORT_AHEAD=0|1|2: measurements, that read-ahead buffer in the Short shape whatever is free)
+    static int short_ahead(int chosen) {
+        const char* f = std::getenv("STRATA_ELASTIC_SHORT_AHEAD");
+        return f != nullptr ? std::clamp(std::atoi(f), 0, 2) : chosen;
     }
 
     // which experts the cache holds now
@@ -815,6 +899,7 @@ struct Engine {
         llama_moe_cache_stats st{};
         if (cache_stats(st)) stats_gone_ = st;
         remember_cache();
+        if (!let_go((double) cache_bytes, err)) return false;
         if (!llama_context_resize(ctx, kAnswerBatch, smaller, false)) {
             broken_ = true;
             err = "the expert cache could not be made smaller";
@@ -835,6 +920,37 @@ struct Engine {
         return true;
     }
 
+    // --elastic: before buffers are made in the place of others.  Metal lets go of a released buffer's pages late, and
+    // the new ones are taken at once: a change of shape that freed gigabytes and made as many in the same second had
+    // macOS compress 39-255 MiB of other programs' memory when 0.1-0.5 GiB were free, and a cache made anew in the
+    // middle of an answer 0.3-0.6 GiB.  So the old buffers go first (the context keeps the answering shape's small
+    // work memory and no cache), and the new ones are made when that memory (`gone` bytes) is free again, or after
+    // 1.5 s.  Measured on the M4 Air: 56-640 ms for 5.8-6.8 GiB.  STRATA_ELASTIC_SETTLE=0: in one go, as before.
+    bool let_go(double gone, std::string& err) {
+        static const bool off = std::getenv("STRATA_ELASTIC_SETTLE") != nullptr && std::atoi(std::getenv("STRATA_ELASTIC_SETTLE")) == 0;
+        if (off || gone <= 0.0) return true;
+        const HostMemory h0 = host_memory();
+        const auto t0 = Clock::now();
+        if (!llama_context_resize(ctx, kAnswerBatch, 0, false)) {
+            broken_ = true;
+            err = "the context could not let go of its buffers";
+            return false;
+        }
+        // (this process's footprint drops at once; the free pages are what tell that the memory is back)
+        const double want = std::min((double) h0.free + 0.9 * gone, gone + kBorrowSpare);
+        double fr = (double) h0.free;
+        while (ms_since(t0) < 1500.0) {
+            fr = (double) host_memory().free;
+            if (fr >= want) break;
+            std::this_thread::sleep_for(std::chrono::milliseconds(5));
+        }
+        if (o.verbose || fr < want)
+            std::fprintf(stderr, "strata metal: the old buffers' memory (%.2f GiB) %s after %.0f ms: %.2f GiB more are free\n",
+                         gone / kGiB, fr >= want ? "is free again" : "is NOT free yet, the new buffers are made anyway",
+                         ms_since(t0), (fr - (double) h0.free) / kGiB);
+        return true;
+    }
+
     // --elastic: the context is about to hold `tokens` tokens.  If that is past the cells the KV cache has memory
     // for, the expert cache gives the memory for the next ones first (one budget).  Three cases:
     //   the context is about to take its long-prompt shape (`before_long`): the cache is about to be given up
@@ -842,9 +958,9 @@ struct Engine {
     //     smaller, and kv_take() maps the cells once it is.  (Making that buffer first and a smaller one after it
     //     was tried: Metal lets go of a released buffer's memory a second late, and for that second macOS
     //     compressed 1.4 GiB of other programs' memory.)
-    //   the cache is there: it is made anew, smaller, and fills again as its experts are asked for (once per
-    //     kv_step_ tokens of a conversation that grows in short turns or in the middle of an answer; with
-    //     --elastic-refill it is read back first: 4 s for 11 GiB);
+    //   the cache is there: the memory held for the step pays it (kv_hold_), and the cache is not touched.  What that
+    //     does not cover (a second step before the next long prompt) the cache gives: it is made anew, smaller, and
+    //     fills again as its experts are asked for (with --elastic-refill it is read back first: 4 s for 11 GiB);
     //   the context has its long-prompt shape already (llama.cpp had to map cells by itself): the books only.
     bool make_room_for_kv(int64_t tokens, bool before_long, std::string& err) {
         if (kv_step_ == 0 || tokens + 256 <= (int64_t) kv_paid_) return true;
@@ -854,19 +970,25 @@ struct Engine {
         if (want <= kv_paid_) return true;
         const auto t0 = Clock::now();
         const uint64_t grow = (uint64_t) (want - kv_paid_) * kv_cell_bytes_;
-        const uint64_t from_slack = std::min(grow, kv_slack_);
-        kv_slack_ -= from_slack;
         const uint64_t floor = (uint64_t) (512 * kMiB);
         const uint64_t was = cache_bytes;
-        const uint64_t give = std::min(grow - from_slack, cache_bytes > floor ? cache_bytes - floor : 0);
-        int64_t filled = 0;
         const bool there = !before_long && shape_ != Shape::Long;
+        // while the cache is there, what is held for the step first; otherwise what is not held of the slack, then the
+        // cache's books (it is about to be given up or is given up), and the hold only for what they do not cover
+        const uint64_t loose = kv_slack_ - std::min<uint64_t>(kv_slack_, kv_hold_.n);
+        uint64_t from_hold = there ? std::min<uint64_t>(grow, kv_hold_.n) : 0;
+        const uint64_t from_loose = std::min(grow - from_hold, loose);
+        const uint64_t give = std::min(grow - from_hold - from_loose, cache_bytes > floor ? cache_bytes - floor : 0);
+        if (!there) from_hold = std::min<uint64_t>(grow - from_loose - give, kv_hold_.n);
+        kv_slack_ -= std::min(kv_slack_, from_hold + from_loose);
+        int64_t filled = 0;
         if (give > 0 && there) {
             pool->drain();   // reads under way write into the cache that is given up
             llama_moe_cache_stats st{};
             if (cache_stats(st)) stats_gone_ = st;
             remember_cache();
             const uint32_t batch = shape_ == Shape::Short ? (uint32_t) short_batch_ : (uint32_t) kAnswerBatch;
+            if (!let_go((double) cache_bytes, err)) return false;
             if (!llama_context_resize(ctx, batch, cache_bytes - give, false)) {
                 broken_ = true;
                 err = "the expert cache could not be made smaller for the KV cache";
@@ -879,7 +1001,8 @@ struct Engine {
         }
         cache_bytes -= give;
         cache_plan_bytes_ = cache_plan_bytes_ > give ? cache_plan_bytes_ - give : 0;
-        kv_note_ = {tokens, grow, was, give > 0 && there, filled, ms_since(t0)};
+        kv_hold_due_ += from_hold;   // (let go of in kv_take, the moment before the cells take it)
+        kv_note_ = {tokens, grow, was, give > 0 && there, filled, from_hold, ms_since(t0)};
         if (before_long && shape_ != Shape::Long) {
             kv_due_ = want;
             return true;
@@ -892,6 +1015,9 @@ struct Engine {
     bool kv_take(std::string& err) {
         if (kv_due_ == 0) return true;
         const auto t0 = Clock::now();
+        llama_synchronize(ctx);
+        kv_hold_.give(kv_hold_due_);   // (its pages are free again at once, for the cells mapped next)
+        kv_hold_due_ = 0;
         if (!llama_kv_map_cells(ctx, kv_due_)) {
             err = "the KV cache could not take more memory";
             return false;
@@ -900,10 +1026,13 @@ struct Engine {
         kv_due_ = 0;
         const double ms = kv_note_.ms + ms_since(t0);
         reshape_ms_ += ms;
-        const std::string how = shape_ == Shape::Long ? " when it comes back"
+        char held[96] = "";
+        if (kv_note_.held > 0)
+            std::snprintf(held, sizeof held, " (%.1f MiB of it were held for it)", (double) kv_note_.held / kMiB);
+        const std::string how = std::string(held) + (shape_ == Shape::Long ? " when it comes back"
                               : !kv_note_.emptied ? ""
                               : kv_note_.filled > 0 ? " (" + std::to_string(kv_note_.filled) + " experts read back)"
-                              : " (it fills again as its experts are asked for)";
+                              : " (it fills again as its experts are asked for)");
         std::fprintf(stderr, "strata metal: the conversation reaches %lld tokens: the KV cache takes its memory for %u (%.2f GiB "
                              "more), the expert cache gives it: %.2f -> %.2f GiB%s, %.2f s\n", (long long) kv_note_.tokens, kv_paid_,
                      (double) kv_note_.grow / kGiB, (double) kv_note_.was / kGiB, (double) cache_bytes / kGiB, how.c_str(), ms / 1000.0);
@@ -918,6 +1047,8 @@ struct Engine {
         const auto t0 = Clock::now();
         fetch.end_bulk();   // the read-ahead buffer goes before other memory comes
         const bool cache_goes = to == Shape::Long, cache_comes = shape_ == Shape::Long;
+        uint64_t hold_after = 0;   // memory to hold for the KV cache's next step once the cache is made
+        uint64_t ballast_gone = 0;
         if (cache_goes || cache_comes) {
             pool->drain();   // reads under way write into the cache that is given up
             llama_moe_cache_stats st{};
@@ -935,12 +1066,26 @@ struct Engine {
             const double fits = (double) answer_cache_ + host_memory().usable() - o.reserve_gib * kGiB +
                                 (double) own_footprint() - (double) answer_footprint_;
             const uint64_t floor = (uint64_t) (512 * kMiB);
-            const uint64_t now = std::min(cache_plan_bytes_, (uint64_t) std::max(fits, (double) floor));
+            uint64_t now = std::min(cache_plan_bytes_, (uint64_t) std::max(fits, (double) floor));
             if (now + (uint64_t) (64 * kMiB) < cache_plan_bytes_)
                 std::fprintf(stderr, "strata metal: less memory is free than at the start: the expert cache comes back with %.2f "
                                      "GiB of its %.2f\n", (double) now / kGiB, (double) cache_plan_bytes_ / kGiB);
+            // the memory of the KV cache's next step is held again if a step took it: from what is not held of the
+            // slack, else from the cache, which is made anew now anyway
+            if (kv_hold_on_ && kv_next_step() > kv_hold_.n) {
+                const uint64_t more = kv_next_step() - kv_hold_.n;
+                const uint64_t loose = kv_slack_ - std::min<uint64_t>(kv_slack_, kv_hold_.n);
+                const uint64_t from_cache = more > loose ? std::min(more - loose, now > floor ? now - floor : 0) : 0;
+                now -= from_cache;
+                cache_plan_bytes_ -= std::min(cache_plan_bytes_, from_cache);
+                kv_slack_ += from_cache;
+                hold_after = std::min<uint64_t>(more, kv_slack_ - std::min<uint64_t>(kv_slack_, kv_hold_.n));
+            }
             cache_bytes = now;
-            if (ballast_) ggml_backend_buffer_free(ballast_);
+            if (ballast_) {
+                ballast_gone = ggml_backend_buffer_get_size(ballast_);
+                ggml_backend_buffer_free(ballast_);
+            }
             ballast_ = nullptr;
         }
         const uint64_t cache_was = cache_bytes;
@@ -950,7 +1095,8 @@ struct Engine {
             // the largest long pass there is room for now: in what the cache and this shape's work memory hold
             // (the KV cache's share for this prompt is out of it already), and what a cap kept from the cache
             const double staging = o.prefill_ahead ? (double) fetch.staging_bytes(true) : 0.0;
-            const double room = (double) cache_bytes + answer_work_ + (double) cache_spare_ + (double) kv_slack_;
+            // (not what is held for the KV cache's next step: that stays held)
+            const double room = (double) cache_bytes + answer_work_ + (double) cache_spare_ + (double) kv_slack_ - (double) kv_hold_.n;
             const int was = long_batch_;
             long_batch_ = long_shapes_.back().batch;
             long_work_ = long_shapes_.back().work;
@@ -965,6 +1111,9 @@ struct Engine {
                                      "context is full)\n", long_batch_, long_batch_plan_);
         }
         const uint32_t batch = to == Shape::Long ? (uint32_t) long_batch_ : to == Shape::Short ? (uint32_t) short_batch_ : (uint32_t) kAnswerBatch;
+        if ((cache_goes || cache_comes) &&
+            !let_go(cache_goes ? (double) cache_was : long_work_ + (double) cache_bulk_bytes_ + (double) ballast_gone, err))
+            return false;
         // (the Short shape borrows: its work memory is taken as its one pass needs it, and no more)
         if (!llama_context_resize(ctx, batch, to == Shape::Long ? cache_bulk_bytes_ : cache_bytes, cache_goes || cache_comes)) {
             broken_ = true;
@@ -984,6 +1133,7 @@ struct Engine {
                 if (ballast_) ggml_backend_buffer_clear(ballast_, 0);   // touched: the pages are this process's now
             }
         }
+        if (hold_after > 0) kv_hold_.take(hold_after);
         if (cache_comes) filled = refill_cache();
         const double ms = ms_since(t0);
         reshape_ms_ += ms;
@@ -1344,8 +1494,25 @@ struct Engine {
                 cache_bytes += (uint64_t) more;
                 kv_slack_ = (uint64_t) (kv_rest - more);
             }
+            // the memory of the KV cache's next step is held aside (kv_hold_): from what a cap left unused, else from
+            // the cache
+            const char* kh = std::getenv("STRATA_KV_HOLD");
+            kv_hold_on_ = kh == nullptr || std::atoi(kh) != 0;
+            uint64_t hold = 0;
+            if (kv_rest > 0.0 && kv_hold_on_) {
+                const uint64_t step = kv_next_step(), floor = (uint64_t) (512 * kMiB);
+                const uint64_t from_cache = step > kv_slack_ ? std::min(step - kv_slack_, cache_bytes > floor ? cache_bytes - floor : 0) : 0;
+                cache_bytes -= from_cache;
+                kv_slack_ += from_cache;
+                hold = std::min(step, kv_slack_);
+            }
             cache_plan_bytes_ = cache_bytes;
             ctx = llama_init_from_model(model, ctx_params(cache_bytes, kAnswerBatch));
+            if (ctx != nullptr && hold > 0) {
+                kv_hold_.take(hold);
+                std::fprintf(stderr, "strata metal: --elastic: %.1f MiB are held for the KV cache's next step (%s), so that it does not "
+                                     "make the expert cache anew\n", (double) kv_hold_.n / kMiB, kv_hold_.wired ? "wired" : "NOT wired: mlock failed");
+            }
             std::fprintf(stderr, "strata metal: --elastic: answers are written with a %.2f GiB expert cache (%.2f GiB of work "
                                  "memory). A long prompt is read in passes of %s%d with %.2f GiB of work memory in the cache's "
                                  "place", (double) cache_bytes / kGiB, answer_work_ / kGiB,
@@ -1853,17 +2020,19 @@ struct Engine {
             ~Bulk() { finish(); }
         } bulk{fetch};
         if (const char* w = std::getenv("STRATA_PREFILL_AHEAD_TENSORS")) o.prefill_ahead_tensors = std::atoi(w);
-        const auto stage = [&](double spoken_for) {   // spoken_for: memory that is free now and about to be used
+        // spoken_for: memory that is free now and about to be used; how: the buffer chosen already (can_borrow), -1: none yet
+        const auto stage = [&](double spoken_for, int how) {
             if (bulk.on || !o.prefill_ahead || !pool) return;
             const double free_now = (double) host_memory().available - spoken_for;
             if (const char* w = std::getenv("STRATA_PREFILL_AHEAD_FROM")) fetch.ahead_from = std::atof(w);
             fetch.ctx = ctx;
-            const bool layer = o.prefill_ahead_tensors >= 3 && free_now >= (double) fetch.staging_bytes(true) + 1.5 * kGiB;
-            if (layer || free_now >= (double) fetch.staging_bytes(false) + 1.5 * kGiB) bulk.on = fetch.begin_bulk(layer);
-            else std::fprintf(stderr, "strata metal: %.1f GiB of memory are free: this prompt is read without read-ahead\n", free_now / kGiB);
+            const bool layer = how >= 0 ? how == 2 : o.prefill_ahead_tensors >= 3 && free_now >= (double) fetch.staging_bytes(true) + 1.5 * kGiB;
+            if (how > 0 || (how < 0 && (layer || free_now >= (double) fetch.staging_bytes(false) + 1.5 * kGiB))) bulk.on = fetch.begin_bulk(layer);
+            else if (how < 0) std::fprintf(stderr, "strata metal: %.1f GiB of memory are free: this prompt is read without read-ahead\n", free_now / kGiB);
+            else std::fprintf(stderr, "strata metal: this stretch is read beside the cache without read-ahead: the memory for it is not free\n");
         };
         // (--elastic: the buffer is taken once the context has the shape for long passes)
-        if (!o.elastic && o.prefill > 32 && n - at >= o.prefill_from) stage(0.0);
+        if (!o.elastic && o.prefill > 32 && n - at >= o.prefill_from) stage(0.0, -1);
         for (int64_t mark : marks) {
             while (at < mark) {
                 if (stop.load()) {
@@ -1881,9 +2050,14 @@ struct Engine {
                 if (o.elastic) {
                     // What one short pass reads is read beside the cache, if the memory for that is free; more takes
                     // the cache's memory.  The long-prompt shape is kept for as long as long passes follow.
+                    const int borrow = long_pass && shape_ == Shape::Answer && rem <= short_batch_ ? can_borrow() : -1;
                     const Shape want = !long_pass ? Shape::Answer
                                      : shape_ == Shape::Long ? Shape::Long
-                                     : rem <= short_batch_ && (shape_ == Shape::Short || can_borrow()) ? Shape::Short : Shape::Long;
+                                     : rem <= short_batch_ && (shape_ == Shape::Short || borrow >= 0) ? Shape::Short : Shape::Long;
+                    if (want == Shape::Long && shape_ == Shape::Answer && rem <= short_batch_)
+                        std::fprintf(stderr, "strata metal: %lld new tokens: the memory to read them beside the cache is not free "
+                                             "(%.2f GiB are, %.2f GiB are needed), they take the cache's\n", (long long) rem,
+                                     host_memory().givable() / kGiB, (short_work_ + kBorrowSpare) / kGiB);
                     // The KV cache's memory for the whole prompt, once, at its first pass: from the cache while the
                     // context still has its answering shape, or (below) from what holds the cache's place once it
                     // has the long-prompt one - the cache is then not read back just to be given up.
@@ -1893,7 +2067,7 @@ struct Engine {
                     if (want != shape_) {
                         bulk.finish();
                         if (!reshape(want, err)) return false;
-                        if (want != Shape::Answer) stage(want == Shape::Short ? short_work_ : 0.0);
+                        if (want != Shape::Answer) stage(want == Shape::Short ? short_work_ : 0.0, want == Shape::Short ? short_ahead(borrow) : -1);
                     }
                     if (!kv_take(err)) return false;
                     if (shape_ == Shape::Long) most = long_batch_;   // (reshape chose it for this prompt)
