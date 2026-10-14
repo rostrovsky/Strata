@@ -158,11 +158,13 @@ class Engine:
                 f"{self.info.get('expert_slots')} experts ({self.info.get('expert_cache_mib')} MiB), "
                 f"{self.info.get('expert_io')} reads")
 
-    def gen(self, ids, max_new, keys="", progress=False):
-        """One request.  -> dict: ids, probes, stats, the DONE figures, wall times."""
+    def gen(self, ids, max_new, keys="", progress=False, embeddings=None):
+        """One request.  -> dict: ids, probes, stats, the DONE figures, wall times.  `embeddings`: a file of
+        strata-vision records for the prompt's pictures (a GENI request)."""
         s0 = swapouts()
         p0 = power_counters()
-        self.p.stdin.write(f"GEN {max_new}{keys} {','.join(map(str, ids))}\n")
+        head = f"GENI {max_new}{keys} {embeddings}" if embeddings else f"GEN {max_new}{keys}"
+        self.p.stdin.write(f"{head} {','.join(map(str, ids))}\n")
         self.p.stdin.flush()
         start, stamps, out, probes, stats, resume = time.time(), [], [], [], {}, 0
         last_progress = start

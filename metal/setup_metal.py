@@ -1,6 +1,7 @@
 """metal/setup_metal.py - Strata on an Apple silicon Mac (EXPERIMENTAL, docs/APPLE_METAL.md).
 
-    ./setup-mac.sh [--model IQ3_S] [--context 32768] [--data-dir DIR] [--port 8080] [--yes] [--no-start] [--check]
+    ./setup-mac.sh [--model IQ3_S] [--context 32768] [--data-dir DIR] [--port 8080] [--vision yes|no] [--yes]
+                   [--no-start] [--check]
 
 setup.py installs the CUDA / HIP engine on Windows and Linux; a Mac has neither, so this is its own, much smaller
 installer for the Metal engine (metal/).  It keeps setup.py's layout, so the two agree on where things are:
@@ -8,6 +9,8 @@ installer for the Metal engine (metal/).  It keeps setup.py's layout, so the two
   - the engine is compiled here (build-metal/bin/strata; CMake and the Xcode command line tools);
   - the model's two GGUF shards go to <data>/models/<SIZE>/ (default data folder: Strata-data next to this one),
     downloaded with curl, resumable, and checked against the SHA-256 the Hub publishes for them;
+  - the vision projector (--vision yes, the default: pictures) goes to <data>/models/mmproj/, checked the same way,
+    and strata-vision, the image encoder, is compiled with the engine;
   - the tokenizer is exported to <data>/packs/<size>/tokenizer (tools/strata_tokenizer.py);
   - strata-<size>.json and run-<size>.sh are written here, and run-<size>.sh starts serve/server.py.  The config
     unloads the model after 15 idle minutes ("idle_unload_s", --idle-unload): the next request loads it again.
@@ -31,6 +34,7 @@ ROOT = Path(__file__).resolve().parent.parent
 REPO = "ISTA-DASLab/Qwen3.8-Flash-Next-GSQ-RCO-GGUF"
 REVISION = "ed59f92082b1e93c0e96d60a8b11aab089b52f09"   # the revision setup.py pins (2026-09-29)
 FILE = "Qwen3.8-Flash-Next-GSQ-RCO-{q}-0000{i}-of-00002.gguf"
+MMPROJ = "mmproj-Qwen3.8-Flash-Next-BF16.gguf"   # the vision encoder and projector, one for every size (0.91 GB)
 # download GB, GiB of routed experts (the part the memory plan divides between the expert cache and the SSD)
 MODELS = {"Q2_0": (66.4, 31.7), "IQ2_XS": (68.0, 33.1), "IQ3_XXS": (75.8, 40.0), "IQ3_S": (83.6, 46.8)}
 CONTEXTS = (8192, 32768, 65536, 131072)
@@ -99,8 +103,9 @@ def build_engine():
 
 
 def hub_files(model):
-    """name -> (bytes, sha256) of the model's shards, from the Hub's file listing at the pinned revision."""
-    url = f"https://huggingface.co/api/models/{REPO}/tree/{REVISION}/{model}"
+    """name -> (bytes, sha256) of the model's shards (model "": the files at the top, the projector), from the Hub's
+    file listing at the pinned revision."""
+    url = f"https://huggingface.co/api/models/{REPO}/tree/{REVISION}" + (f"/{model}" if model else "")
     try:
         with urllib.request.urlopen(url, timeout=60) as r:
             listing = json.load(r)
@@ -135,10 +140,28 @@ def download(model, dest: Path):
             fail(f"{n} is not in {REPO} at the pinned revision.")
     base = f"https://huggingface.co/{REPO}/resolve/{REVISION}/{model}/"
     for n in names:
-        f, part = dest / n, dest / (n + ".part")
-        if f.exists():
-            continue
-        size, sha = want[n]
+        fetch(base, n, dest, *want[n])
+    return [dest / n for n in names]
+
+
+def download_mmproj(dest: Path):
+    """The vision projector into dest, the same way as the shards."""
+    f = dest / MMPROJ
+    if f.exists():
+        say("  the vision projector is here")
+        return f
+    want = hub_files("")
+    if MMPROJ not in want:
+        fail(f"{MMPROJ} is not in {REPO} at the pinned revision.")
+    dest.mkdir(parents=True, exist_ok=True)
+    fetch(f"https://huggingface.co/{REPO}/resolve/{REVISION}/", MMPROJ, dest, *want[MMPROJ])
+    return f
+
+
+def fetch(base, n, dest: Path, size, sha):
+    """base + n into dest/n with curl, resumable (a .part file continues where it stopped), checked once."""
+    f, part = dest / n, dest / (n + ".part")
+    if not f.exists():
         say(f"  downloading {n} ({size / 1e9:.1f} GB) ...")
         for attempt in range(200):
             r = subprocess.run(["curl", "-L", "-C", "-", "--connect-timeout", "30", "--speed-limit", "20000",
@@ -153,7 +176,6 @@ def download(model, dest: Path):
             part.unlink()
             fail(f"{n} does not match the hash Hugging Face publishes; it was deleted. Run this again.")
         part.rename(f)
-    return [dest / n for n in names]
 
 
 def main():
@@ -170,6 +192,9 @@ def main():
     ap.add_argument("--idle-unload", type=int, default=900, metavar="SECONDS",
                     help="give the memory back after this long without a request; the next request loads the model "
                          "again in a few seconds (default 900, 0 = keep it loaded)")
+    ap.add_argument("--vision", choices=("yes", "no"), default="yes",
+                    help="pictures: download the vision projector (0.91 GB) and give the server the image encoder, "
+                         "which starts for each request with pictures (default yes)")
     ap.add_argument("--yes", action="store_true", help="no questions")
     ap.add_argument("--no-start", action="store_true", help="install only")
     ap.add_argument("--no-browser", action="store_true", help="do not open the web app when the model is ready")
@@ -183,13 +208,17 @@ def main():
     if a.check:
         return
     shards = [data / "models" / a.model / FILE.format(q=a.model, i=i) for i in (1, 2)]
-    have = all(s.exists() for s in shards)
-    if not have:
-        need = MODELS[a.model][0]
+    vision = a.vision == "yes"
+    get_model = not all(s.exists() for s in shards)
+    get_mmproj = vision and not (data / "models" / "mmproj" / MMPROJ).exists()
+    if get_model or get_mmproj:
+        need = (MODELS[a.model][0] if get_model else 0.0) + (0.91 if get_mmproj else 0.0)
         if free < need + 2:
-            fail(f"{a.model} is an {need:.0f} GB download and {data} has {free:.0f} GB free.")
+            fail(f"{need:.1f} GB to download and {data} has {free:.0f} GB free.")
         if not a.yes:
-            ans = input(f"  Download {a.model} ({need:.0f} GB) from huggingface.co/{REPO} into {data}? [Y/n] ").strip().lower()
+            what = " and ".join(([f"{a.model} ({MODELS[a.model][0]:.0f} GB)"] if get_model else []) +
+                                (["the vision projector (0.91 GB)"] if get_mmproj else []))
+            ans = input(f"  Download {what} from huggingface.co/{REPO} into {data}? [Y/n] ").strip().lower()
             if ans not in ("", "y", "yes"):
                 fail("nothing was downloaded.")
 
@@ -199,6 +228,7 @@ def main():
 
     say("\n[3] the model")
     shards = download(a.model, data / "models" / a.model)
+    mmproj = download_mmproj(data / "models" / "mmproj") if vision else None
 
     say("\n[4] the tokenizer")
     pack = data / "packs" / tag
@@ -218,9 +248,17 @@ def main():
         args += ["--reserve-gib", f"{a.reserve_gib:g}"]
     if a.expert_io:
         args += ["--expert-io", a.expert_io]
+    if mmproj:
+        args.append("--vision")
     cfg = {"exe": str(exe), "args": args, "cwd": str(ROOT), "tokenizer": str(pack / "tokenizer"),
            "model_name": f"qwen3.8-flash-next-{tag}", "log": str(ROOT / f"strata-{tag}.log"), "port": a.port,
            "backend": "metal"}
+    if mmproj:
+        # Pictures: the encoder (Metal, 1.1 GB while it runs) starts for each request with pictures and ends after
+        # it, so it never takes the expert cache's memory.  Up to 2,048 tokens a picture: a 1280x1280 photo keeps its
+        # full size (1,600 tokens; at 1,024 the model misread the small print on it).
+        cfg["vision"] = {"exe": str(exe.parent / "strata-vision"), "mmproj": str(mmproj), "model": str(shards[0]),
+                         "gpu": True, "max_tokens": 2048, "on_demand": True}
     if a.idle_unload > 0:
         # a Mac's memory is the engine's and every other program's: the model holds 12-21 GB of it only while in use
         cfg["idle_unload_s"] = a.idle_unload

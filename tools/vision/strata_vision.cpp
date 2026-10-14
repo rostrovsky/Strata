@@ -5,7 +5,7 @@
 // rows at the image's pad tokens and gives them their 2-D M-RoPE positions (see --serve GENI in generate.cpp).
 //
 //   strata-vision --mmproj <mmproj.gguf> --model <text model .gguf, first split> [--gpu] [--threads N]
-//                 [--max-tokens N] [--min-tokens N] [--flash-attn on|off|auto]
+//                 [--max-tokens N] [--min-tokens N] [--flash-attn on|off|auto] [--no-warmup]
 // Flash attention defaults to auto, and to off on the CPU when ggml is built with AVX-512 (see main).
 //
 // Resident: prints "READY <n_embd>", then per stdin line
@@ -56,7 +56,7 @@ bool parse_enc(const std::string& line, std::string& img, std::string& out) {
 
 int main(int argc, char** argv) {
     std::string mmproj, model;
-    bool gpu = false;
+    bool gpu = false, warmup = true;
     int threads = 0, max_tokens = 0, min_tokens = 0;
     llama_flash_attn_type fa = LLAMA_FLASH_ATTN_TYPE_AUTO;
     bool fa_given = false;
@@ -72,6 +72,7 @@ int main(int argc, char** argv) {
         else if (a == "--threads") threads = std::atoi(next().c_str());
         else if (a == "--max-tokens") max_tokens = std::atoi(next().c_str());
         else if (a == "--min-tokens") min_tokens = std::atoi(next().c_str());   // mtmd image_min_tokens (#767)
+        else if (a == "--no-warmup") warmup = false;   // started for one request's pictures (Apple: "on_demand")
         else if (a == "--flash-attn") {   // FA keeps K and V in FP16; off = the attention in FP32
             const std::string v = next();
             fa = v == "on" ? LLAMA_FLASH_ATTN_TYPE_ENABLED : v == "off" ? LLAMA_FLASH_ATTN_TYPE_DISABLED
@@ -82,7 +83,7 @@ int main(int argc, char** argv) {
     }
     if (mmproj.empty() || model.empty()) {
         std::fprintf(stderr, "usage: strata-vision --mmproj <mmproj.gguf> --model <model.gguf> [--gpu] [--threads N] "
-                             "[--max-tokens N] [--min-tokens N] [--flash-attn on|off|auto]\n");
+                             "[--max-tokens N] [--min-tokens N] [--flash-attn on|off|auto] [--no-warmup]\n");
         return 2;
     }
     // On the CPU the GPU stays unseen: a CUDA build otherwise opens a context there (measured: 0.4-0.7 GB of VRAM,
@@ -106,8 +107,16 @@ int main(int argc, char** argv) {
         const int fd = open(mmproj.c_str(), O_RDONLY);
         if (fd >= 0) {
             const off_t n = lseek(fd, 0, SEEK_END);
+#if defined(__APPLE__)
+            // macOS has no posix_fadvise: F_RDADVISE asks for the same read-ahead (its count is an int)
+            for (off_t at = 0; at < n; at += (off_t) (64 << 20)) {
+                radvisory ra_{at, (int) std::min<off_t>((off_t) (64 << 20), n - at)};
+                (void) fcntl(fd, F_RDADVISE, &ra_);
+            }
+#else
             for (off_t at = 0; at < n; at += (off_t) (128 << 10))
                 (void) posix_fadvise(fd, at, std::min<off_t>((off_t) (128 << 10), n - at), POSIX_FADV_WILLNEED);
+#endif
             close(fd);
         }
     }
@@ -158,6 +167,7 @@ int main(int argc, char** argv) {
     // On the CPU there is no VRAM to reserve, and the warm-up would only delay the engine's start by one encode
     // (~6 s at 1,024 tokens).
     if (!gpu) std::fprintf(stderr, "strata-vision: on the CPU, %d threads, no warm-up\n", threads);
+    else if (!warmup) std::fprintf(stderr, "strata-vision: on the GPU, no warm-up\n");
     else {
         const auto warm_t0 = std::chrono::steady_clock::now();
         const uint32_t side = 2048;

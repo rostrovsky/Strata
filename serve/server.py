@@ -1913,6 +1913,9 @@ class Vision:
     lines and writes each image's embeddings; results are cached by the image's hash, so a conversation that
     sends the same picture again (every turn, with most clients) encodes it once."""
 
+    on_demand = False                                   # see __init__ ("on_demand" in the config)
+    held = 0
+
     @staticmethod
     def work_dir() -> Path:
         """#480: the directory for the encoder's files.  The engine reads the embeddings file named in a `GENI` line
@@ -1944,13 +1947,21 @@ class Vision:
             args += ["--max-tokens", str(cfg["max_tokens"])]
         if cfg.get("min_tokens"):                       # #767: mtmd's image_min_tokens (a hand-edited key)
             args += ["--min-tokens", str(cfg["min_tokens"])]
+        # "on_demand": true (Apple's Metal engine): the encoder is started for the pictures of a request and ends once
+        # they are encoded, so its memory (1.1 GB on the GPU for this model's 0.9 GB projector) is never taken from
+        # the expert cache, which the engine sizes from the memory that is free.  No warm-up then: a start that
+        # encodes one picture is 0.4 s of loading and the encode itself (M4 Air: 2.7-2.9 s for 1,024 image tokens).
+        self.on_demand = bool(cfg.get("on_demand"))
+        if self.on_demand:
+            args.append("--no-warmup")
+        self.held = 0                                   # encode_all() in progress: the encoder stays up meanwhile
         self.dir = self.work_dir()
         self.spawn = (args, log, env)                   # to start it again after an unload
         self.proc = None
         self.stopped = True
         self.lock = threading.Lock()
         self.cache: dict[str, tuple[Path, int]] = {}
-        if not lazy:
+        if not lazy and not self.on_demand:
             self._start()
 
     def _start(self):
@@ -1999,7 +2010,13 @@ class Vision:
             raise RuntimeError(f"{what}: it said nothing for {timeout:.0f} s") from None
 
     def alive(self) -> bool:
+        if self.on_demand:                              # nothing to start before the engine: encode() starts it
+            return True
         return self.proc is not None and not self.stopped and self.proc.poll() is None
+
+    def _end_on_demand(self):
+        if self.on_demand and self.held == 0 and self.proc is not None:
+            self.close()
 
     def unload(self):
         """Stop the encoder process (its VRAM or RAM goes back); the encoded images stay cached on disk."""
@@ -2106,8 +2123,13 @@ class Vision:
         make room for a later one (#1072: with more than 64 unique images the first was deleted before the request
         had read it)."""
         out: list[tuple[Path, int]] = []
-        for src in sources:
-            out.append(self.encode(src, keep=[p for p, _ in out]))
+        self.held += 1                                  # on demand: one start for all of them
+        try:
+            for src in sources:
+                out.append(self.encode(src, keep=[p for p, _ in out]))
+        finally:
+            self.held -= 1
+            self._end_on_demand()
         return out
 
     def encode(self, source: str | bytes, keep=()) -> tuple[Path, int]:
@@ -2119,29 +2141,41 @@ class Vision:
             if key in self.cache:
                 self.cache[key] = self.cache.pop(key)                  # most recently used last
                 return self.cache[key]
-            img, out = self.dir / f"{key}.img", self.dir / f"{key}.sve"
-            img.write_bytes(data)
-            try:
-                self.proc.stdin.write(f"ENC {img.name} {out.name}\n")      # relative to the encoder's cwd (#480)
-                self.proc.stdin.flush()
+            if self.on_demand and (self.proc is None or self.proc.poll() is not None):
                 try:
-                    line = self._readline(VISION_ENCODE_S, "the image could not be read").strip()
-                except RuntimeError as e:                 # silent for VISION_ENCODE_S: the encoder was ended (#1317)
-                    self.stopped = True                   # alive() is False, so the next request starts it again
+                    self._start()                                      # ended by _end_on_demand (or it died)
+                except RuntimeError as e:
                     raise ValueError(str(e)) from None
-            finally:                                                   # #352: also when the encoder's pipe is gone
-                img.unlink(missing_ok=True)
-            if not line.startswith("OK"):
-                raise ValueError("the image could not be read: " + (line[4:] if line.startswith("ERR") else
-                                                                     "the vision encoder stopped"))
-            self.cache[key] = (out, int(line.split()[1]))
-            held = {str(p) for p in keep} | {str(out)}
-            for old in list(self.cache):                               # oldest first, but never one still in use
-                if len(self.cache) <= 64:
-                    break
-                if str(self.cache[old][0]) not in held:
-                    self.cache.pop(old)[0].unlink(missing_ok=True)
-            return self.cache[key]
+            try:
+                return self._encode(data, key, keep)
+            finally:
+                self._end_on_demand()
+
+    def _encode(self, data: bytes, key: str, keep) -> tuple[Path, int]:
+        """encode() of a picture that is not cached, under self.lock with the encoder running."""
+        img, out = self.dir / f"{key}.img", self.dir / f"{key}.sve"
+        img.write_bytes(data)
+        try:
+            self.proc.stdin.write(f"ENC {img.name} {out.name}\n")      # relative to the encoder's cwd (#480)
+            self.proc.stdin.flush()
+            try:
+                line = self._readline(VISION_ENCODE_S, "the image could not be read").strip()
+            except RuntimeError as e:                 # silent for VISION_ENCODE_S: the encoder was ended (#1317)
+                self.stopped = True                   # alive() is False, so the next request starts it again
+                raise ValueError(str(e)) from None
+        finally:                                                   # #352: also when the encoder's pipe is gone
+            img.unlink(missing_ok=True)
+        if not line.startswith("OK"):
+            raise ValueError("the image could not be read: " + (line[4:] if line.startswith("ERR") else
+                                                                 "the vision encoder stopped"))
+        self.cache[key] = (out, int(line.split()[1]))
+        held = {str(p) for p in keep} | {str(out)}
+        for old in list(self.cache):                               # oldest first, but never one still in use
+            if len(self.cache) <= 64:
+                break
+            if str(self.cache[old][0]) not in held:
+                self.cache.pop(old)[0].unlink(missing_ok=True)
+        return self.cache[key]
 
     def close(self):
         proc, self.proc = self.proc, None
@@ -3460,12 +3494,17 @@ class Service:
                                  f"max_tokens (at most {max(0, room)} here), or add \"fit_max_tokens\": true to the "
                                  "model's strata-<model>.json to shorten it to the room left (#545)")
             max_new = max(1, room)          # --fit-max-tokens: a shorter completion beats a 400
-        if images:
+        if images and len(encoded) == 1 and getattr(self.vision, "on_demand", False):
+            # One picture, on a Mac (the encoder started for the picture): the encoder's own file is the GENI file.
+            # Nothing is written for the request - a conversation sends its picture again every turn, which wrote
+            # ~10 MB to the SSD each time - and the file stays in the encoder's cache (not deleted after the run).
+            self.embeddings.path, self.embeddings.owned = encoded[0][0], False
+        elif images:
             # The request's images in one file for GENI (~10 MB a picture), written once nothing above refuses the
             # request: one refused after it (the engine starting, no room) left it in the vision directory for good,
             # one more for every retry of a 503.  run() deletes it; drop_embeddings() if run() never starts.
             combined = combined_embeddings_path(self.vision.dir, sum(Path(p).stat().st_size for p, _ in encoded))
-            self.embeddings.path = combined             # first, so a half-written one is found as well
+            self.embeddings.path, self.embeddings.owned = combined, True   # first, so a half-written one is found as well
             write_temporary(combined, [p for p, _ in encoded])
         if req is not None and req.get("strata_prefix") is not None:
             req["strata_prefix"] = self.resolve_prefix(req["strata_prefix"], messages, tools, kwargs, ids, bool(images))
@@ -3550,7 +3589,7 @@ class Service:
         ends): a request can end before its answer starts - its client gone, anything raised after prepare() - and
         then nothing else would.  The handler calls this when a request is done."""
         path, self.embeddings.path = getattr(self.embeddings, "path", None), None
-        if path is not None:
+        if path is not None and getattr(self.embeddings, "owned", True):
             Path(path).unlink(missing_ok=True)
 
     def _note(self, n, evs, st=None, rate=None):
@@ -3656,6 +3695,7 @@ class Service:
         looped, next_loop_check = False, LOOP_CHECK_EVERY       # #728: reasoning that repeats whole passages
         raw_ids = []                                    # every generated id (STRATA_DEBUG: dump raw model text)
         emb, self.embeddings.path = getattr(self.embeddings, "path", None), None   # this run's to delete now
+        emb_owned = getattr(self.embeddings, "owned", True)                       # (unless it is the encoder's)
         # Only a DONE line replaces engine.last, so a request that died, errored or was disconnected must not have
         # the PREVIOUS request's decode figures recorded as its own: each pass keeps its own DONE (a segment) if
         # one arrived.  A reasoning-budget continuation is another native generation, not another API request,
@@ -4008,7 +4048,7 @@ class Service:
                                 self.status.pop("tail", None)
                                 self.status.pop("tool", None)
         finally:
-            if emb:
+            if emb and emb_owned:
                 Path(emb).unlink(missing_ok=True)
         for ev in cut(parser.finish(finish)):
             yield "event", ev
@@ -6098,7 +6138,8 @@ def main() -> int:
             print(f"[strata] sampling defaults from the config: {pretty}", flush=True)
         lazy = a.lazy or cfg.get("lazy_load") is True
         if cfg.get("vision"):
-            print("loading the vision encoder ..." if not lazy else
+            print("the vision encoder starts for each request with pictures" if cfg["vision"].get("on_demand") else
+                  "loading the vision encoder ..." if not lazy else
                   "vision encoder unloaded; it starts with the model ...", flush=True)
             # relative paths are the config's cwd's, as for the engine below
             vcfg = {k: (os.path.abspath(os.path.join(cfg.get("cwd") or ".", v))

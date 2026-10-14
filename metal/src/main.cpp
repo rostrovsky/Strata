@@ -94,6 +94,7 @@ struct Options {
     float prefetch_learn = 0.1f;         // --prefetch-learn R: the prediction's per-expert correction follows what is seen at this rate
     int prefetch_threads = 4;            // of --io-threads, how many may read ahead at once
     std::string kv = "f16";
+    bool vision = false;                 // --vision: --serve takes images too (GENI; embeddings from strata-vision)
     std::vector<int64_t> eos_ids = {248044, 248046};
     // one-shot runs (no --serve)
     std::string tokens, text;
@@ -165,6 +166,7 @@ void usage() {
         "  --elastic-refill G|all   with --elastic: an expert cache that comes back (after a long prompt, or made smaller) first\n"
         "                           reads G GiB of what it held from the SSD (default 0: it fills as its experts are asked for;\n"
         "                           all: everything it held, about a second per 3 GiB before the next token)\n"
+        "  --vision                 --serve takes images too: GENI requests, the embeddings made by strata-vision\n"
         "  --kv f16|q8_0            KV cache type (default f16)\n");
 }
 
@@ -177,7 +179,7 @@ int parse_args(int argc, char** argv, Options& o) {
         "--device", "--vram-reserve-mib", "--batch", "--slots", "--batch-groups", "--layer-split", "--prompt-cache-every",
         "--prompt-cache-root", "--aux-cpus", "--expert-profile-save", "--expert-profile-save-every", "--effort-end"};
     static const char* const ignored_flag[] = {"--mmap-experts", "--resident-experts", "--vram-elastic", "--no-prefill-borrow",
-                                               "--split-skip-if-fits", "--session-save-reclaim", "--vision"};
+                                               "--split-skip-if-fits", "--session-save-reclaim"};
     for (int i = 1; i < argc; ++i) {
         const std::string a = argv[i];
         auto next = [&](const char* what) -> const char* {
@@ -209,6 +211,7 @@ int parse_args(int argc, char** argv, Options& o) {
         else if (a == "--prefill-from") o.prefill_from = std::clamp(std::atoi(next("--prefill-from")), 2, 33);
         else if (a == "--prefill-ahead") o.prefill_ahead = std::string(next("--prefill-ahead")) != "off";
         else if (a == "--elastic") o.elastic = std::string(next("--elastic")) != "off";
+        else if (a == "--vision") o.vision = true;
         else if (a == "--elastic-short") o.elastic_short = std::max(0, std::atoi(next("--elastic-short")));
         else if (a == "--elastic-refill") {
             const std::string v = next("--elastic-refill");
@@ -453,8 +456,48 @@ llama_sampler* make_sampler(const Sampling& s, int32_t n_vocab) {
 
 // A point of the conversation the engine can return to: the recurrent (DeltaNet) state after `tokens`.  The
 // attention's KV needs no copy - its cells past the point are dropped when the engine goes back.
+// A picture in the context (--vision): a run of <|image_pad|> tokens that the model reads as the rows strata-vision
+// made of it, at mtmd's M-RoPE positions: every row at t = p, its height p + y and width p + x (row i of the grid at
+// x = i % nx, y = i / nx), and the text after it from p + max(nx, ny) on.  So a token's position is its index only
+// until the first picture.  Two pictures of the same size are the same pad tokens: the hash tells them apart.
+struct Image {
+    int64_t at = 0;                       // its first token
+    int64_t n = 0, nx = 0, ny = 0;
+    uint64_t hash = 0;                    // of the grid and the rows
+    size_t row0 = 0;                      // where its rows start in the request's rows (only while it is read)
+    bool same(const Image& b) const { return at == b.at && n == b.n && nx == b.nx && ny == b.ny && hash == b.hash; }
+};
+
+// the position (t) of token i in a context that holds `images` (in order)
+llama_pos pos_of(const std::vector<Image>& images, int64_t i) {
+    int64_t shift = 0;
+    for (const Image& m : images) {
+        if (i < m.at) break;
+        if (i < m.at + m.n) return (llama_pos) (m.at - shift);
+        shift += m.n - std::max(m.nx, m.ny);
+    }
+    return (llama_pos) (i - shift);
+}
+
+// how far two contexts' pictures agree: `upto`, or the first picture before it that is not in both at the same place
+int64_t images_agree(const std::vector<Image>& a, const std::vector<Image>& b, int64_t upto) {
+    size_t k = 0;
+    for (; k < a.size() && k < b.size() && (a[k].at < upto || b[k].at < upto); ++k)
+        if (!a[k].same(b[k])) return std::min({upto, a[k].at, b[k].at});
+    if (k < a.size() && a[k].at < upto) upto = a[k].at;
+    if (k < b.size() && b[k].at < upto) upto = b[k].at;
+    return upto;
+}
+
+uint64_t fnv1a(const void* p, size_t n, uint64_t h = 1469598103934665603ull) {
+    const auto* b = (const uint8_t*) p;
+    for (size_t i = 0; i < n; ++i) h = (h ^ b[i]) * 1099511628211ull;
+    return h;
+}
+
 struct Checkpoint {
     std::vector<llama_token> tokens;
+    std::vector<Image> images;            // the pictures among them
     std::vector<uint8_t> state;
 };
 
@@ -551,6 +594,12 @@ struct Engine {
     double reshape_ms_ = 0;
 
     std::vector<llama_token> live;        // what the context holds
+    std::vector<Image> live_images;       // ... and the pictures among it
+    // the request's pictures (GENI) and their rows, n_embd_inp_ floats each; none for a text request
+    std::vector<Image> req_images_;
+    std::vector<float> req_rows_;
+    llama_token image_pad = LLAMA_TOKEN_NULL;
+    int32_t n_embd_inp_ = 0;
     std::deque<Checkpoint> checkpoints;   // oldest first
     static constexpr size_t kMaxCheckpoints = 6;
 
@@ -1071,7 +1120,11 @@ struct Engine {
         {
             llama_token t[4];
             if (llama_tokenize(vocab, "<|im_start|>", 12, t, 4, false, true) == 1) im_start = t[0];
+            if (llama_tokenize(vocab, "<|image_pad|>", 13, t, 4, false, true) == 1) image_pad = t[0];
+            // tests only: the tiny models have no tokenizer (metal/tests/vision_test.py)
+            if (const char* v = std::getenv("STRATA_METAL_TEST_IMAGE_PAD")) image_pad = (llama_token) std::atoi(v);
         }
+        n_embd_inp_ = llama_model_n_embd_inp(model);
         // the MTP head's weights go on the GPU before the expert cache is sized: its memory comes out of the cache's
         uint64_t mtp_bytes = 0;
         {
@@ -1533,6 +1586,109 @@ struct Engine {
         return true;
     }
 
+    // GENI: the request's pictures, from the file strata-vision's records were put together in - per picture, in the
+    // prompt's order, int32 {'SVE1', n, nx, ny, n_embd} and then n rows of n_embd floats - each on its run of
+    // <|image_pad|> tokens (serve/server.py writes n of them for a picture of n rows).  "" or what is wrong.
+    std::string load_pictures(const std::string& path, const std::vector<llama_token>& ids) {
+        req_images_.clear();
+        req_rows_.clear();
+        if (image_pad == LLAMA_TOKEN_NULL) return "the model's vocabulary has no <|image_pad|> token";
+        std::FILE* f = std::fopen(path.c_str(), "rb");
+        if (!f) return "cannot open " + path;
+        std::string ve;
+        for (;;) {
+            int32_t hdr[5];
+            const size_t got = std::fread(hdr, sizeof(int32_t), 5, f);
+            if (got == 0) break;
+            if (got != 5 || hdr[0] != 0x31455653 || hdr[1] < 1 || hdr[2] < 1 || hdr[3] < 1 ||
+                (int64_t) hdr[2] * hdr[3] != hdr[1] || hdr[4] != n_embd_inp_) {
+                ve = "bad embeddings file (expected strata-vision records of width " + std::to_string(n_embd_inp_) + ")";
+                break;
+            }
+            Image m;
+            m.n = hdr[1];
+            m.nx = hdr[2];
+            m.ny = hdr[3];
+            m.row0 = req_rows_.size();
+            const size_t cnt = (size_t) m.n * (size_t) n_embd_inp_;
+            req_rows_.resize(m.row0 + cnt);
+            if (std::fread(req_rows_.data() + m.row0, sizeof(float), cnt, f) != cnt) {
+                ve = "short embeddings file";
+                break;
+            }
+            const int64_t grid[3] = {m.n, m.nx, m.ny};
+            m.hash = fnv1a(req_rows_.data() + m.row0, cnt * sizeof(float), fnv1a(grid, sizeof grid));
+            req_images_.push_back(m);
+        }
+        std::fclose(f);
+        const int64_t n = (int64_t) ids.size();
+        size_t k = 0;
+        for (int64_t i = 0; ve.empty() && i < n;) {
+            if (ids[(size_t) i] != image_pad) {
+                ++i;
+                continue;
+            }
+            if (k >= req_images_.size()) {
+                ve = "the prompt has more pictures than the embeddings file";
+                break;
+            }
+            Image& m = req_images_[k++];
+            m.at = i;
+            for (int64_t j = 0; j < m.n && ve.empty(); ++j)
+                if (i + j >= n || ids[(size_t) (i + j)] != image_pad)
+                    ve = "picture " + std::to_string(k) + " has " + std::to_string(m.n) + " rows but fewer <|image_pad|> tokens";
+            i += m.n;
+        }
+        if (ve.empty() && k != req_images_.size()) ve = "the embeddings file has more pictures than the prompt";
+        if (ve.empty() && n > 0 && ids[(size_t) (n - 1)] == image_pad) ve = "the prompt cannot end in a picture";
+        if (!ve.empty()) {
+            req_images_.clear();
+            req_rows_.clear();
+        }
+        return ve;
+    }
+
+    // A pass over ids[at, at + take) of a request with pictures: every token at its M-RoPE position (Image), a
+    // picture's tokens as its rows - in the same pass as the text around them - and the last token's logits.
+    bool decode_pictures(const std::vector<llama_token>& ids, int64_t at, int32_t take, std::string& err) {
+        llama_batch_ext* b = llama_batch_ext_init(ctx);
+        bool ok = b != nullptr;
+        int32_t idx = -1;
+        size_t k = 0;
+        for (int64_t i = at; ok && i < at + take; ++i) {
+            while (k < req_images_.size() && req_images_[k].at + req_images_[k].n <= i) ++k;
+            if (k < req_images_.size() && i >= req_images_[k].at) {
+                const Image& m = req_images_[k];
+                const int64_t j = i - m.at;
+                const llama_pos t = pos_of(req_images_, m.at);
+                const llama_pos p[4] = {t, t + (llama_pos) (j / m.nx), t + (llama_pos) (j % m.nx), 0};   // t, y, x, -
+                idx = llama_batch_ext_add_embd(b, 0, {req_rows_.data() + m.row0 + (size_t) j * (size_t) n_embd_inp_, 1,
+                                                      (size_t) n_embd_inp_});
+                ok = idx >= 0 && llama_batch_ext_set_pos(b, idx, p);
+            } else {
+                const llama_pos p = pos_of(req_images_, i);
+                idx = llama_batch_ext_add_token(b, 0, ids[(size_t) i]);
+                ok = idx >= 0 && llama_batch_ext_set_pos(b, idx, &p);
+            }
+        }
+        ok = ok && llama_batch_ext_set_output_logits(b, idx, true);
+        if (!ok) {
+            if (b) llama_batch_ext_free(b);
+            err = "a pass over a picture could not be put together (" + std::to_string(take) + " tokens)";
+            return false;
+        }
+        const auto t0 = Clock::now();
+        const int32_t r = llama_process(ctx, LLAMA_PROCESS_TYPE_DECODE, b);
+        llama_batch_ext_free(b);
+        pass_ms_ += ms_since(t0);
+        ++passes_;
+        if (r != 0) {
+            err = r == 1 ? "the context is full" : "the model pass failed (llama_process " + std::to_string(r) + ")";
+            return false;
+        }
+        return true;
+    }
+
     // drafts are made and checked: by the MTP head, by lookup, or both
     bool drafting() const { return o.spec > 0 && ((mtp && mtp->use) || o.lookup > 0); }
 
@@ -1590,6 +1746,7 @@ struct Engine {
         c.state.resize(size);
         if (llama_state_seq_get_data_ext(ctx, c.state.data(), size, 0, LLAMA_STATE_SEQ_FLAGS_PARTIAL_ONLY) != size) return;
         c.tokens = live;
+        c.images = live_images;
         if (o.verbose) std::fprintf(stderr, "strata metal: conversation checkpoint at %zu tokens, %.1f MiB\n", live.size(), (double) size / kMiB);
         checkpoints.push_back(std::move(c));
         while (checkpoints.size() > kMaxCheckpoints) checkpoints.pop_front();
@@ -1597,24 +1754,29 @@ struct Engine {
 
     // Brings the context to the longest start of `ids` it can: what it already holds, or a checkpoint.  Returns the
     // number of prompt tokens that need no reading.  At least one token is always left to read (its logits).
+    // (With pictures, the request's req_images_: a picture is shared only where both have the same one at the same
+    // place, and the KV cache is cut at positions, not at token counts.)
     int64_t resume(const std::vector<llama_token>& ids) {
         llama_memory_t mem = llama_get_memory(ctx);
         size_t lcp = 0;
         while (lcp < live.size() && lcp < ids.size() && live[lcp] == ids[lcp]) ++lcp;
+        lcp = (size_t) images_agree(live_images, req_images_, (int64_t) lcp);
         if (lcp == live.size() && lcp < ids.size() && lcp > 0) return (int64_t) lcp;   // the prompt continues the context
         const Checkpoint* best = nullptr;
         for (const Checkpoint& c : checkpoints)
             if (c.tokens.size() <= lcp && c.tokens.size() < ids.size() && (!best || c.tokens.size() > best->tokens.size()) &&
-                std::equal(c.tokens.begin(), c.tokens.end(), ids.begin()))
+                std::equal(c.tokens.begin(), c.tokens.end(), ids.begin()) &&
+                images_agree(c.images, req_images_, (int64_t) c.tokens.size()) == (int64_t) c.tokens.size())
                 best = &c;
         if (best != nullptr) {
             const size_t n = best->tokens.size();
             const bool ok =
                 llama_state_seq_set_data_ext(ctx, best->state.data(), best->state.size(), 0,
                                              LLAMA_STATE_SEQ_FLAGS_PARTIAL_ONLY) == best->state.size() &&
-                llama_memory_seq_rm(mem, 0, (llama_pos) n, -1);
+                llama_memory_seq_rm(mem, 0, pos_of(best->images, (int64_t) n), -1);
             if (ok) {
                 live.resize(n);
+                live_images = best->images;
                 for (auto it = checkpoints.begin(); it != checkpoints.end();)   // points past it are gone with its KV
                     it = it->tokens.size() > n ? checkpoints.erase(it) : it + 1;
                 return (int64_t) n;
@@ -1623,6 +1785,7 @@ struct Engine {
         }
         llama_memory_clear(mem, true);
         live.clear();
+        live_images.clear();
         checkpoints.clear();
         return 0;
     }
@@ -1745,11 +1908,13 @@ struct Engine {
                         last_pp = Clock::now();
                     };
                 }
-                const bool decoded = decode(ids.data() + at, take, err);
+                const bool decoded = req_images_.empty() ? decode(ids.data() + at, take, err) : decode_pictures(ids, at, take, err);
                 fetch.on_layer = nullptr;
                 if (!decoded) return false;
                 live.insert(live.end(), ids.begin() + at, ids.begin() + at + take);
                 at += take;
+                while (live_images.size() < req_images_.size() && req_images_[live_images.size()].at < at)
+                    live_images.push_back(req_images_[live_images.size()]);
                 if (long_pass) drop_rows();
                 if (o.verbose) {   // where the context's memory grows as it fills (the plan measures an empty one)
                     uint64_t used = 0, ws = 0;
@@ -1800,7 +1965,8 @@ struct Engine {
             };
             // (teacher forcing keeps the drafts: a forced token is checked against them as a chosen one would be, so
             // every position's logits come from the same kind of pass as in a free run)
-            const bool spec = drafting();
+            // (no drafts while the context holds a picture: they would go to positions the pictures moved)
+            const bool spec = drafting() && live_images.empty();
             llama_memory_t mem = llama_get_memory(ctx);
             llama_token t = LLAMA_TOKEN_NULL;
             bool go = emit(-1, t);
@@ -2036,17 +2202,15 @@ int serve(Engine& e) {
     while (in.next(line)) {
         if (line.empty()) continue;
         if (line == "QUIT") break;
-        if (line.rfind("GENI ", 0) == 0) {
-            std::printf("ERR this engine was started without --vision\n");
-            continue;
-        }
-        if (line.rfind("GEN ", 0) != 0) {
-            std::printf("ERR %s is not available in the Metal engine (GEN <max_new> <id,id,...>)\n",
-                        line.substr(0, line.find(' ')).c_str());
+        // GENI <max_new> [keys] <embeddings file> <id,id,...>: a prompt with pictures (--vision, Engine::load_pictures)
+        const bool geni = line.rfind("GENI ", 0) == 0;
+        if (!geni && line.rfind("GEN ", 0) != 0) {
+            std::printf("ERR %s is not available in the Metal engine (GEN <max_new> <id,id,...> or GENI <max_new> <file> "
+                        "<id,id,...>)\n", line.substr(0, line.find(' ')).c_str());
             continue;
         }
         char* endp = nullptr;
-        const long long max_new = std::strtoll(line.c_str() + 4, &endp, 10);
+        const long long max_new = std::strtoll(line.c_str() + (geni ? 5 : 4), &endp, 10);
         Sampling sp;
         Engine::Extras ex;
         bool has_bias = false, want_stats = false;
@@ -2091,9 +2255,17 @@ int serve(Engine& e) {
             std::printf("ERR logit_bias: not available in the Metal engine\n");
             continue;
         }
+        std::string emb_path;   // GENI: the first word after the keys
+        if (geni) {
+            while (*endp == ' ') ++endp;
+            if (char* gap = std::strchr(endp, ' ')) {
+                emb_path.assign(endp, (size_t) (gap - endp));
+                endp = gap;
+            }
+        }
         std::vector<int64_t> raw;
         std::string pe;
-        if (max_new < 1 || !parse_i64_list(endp, raw, pe)) {
+        if (max_new < 1 || (geni && emb_path.empty()) || !parse_i64_list(endp, raw, pe)) {
             std::printf("ERR bad request: %s\n", pe.empty() ? "max_new" : pe.c_str());
             continue;
         }
@@ -2124,6 +2296,20 @@ int serve(Engine& e) {
         if (bad) {
             std::printf("ERR a forced token id is outside the vocabulary\n");
             continue;
+        }
+        e.req_images_.clear();
+        e.req_rows_.clear();
+        if (geni) {
+            const std::string ve = !e.o.vision ? "this engine was started without --vision"
+                                 : e.mtp ? "pictures are not read beside the MTP head (--mtp, STRATA_MTP_PROBE)"
+                                 : e.load_pictures(emb_path, ids);
+            if (!ve.empty()) {
+                e.req_images_.clear();
+                e.req_rows_.clear();
+                std::printf("ERR %s\n", ve.c_str());
+                std::fflush(stdout);
+                continue;
+            }
         }
         const int32_t n_vocab = e.n_vocab;
         const bool ok = e.generate(
@@ -2156,10 +2342,14 @@ int serve(Engine& e) {
                 std::printf("\n");
             },
             r, err);
+        // the rows were read with the prompt (the context keeps the pictures' hashes in live_images)
+        e.req_images_.clear();
+        std::vector<float>().swap(e.req_rows_);
         if (!ok) {
             // the context is in an unknown state after a failed pass: the next request reads its prompt from the start
             if (!e.broken_) llama_memory_clear(llama_get_memory(e.ctx), true);
             e.live.clear();
+            e.live_images.clear();
             e.checkpoints.clear();
             std::printf("ERR %s\n", err.c_str());
             std::fflush(stdout);

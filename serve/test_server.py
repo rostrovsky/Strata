@@ -4909,6 +4909,53 @@ class VisionCacheEviction(unittest.TestCase):
             self.assertFalse(first.exists())
 
 
+class VisionOnDemand(unittest.TestCase):
+    """"on_demand" (Apple): the encoder starts for a request's pictures, ends once they are encoded, and is never
+    started ahead of the engine; a cached picture starts nothing; one picture is handed over as the encoder's own file."""
+
+    def make(self, d):
+        import serve.server as server
+        v = VisionCacheEviction.make(self, d)
+        v.on_demand = True
+        v.starts, v.closes = 0, 0
+        pipe = v.proc.stdin
+        v.proc = None
+
+        def start():
+            v.starts += 1
+            v.proc = SimpleNamespace(stdin=pipe, stdout=pipe, poll=lambda: None)
+
+        def close():
+            v.closes += 1
+            v.proc = None
+        v._start, v.close = start, close
+        self.assertIsInstance(v, server.Vision)
+        return v
+
+    def test_started_per_request_and_ended_after_it(self):
+        with tempfile.TemporaryDirectory() as t:
+            v = self.make(Path(t))
+            self.assertTrue(v.alive())                   # nothing to start before the engine
+            v.encode_all([b"one", b"two", b"three"])
+            self.assertEqual((v.starts, v.closes), (1, 1))   # one start for the request's pictures
+            self.assertIsNone(v.proc)
+            v.encode(b"two")                             # cached: no start
+            self.assertEqual(v.starts, 1)
+            v.encode(b"four")
+            self.assertEqual((v.starts, v.closes), (2, 2))
+
+    def test_no_warmup_and_no_start_at_construction(self):
+        import serve.server as server
+        with mock.patch.object(server.Vision, "_start") as start:
+            v = server.Vision({"exe": "strata-vision", "mmproj": "m.gguf", "model": "t.gguf", "gpu": True,
+                               "on_demand": True})
+            try:
+                start.assert_not_called()
+                self.assertIn("--no-warmup", v.spawn[0])
+            finally:
+                shutil.rmtree(v.dir, ignore_errors=True)
+
+
 class BudgetOverRam(unittest.TestCase):
     """#1080: a RAM budget above what the PC has free is a warning at start, not silence and not a refusal."""
 

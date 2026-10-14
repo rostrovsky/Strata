@@ -88,6 +88,12 @@ set(LLAMA_BUILD_EXAMPLES OFF CACHE BOOL "" FORCE)
 set(LLAMA_BUILD_SERVER OFF CACHE BOOL "" FORCE)
 set(LLAMA_BUILD_APP OFF CACHE BOOL "" FORCE)
 set(LLAMA_OPENSSL OFF CACHE BOOL "" FORCE)
+# strata-vision (tools/vision): the image encoder, llama.cpp's mtmd library on the same ggml as the engine
+option(STRATA_METAL_VISION "Build strata-vision, the image encoder" ON)
+if(STRATA_METAL_VISION)
+  set(LLAMA_BUILD_MTMD ON CACHE BOOL "" FORCE)
+  set(MTMD_VIDEO OFF CACHE BOOL "" FORCE)
+endif()
 add_subdirectory(${_llama} ${CMAKE_BINARY_DIR}/llama EXCLUDE_FROM_ALL)
 
 add_executable(strata src/main.cpp src/gpu_keepalive.mm)
@@ -98,6 +104,13 @@ target_compile_definitions(strata PRIVATE STRATA_VERSION="${PROJECT_VERSION}-met
 target_compile_options(strata PRIVATE -Wall -Wextra)
 target_link_libraries(strata PRIVATE llama ggml "-framework Metal" "-framework Foundation")
 set_target_properties(strata PROPERTIES RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
+
+if(STRATA_METAL_VISION)
+  add_executable(strata-vision ${STRATA_ROOT}/tools/vision/strata_vision.cpp)
+  target_link_libraries(strata-vision PRIVATE mtmd llama)
+  target_compile_features(strata-vision PRIVATE cxx_std_17)
+  set_target_properties(strata-vision PROPERTIES RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
+endif()
 
 option(STRATA_METAL_BUILD_TESTS "Build Metal kernel regression tests" OFF)
 if(STRATA_METAL_BUILD_TESTS)
