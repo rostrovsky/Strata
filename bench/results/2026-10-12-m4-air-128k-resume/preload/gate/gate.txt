@@ -1,0 +1,7 @@
+record (HEAD's default path) rc=0 swapouts=0: expert cache 1529 experts
+default rc=0 swapouts=0: GATE PASSED: chat identical, code identical, doc8k identical; expert cache 1529 experts; filled with the profile's 1529 most used
+empty rc=0 swapouts=0: GATE PASSED: chat identical, code identical, doc8k identical; expert cache 1529 experts; starts empty
+empty-indexed rc=0 swapouts=0: GATE PASSED: chat identical, code identical, doc8k identical; expert cache 1529 experts; starts empty
+empty-elastic rc=0 swapouts=0: GATE PASSED: chat identical, code identical, doc8k identical; expert cache 1529 experts; starts empty
+empty-elastic8k rc=0 swapouts=0: GATE PASSED: chat identical, code identical, doc8k identical; expert cache 1529 experts; starts empty
+fill1-elastic rc=0 swapouts=0: GATE PASSED: chat identical, code identical, doc8k identical; expert cache 1529 experts; filled with the profile's 522 most used

@@ -1,0 +1,11 @@
+19:27:12 BASELINE swapouts 1586587, swap used 1693.88 MiB, pressure 1, free 12.47 + file cache 3.38 GiB, compressor 10.73 in 3.85 GiB, SoC 44.3 C, battery 31.3 C
+19:27:12 STARTED pid 83421: .venv/bin/python -u bench/results/2026-10-12-m4-air-128k-resume/preload/starts.py --config strata-iq3_s.json --out build-metal/preload-start --name starts1 --cases chat,doc2000 --runs 2 --ab STRATA_PR
+19:27:17 ok +5 s: swap-outs new 0, pressure 1, free 11.88 + file 3.39 GiB, compressor 10.73 in 3.85 GiB, SoC 42.2 C | 
+19:29:18 ok +126 s: swap-outs new 0, pressure 1, free 0.13 + file 3.33 GiB, compressor 10.95 in 3.95 GiB, SoC 60.2 C | [19:28:57] chat, STRATA_PRELOAD=0 build-metal/preload-start/strata: SoC 44.8 C
+19:31:19 ok +247 s: swap-outs new 0, pressure 1, free 12.13 + file 3.16 GiB, compressor 10.92 in 3.93 GiB, SoC 50.0 C | ready 3.15 s (weights 2.2 s, fill 0.0 s, 0.0 GiB); cache 6493 MiB; engine swap-outs 0
+19:33:20 ok +368 s: swap-outs new 0, pressure 1, free 12.46 + file 3.27 GiB, compressor 10.9 in 3.92 GiB, SoC 46.8 C | ready 5.19 s (weights 2.2 s, fill 2.1 s, 6.33 GiB); cache 6493 MiB; engine swap-outs 0
+19:35:22 ok +490 s: swap-outs new 0, pressure 1, free 12.84 + file 3.17 GiB, compressor 10.89 in 3.92 GiB, SoC 47.2 C | ready 5.17 s (weights 2.2 s, fill 2.1 s, 6.33 GiB); cache 6493 MiB; engine swap-outs 0
+19:37:23 ok +611 s: swap-outs new 0, pressure 1, free 12.1 + file 3.26 GiB, compressor 10.88 in 3.91 GiB, SoC 58.4 C | ready 3.11 s (weights 2.2 s, fill 0.0 s, 0.0 GiB); cache 6493 MiB; engine swap-outs 0
+19:39:24 ok +732 s: swap-outs new 0, pressure 1, free 0.36 + file 3.19 GiB, compressor 10.64 in 3.89 GiB, SoC 70.9 C | [19:38:38] doc2000, STRATA_PRELOAD=0 build-metal/preload-start/strata: SoC 44.5 C
+19:41:25 ok +853 s: swap-outs new 0, pressure 1, free 4.22 + file 3.19 GiB, compressor 10.68 in 3.95 GiB, SoC 50.8 C | [19:41:20] doc2000, STRATA_PRELOAD=all build-metal/preload-start/strata: SoC 44.5 C
+19:43:18 DONE exit code 0, new swap-outs over the whole run 0 pages, swap used 1693.88 MiB (was 1693.88), peak pressure level 1, engine still running: [], stopped: False

@@ -1,0 +1,10 @@
+19:43:19 BASELINE swapouts 1586587, swap used 1693.88 MiB, pressure 1, free 13.43 + file cache 3.25 GiB, compressor 10.65 in 3.93 GiB, SoC 48.8 C, battery 33.1 C
+19:43:19 STARTED pid 87032: .venv/bin/python -u bench/results/2026-10-12-m4-air-128k-resume/preload/starts.py --config strata-iq3_s.json --out build-metal/preload-start --name starts2 --cases doc500 --runs 2 --ab STRATA_PRELOAD=
+19:43:24 ok +5 s: swap-outs new 0, pressure 1, free 12.6 + file 3.31 GiB, compressor 10.64 in 3.93 GiB, SoC 46.8 C | 
+19:45:25 ok +126 s: swap-outs new 0, pressure 1, free 14.44 + file 3.12 GiB, compressor 11.14 in 4.02 GiB, SoC 45.9 C | ready 5.06 s (weights 2.1 s, fill 2.1 s, 6.33 GiB); cache 6493 MiB; engine swap-outs 0
+19:47:26 ok +247 s: swap-outs new 0, pressure 1, free 8.04 + file 5.47 GiB, compressor 11.11 in 4.01 GiB, SoC 49.0 C | [19:47:25] doc500, STRATA_PRELOAD=1 build-metal/preload-start/strata: SoC 44.8 C
+19:49:27 ok +368 s: swap-outs new 0, pressure 1, free 2.17 + file 3.05 GiB, compressor 10.93 in 3.99 GiB, SoC 58.4 C | [19:49:09] doc500, STRATA_PRELOAD=2 build-metal/preload-start/strata: SoC 44.8 C
+19:51:28 ok +489 s: swap-outs new 0, pressure 1, free 1.97 + file 3.06 GiB, compressor 10.97 in 4.0 GiB, SoC 64.8 C | request 1: 500 read (0 reused), sent at 3.73 s; from the launch t1=15.64 t2=15.78 t10=17.02 t25=19.50 t50=23.06 t64=25.26 t100=30.29; written 6.76 tok
+19:53:29 ok +610 s: swap-outs new 0, pressure 1, free 14.02 + file 3.06 GiB, compressor 10.94 in 3.98 GiB, SoC 53.2 C | ready 3.43 s (weights 2.2 s, fill 0.4 s, 1.01 GiB); cache 6493 MiB; engine swap-outs 0
+19:55:30 ok +731 s: swap-outs new 0, pressure 1, free 13.98 + file 3.07 GiB, compressor 10.93 in 3.97 GiB, SoC 49.4 C | ready 3.02 s (weights 2.1 s, fill 0.0 s, 0.0 GiB); cache 6493 MiB; engine swap-outs 0
+19:57:59 DONE exit code 0, new swap-outs over the whole run 0 pages, swap used 1693.88 MiB (was 1693.88), peak pressure level 1, engine still running: [], stopped: False

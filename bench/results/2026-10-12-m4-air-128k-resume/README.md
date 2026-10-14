@@ -1292,3 +1292,130 @@ The build that was measured and gated is `build-metal/borrow/strata` (HEAD `ff1c
 `b3ea9f16...`; HEAD's own as `build-metal/borrow/strata-head`). `build-metal/bin/strata` was rebuilt from the working
 tree (`4fae187e...`), which also holds another session's uncommitted `--preload` change (its default unchanged); the
 30 tiny-model runs pass on both. The patched llama.cpp tree and `metal/patches/` were not touched.
+
+## 17. Night of 2026-10-14: the engine's start without the profile's fill
+
+Point 2 of section 12's list. The engine's start reads the profile's most used experts into the cache before it
+says READY: 2.1 s for this evening's 6.3 GiB, 3.5 s for 11 GiB on 2026-10-13. The server starts the engine afresh
+after 900 s without a request, so that time is part of the first answer after every pause. Section 12 found that
+a pass which finds the cache empty reads only what it needs; does a start with nothing filled answer sooner?
+
+`--preload G|all` (new; `STRATA_PRELOAD` where it is not given): the start reads the profile's most used G GiB,
+`all` (the default) as before, 0 nothing (= `--no-preload`). The profile is read either way: the first pass of a
+long prompt guesses its read-ahead from it, and `--elastic-refill` takes its list from it (before, `--no-preload`
+dropped both).
+
+Everything below is the real model at the installed configuration on the desktop as it was this evening (other
+programs held 13-16.6 GiB; the automatic cache was 7,199 MiB in the first start), the same 6,493 MiB cache in every
+start (`--expert-cache-cap 6500`), the SoC cooled to 45 C before every start, every run under
+`metal/tools/swapwatch.py` with a 1 Hz `vm_stat` trace. [starts.py](preload/starts.py) launches the engine, sends a
+request the moment it says READY, then the answer and a one-line question; every time is from the launch
+(`bench.py`'s `Engine` keeps the launch time now, and every request the second it was sent, `sent_s`). Three
+cases: a 33-token question (read in passes the cache serves: the engine cuts a prompt before its last message opens
+and before its last token), a 500-token document (one pass beside the cache, which copies what the cache holds),
+a 2,000-token document (a long prompt: the cache is given up for it). 100 tokens written, then 64.
+
+### First: an empty start threw its first long pass's read-ahead away
+
+([before-fix/tables.md](preload/before-fix/tables.md); A B B A, and A B C D D C B A for 500 tokens; the binary
+of HEAD `d8e59043` with `--preload`)
+
+| | All filled | Nothing | 1 GiB | 2 GiB |
+| --- | ---: | ---: | ---: | ---: |
+| READY | 5.06-5.19 s | 2.99-3.15 s | 3.38-3.43 s | 3.71-3.75 s |
+| 33 tokens: first token; 50th | 9.80-9.93; 17.88-18.03 s | **8.21-8.29; 16.40-16.42 s** | | |
+| 500 tokens: first token; 50th | 15.75-15.96; 23.04-23.33 s | 23.00-23.07; 30.68-30.75 s | 15.79-15.80; 23.22-23.37 s | 15.64-15.79; 23.06-23.33 s |
+| 2,000 tokens: first token; 50th | 27.50-27.56; 35.06-35.18 s | 35.25-35.74; 42.94-43.52 s | | |
+
+7-8 s later after 500 and 2,000 tokens. The STAT lines said why: the empty start's 500-token pass staged 28.2 GB
+of read-ahead and used none of it, and read 61.8 GB from the SSD where the filled start read 31.0 (2,000 tokens:
+35.6 GB staged, none used, 77.3 GB against 45.9). `ExpertFetch::fetch` (`metal/src/expert_io.hpp`) took a staged
+read only for a tensor whose place in the file an earlier waited-for read had proven. The start's fill proves all
+144 expert tensors; an empty start proves none, so its first long pass read every layer ahead and then again. A
+fill of 1 GiB proved enough of them.
+
+Now a staged read is taken for a tensor not proven yet too. The call waits for it, and the first bytes it hands
+over are compared with the mapped file afterwards, as those of a direct read are (a mismatch falls back to
+llama.cpp's own upload, as before). With the fill, the default, nothing changes: every tensor is proven before the
+first pass. The cache's own read-ahead (`fetch_async`, not waited for) still asks for a proven tensor.
+
+### Then, with that fixed
+
+([fixed/tables.md](preload/fixed/tables.md), [fixed/starts3.out](preload/fixed/starts3.out); A B C C B A per case;
+HEAD `71b845ce` with this change, which includes section 16's rule that a stretch is read beside the cache only in
+free pages; SHA-256 `4fae187e...`)
+
+| | All filled | Nothing | 1 GiB |
+| --- | ---: | ---: | ---: |
+| READY | 5.11-5.18 s | 3.04-3.13 s | 3.39-3.46 s |
+| 33 tokens: first token | 9.45, 9.69 s | **7.84, 7.90 s** | 7.97, 7.98 s |
+| ... 50th token | 17.34, 17.81 s | **15.79, 15.82 s** | 15.86, 15.86 s |
+| ... second request: first, 50th token | 27.23-27.63, 35.21-35.65 s | 25.69-25.78, 33.81-34.01 s | 25.75-28.84, 34.00-37.05 s |
+| 500 tokens: first token | **15.61, 15.77 s** | 15.81, 17.08 s | 17.26, 17.27 s |
+| ... 50th token | **22.92, 23.27 s** | 23.34, 24.64 s | 24.68, 24.73 s |
+| ... second request: first, 50th token | 32.58-32.87, 39.68-40.06 s | 32.91-34.08, 40.05-41.10 s | 34.14-34.17, 41.23-41.28 s |
+| 2,000 tokens: first token | 27.25, 28.31 s | **25.45, 26.43 s** | 25.60, 26.65 s |
+| ... 50th token | 34.69, 35.74 s | **32.88, 33.85 s** | 33.03, 34.07 s |
+| ... second request: first, 50th token | 45.68-46.68, 52.77-53.92 s | 43.84-44.98, 50.94-52.17 s | 43.96-44.99, 51.06-52.10 s |
+
+- **33 tokens: 1.6-1.9 s sooner** with nothing filled. The prompt costs it 0.2-0.5 s (670 more misses, and 450
+  fewer experts read ahead in its first passes, which wait for proven tensors) of the 2.1 s saved at READY.
+- **2,000 tokens: 1.8-1.9 s sooner.** The pass is the same either way (46.0 GB from the SSD, 31.3 of 35.6 GB
+  staged and used, 22.1-23.4 s).
+- **500 tokens: 0.04-1.5 s later at the first token, 0.07-1.7 s at the 50th.** The pass beside the cache reads
+  what the filled cache would have let it copy (38.3 against 28.1 GB from the SSD; 12.66 s against 10.42-10.65),
+  which takes the 2.1 s back. And in three of the four starts with nothing or 1 GiB filled the pass had no
+  read-ahead buffer ("the memory for it is not free", section 16), 13.8-14.0 s. The per-second trace shows why: an
+  engine that fills nothing says READY while macOS is still making room for its memory, and the free pages fell
+  from 6-12 GiB to 0.1-1.2 GiB in the two seconds around the request; after the 2.1 s of reading they had settled
+  at 1.2-2.1 GiB.
+- **The two converge in the answer**: the misses per written token are the same in all three settings (62.0,
+  55.9-57.5 and 65.3 in the first request, 76.3-76.4, 65.0 and 57.3 in the second); a start is ahead or behind by
+  what its prompt cost, and stays so.
+- **A fill of 1 GiB** is no better than none for the 500-token prompt (17.26, 17.27 s; no read-ahead buffer either
+  time) and 0.1-0.2 s behind none for the others.
+- The written IDs are the same in every start of each case, in both requests (both series).
+- No swap-out. Compressed per engine start ([summ.py](preload/summ.py) on the traces): nothing in 17 of the 18
+  starts of the second series (0.48 GiB in one start with nothing filled); 0.00-0.63 GiB in the first, with no
+  pattern by setting. The evening's first start (uncapped, 7,199 MiB, all filled; [smoke.out](preload/before-fix/smoke.out))
+  had macOS compress 2.12 GiB, 1.30 of it in the second the cache was made.
+
+**The start keeps its fill** (`--preload all`): an empty start is not ahead in all three cases. Which case the
+first request after a pause usually is decides it: in the server's log the first requests after its last eleven
+engine starts were 23, 891, 65 (five times), 2,502, 4,056, 4,057 and 4,093 tokens; the ones of about 4,000
+are most likely pi's (its system prompt and a question): the 2,000-token case. `"--preload", "0"` in the config's
+`args` is the switch; not done, that is the owner's call.
+
+### Same output
+
+- **Tiny model**, 23 runs ([preload/tests/](preload/tests/), [run_tests.sh](preload/tests/run_tests.sh)): section
+  12's 22 (the shape test with both back-off simulations and `STRATA_KV_STEP=256`, parity on eight paths, the
+  protocol suite, also with `STRATA_VERIFY_CACHE=1`, each also with `STRATA_ELASTIC_REFILL=all`) and the new
+  [metal/tests/preload_test.py](../../../metal/tests/preload_test.py): a profile of the tiny model's experts, the
+  start filling all, none or part of it (by option and by `STRATA_PRELOAD`), a short and a long prompt with and
+  without `--elastic`, and the read-back after a long prompt with nothing filled at the start; same IDs throughout.
+- **Real-model exact gate** ([gate_preload.sh](preload/gate_preload.sh), [gate/gate.txt](preload/gate/gate.txt)):
+  HEAD's engine (`71b845ce`, built from its sources into `build-metal/preload-start/head/`) records chat, code and
+  the 7,900-token document on its plain path; this build's default start (the cache filled), a start with nothing
+  filled on the plain, indexed, `--elastic` and `--elastic --prefill 8192` paths, and a 1 GiB fill with `--elastic`
+  are all **identical to it in IDs and logits**, with 1,529 experts of cache in every engine. No swap-out (the
+  watch's "exit code 1" was the script's last swap test, which found none; the script is fixed). `gate.sh` against
+  `strata-reference` was not run: that engine now makes macOS compress ~20 GiB while it records (section 16).
+
+### Not done
+
+1. **An empty start is READY before macOS has made room for it.** A start that waited for the free pages to
+   settle, or made the cache's memory resident without reading into it, was not tried; it would decide the
+   500-token case.
+2. Not measured with a 10-11 GiB cache (the fill takes 3.5 s there; a 500-token pass would copy more too).
+3. The cache's own read-ahead in an empty start's first passes waits for a proven tensor (part of the 0.2-0.5 s
+   the 33-token prompt loses); proving the 144 tensors at the start would need a change to the patched llama.cpp
+   (the engine does not see them before the first read).
+
+The measured and gated build is `build-metal/bin/strata` (HEAD `71b845ce` and this change, SHA-256 `4fae187e...`; the
+comments added after it leave the binary the same); the installed configuration is unchanged, so the server starts
+it with the fill as before. Files in [preload/](preload/): the two series ([before-fix/](preload/before-fix/),
+[fixed/](preload/fixed/): JSON, console, per-start engine logs, `vm_stat` traces, tables), the gate, the tests, and
+the scripts ([starts.py](preload/starts.py), [summ.py](preload/summ.py), [trace.sh](preload/trace.sh)).
+
+No run wrote to swap: the system's counter is at 1,586,587, where it was this morning.

@@ -1,0 +1,8 @@
+default, speculative=False: 5 cases, identical IDs and probes
+indexed, speculative=False: 5 cases, identical IDs and probes
+elastic, speculative=False: 5 cases, identical IDs and probes
+elastic-long, speculative=False: 5 cases, identical IDs and probes
+default, speculative=True: 1 cases, identical IDs and probes
+indexed, speculative=True: 1 cases, identical IDs and probes
+elastic, speculative=True: 1 cases, identical IDs and probes
+elastic-long, speculative=True: 1 cases, identical IDs and probes

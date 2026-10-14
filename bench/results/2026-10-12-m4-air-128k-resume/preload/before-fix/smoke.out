@@ -1,0 +1,8 @@
+[19:24:18] chat, STRATA_PRELOAD=all build-metal/preload-start/strata: SoC 43.2 C
+  request 1: 33 read (0 reused), sent at 5.77 s; from the launch t1=10.26 t2=10.42 t10=11.79 t25=15.21 t50=20.55 t64=23.66; written 4.70 tok/s, misses/token 59.9, SSD 35.39 GB, swap-outs 0
+  request 2: 20 read (96 reused), sent at 23.73 s; from the launch t1=27.21 t2=27.36 t10=29.08 t25=32.91; written 4.20 tok/s, misses/token 74.5, SSD 18.90 GB, swap-outs 0
+  ready 5.76 s (weights 2.2 s, fill 2.3 s, 7.02 GiB); cache 7199 MiB; engine swap-outs 0
+
+same ids per case and request: {'chat': [True, True]}
+  chat     STRATA_PRELOAD=all build-metal/preload-start/strata: request 1: t1 10.26; t50 20.55; ready 5.758
+  chat     STRATA_PRELOAD=all build-metal/preload-start/strata: request 2: t1 27.21; t50 

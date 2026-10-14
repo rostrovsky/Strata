@@ -1,0 +1,42 @@
+[19:43:44] doc500, STRATA_PRELOAD=all build-metal/preload-start/strata: SoC 45.0 C
+  request 1: 500 read (0 reused), sent at 5.07 s; from the launch t1=15.96 t2=16.10 t10=17.26 t25=19.78 t50=23.33 t64=25.54 t100=30.58; written 6.77 tok/s, misses/token 55.9, SSD 61.42 GB, swap-outs 0
+  request 2: 20 read (599 reused), sent at 30.64 s; from the launch t1=32.98 t2=33.10 t10=34.29 t25=36.58 t50=40.17 t64=42.63; written 6.53 tok/s, misses/token 65.0, SSD 26.55 GB, swap-outs 0
+  ready 5.06 s (weights 2.1 s, fill 2.1 s, 6.33 GiB); cache 6493 MiB; engine swap-outs 0
+[19:45:33] doc500, STRATA_PRELOAD=0 build-metal/preload-start/strata: SoC 44.6 C
+  request 1: 500 read (0 reused), sent at 3.00 s; from the launch t1=23.00 t2=23.14 t10=24.54 t25=27.12 t50=30.68 t64=32.89 t100=37.92; written 6.63 tok/s, misses/token 57.5, SSD 93.36 GB, swap-outs 0
+  request 2: 20 read (599 reused), sent at 37.98 s; from the launch t1=40.34 t2=40.47 t10=41.65 t25=43.92 t50=47.52 t64=50.00; written 6.53 tok/s, misses/token 65.0, SSD 26.56 GB, swap-outs 0
+  ready 2.99 s (weights 2.1 s, fill 0.0 s, 0.0 GiB); cache 6493 MiB; engine swap-outs 0
+[19:47:25] doc500, STRATA_PRELOAD=1 build-metal/preload-start/strata: SoC 44.8 C
+  request 1: 500 read (0 reused), sent at 3.39 s; from the launch t1=15.80 t2=15.95 t10=17.27 t25=19.80 t50=23.37 t64=25.63 t100=30.76; written 6.62 tok/s, misses/token 56.9, SSD 68.85 GB, swap-outs 0
+  request 2: 20 read (599 reused), sent at 30.83 s; from the launch t1=33.40 t2=33.53 t10=34.72 t25=37.00 t50=40.60 t64=43.06; written 6.52 tok/s, misses/token 65.0, SSD 26.55 GB, swap-outs 0
+  ready 3.38 s (weights 2.1 s, fill 0.4 s, 1.01 GiB); cache 6493 MiB; engine swap-outs 0
+[19:49:09] doc500, STRATA_PRELOAD=2 build-metal/preload-start/strata: SoC 44.8 C
+  request 1: 500 read (0 reused), sent at 3.76 s; from the launch t1=15.79 t2=15.95 t10=17.20 t25=19.72 t50=23.33 t64=25.52 t100=30.55; written 6.71 tok/s, misses/token 56.5, SSD 66.72 GB, swap-outs 0
+  request 2: 20 read (599 reused), sent at 30.61 s; from the launch t1=32.93 t2=33.06 t10=34.24 t25=36.51 t50=40.09 t64=42.56; written 6.54 tok/s, misses/token 65.0, SSD 26.55 GB, swap-outs 0
+  ready 3.75 s (weights 2.2 s, fill 0.7 s, 2.02 GiB); cache 6493 MiB; engine swap-outs 0
+[19:50:53] doc500, STRATA_PRELOAD=2 build-metal/preload-start/strata: SoC 44.6 C
+  request 1: 500 read (0 reused), sent at 3.73 s; from the launch t1=15.64 t2=15.78 t10=17.02 t25=19.50 t50=23.06 t64=25.26 t100=30.29; written 6.76 tok/s, misses/token 56.5, SSD 66.71 GB, swap-outs 0
+  request 2: 20 read (599 reused), sent at 30.35 s; from the launch t1=32.73 t2=32.85 t10=34.04 t25=36.32 t50=39.95 t64=42.41; written 6.51 tok/s, misses/token 65.0, SSD 26.55 GB, swap-outs 0
+  ready 3.71 s (weights 2.1 s, fill 0.7 s, 2.02 GiB); cache 6493 MiB; engine swap-outs 0
+[19:52:36] doc500, STRATA_PRELOAD=1 build-metal/preload-start/strata: SoC 44.8 C
+  request 1: 500 read (0 reused), sent at 3.44 s; from the launch t1=15.79 t2=15.94 t10=17.23 t25=19.72 t50=23.22 t64=25.38 t100=30.36; written 6.80 tok/s, misses/token 56.9, SSD 68.83 GB, swap-outs 0
+  request 2: 20 read (599 reused), sent at 30.42 s; from the launch t1=32.76 t2=32.88 t10=34.05 t25=36.30 t50=39.85 t64=42.29; written 6.61 tok/s, misses/token 65.0, SSD 26.55 GB, swap-outs 0
+  ready 3.43 s (weights 2.2 s, fill 0.4 s, 1.01 GiB); cache 6493 MiB; engine swap-outs 0
+[19:54:15] doc500, STRATA_PRELOAD=0 build-metal/preload-start/strata: SoC 45.0 C
+  request 1: 500 read (0 reused), sent at 3.03 s; from the launch t1=23.07 t2=23.22 t10=24.61 t25=27.18 t50=30.75 t64=32.95 t100=37.98; written 6.64 tok/s, misses/token 57.5, SSD 93.36 GB, swap-outs 0
+  request 2: 20 read (599 reused), sent at 38.04 s; from the launch t1=40.39 t2=40.51 t10=41.70 t25=43.98 t50=47.57 t64=50.04; written 6.53 tok/s, misses/token 65.0, SSD 26.56 GB, swap-outs 0
+  ready 3.02 s (weights 2.1 s, fill 0.0 s, 0.0 GiB); cache 6493 MiB; engine swap-outs 0
+[19:56:11] doc500, STRATA_PRELOAD=all build-metal/preload-start/strata: SoC 44.7 C
+  request 1: 500 read (0 reused), sent at 5.09 s; from the launch t1=15.75 t2=15.89 t10=17.04 t25=19.52 t50=23.04 t64=25.21 t100=30.18; written 6.86 tok/s, misses/token 56.0, SSD 61.44 GB, swap-outs 0
+  request 2: 20 read (599 reused), sent at 30.24 s; from the launch t1=32.56 t2=32.68 t10=33.85 t25=36.10 t50=39.70 t64=42.17; written 6.55 tok/s, misses/token 65.0, SSD 26.57 GB, swap-outs 0
+  ready 5.08 s (weights 2.1 s, fill 2.1 s, 6.33 GiB); cache 6493 MiB; engine swap-outs 0
+
+same ids per case and request: {'doc500': [True, True]}
+  doc500   STRATA_PRELOAD=all build-metal/preload-start/strata: request 1: t1 15.96, 15.75; t50 23.33, 23.04; ready 5.058, 5.081
+  doc500   STRATA_PRELOAD=all build-metal/preload-start/strata: request 2: t1 32.98, 32.56; t50 40.17, 39.70
+  doc500   STRATA_PRELOAD=0 build-metal/preload-start/strata: request 1: t1 23.00, 23.07; t50 30.68, 30.75; ready 2.988, 3.02
+  doc500   STRATA_PRELOAD=0 build-metal/preload-start/strata: request 2: t1 40.34, 40.39; t50 47.52, 47.57
+  doc500   STRATA_PRELOAD=1 build-metal/preload-start/strata: request 1: t1 15.80, 15.79; t50 23.37, 23.22; ready 3.38, 3.433
+  doc500   STRATA_PRELOAD=1 build-metal/preload-start/strata: request 2: t1 33.40, 32.76; t50 40.60, 39.85
+  doc500   STRATA_PRELOAD=2 build-metal/preload-start/strata: request 1: t1 15.79, 15.64; t50 23.33, 23.06; ready 3.751, 3.712
+  doc500   STRATA_PRELOAD=2 build-metal/preload-start/strata: request 2: t1 32.93, 32.73; t50 40.09, 39.95

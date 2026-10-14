@@ -1,0 +1,16 @@
+ok    --preload all: 4 experts filled at the start, same ids
+ok    --preload 0: 0 experts filled at the start, same ids
+ok    --preload 0.003 (part of it): part experts filled at the start, same ids
+ok    --no-preload: 0 experts filled at the start, same ids
+ok    STRATA_PRELOAD=0: 0 experts filled at the start, same ids
+ok    STRATA_PRELOAD=all: 4 experts filled at the start, same ids
+ok    STRATA_PRELOAD=0 --preload all: 4 experts filled at the start, same ids
+ok    long prompt, --preload 0: same ids
+ok    long prompt, --preload all: same ids
+ok    long prompt, --preload 0 --elastic on: same ids
+ok    long prompt, --preload 0 --elastic on --elastic-short 0: same ids
+ok    long prompts, --elastic, --preload 0: nothing read back, same ids
+ok    long prompts, --elastic, --preload 0 --elastic-refill all: experts read back, same ids
+ok    long prompts, --elastic, --preload all --elastic-refill all: experts read back, same ids
+
+all passed

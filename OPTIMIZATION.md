@@ -13,6 +13,34 @@ afternoon's), [the morning after](bench/results/2026-10-12-m4-air-128k-resume/RE
 
 ## Read this first
 
+**2026-10-15, after midnight — the start without the profile's fill: measured, not made the default.** Section 17
+of the [report](bench/results/2026-10-12-m4-air-128k-resume/README.md#17-night-of-2026-10-14-the-engines-start-without-the-profiles-fill)
+(point 2 of section 12's list). The start reads the profile's most used experts into the cache before READY (2.1 s
+for 6.3 GiB; the server starts the engine afresh after 900 s without a request). Real model, installed
+configuration, the same 6,493 MiB cache in every start, times from the launch, A B C C B A, no swap-out.
+
+- **`--preload G|all`** (new; `STRATA_PRELOAD`): the start reads G GiB of the profile, `all` (default) as before, 0
+  nothing (= `--no-preload`). The profile is read either way now: the long-prompt read-ahead guess and
+  `--elastic-refill` use it (`--no-preload` used to drop both).
+- **An empty start threw its first long pass's read-ahead away** (`metal/src/expert_io.hpp`): a staged read was
+  taken only for a tensor an earlier read had proven, and only the fill proved any. A 500-token prompt read 61.8
+  instead of 31.0 GB and its first token came 7 s later; 2,000 tokens 8 s. Fixed: the staged read is taken anyway
+  (the call waits for it and checks the bytes against the mapped file, as for a direct read). Nothing changes with
+  the fill.
+- With that fixed, nothing filled against all of it: READY 3.0-3.1 instead of 5.1-5.2 s; a 33-token question's
+  first and 50th token **1.6-1.9 s sooner**, a 2,000-token prompt's **1.8-1.9 s sooner** (the cache is given up for
+  it anyway), a 500-token prompt's **0.04-1.5 s later** (its pass beside the cache reads what it would have copied,
+  10 GB more, and an empty start is READY while macOS is still making room for its memory, so in one of the two
+  empty starts, and in both with 1 GiB, the pass found no free pages for its read-ahead buffer). A 1 GiB fill: as
+  none, no better at 500 tokens.
+  The answers' misses per token are the same in all three; the second request keeps the first one's lead or lag.
+- **So the default stays.** But in four of the server log's last five engine starts the first request had
+  2,502-4,093 tokens (most likely pi: its system prompt and a question), the case an empty start wins:
+  `"--preload", "0"` in the config's `args` is the owner's call.
+- Same output: 23 tiny-model runs with a new `metal/tests/preload_test.py`; the exact gate against HEAD's engine
+  (identical IDs and logits: the default start, and with nothing filled on the plain, indexed,
+  `--elastic` and `--elastic --prefill 8192` paths).
+
 **2026-10-14, night — no compression at a short stretch or at a KV step.** Section 16 of the
 [report](bench/results/2026-10-12-m4-air-128k-resume/README.md#16-evening-of-2026-10-14-no-compression-at-a-short-stretch-or-at-a-kv-step).
 Two moments in which `--elastic` made macOS compress other programs' memory (points 3 and 4 of section 12's list),
