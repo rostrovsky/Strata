@@ -1,0 +1,86 @@
+{
+ "when": "2026-10-14 23:32",
+ "args": [
+  "--native",
+  "/Users/rafal/Projects/strata-air/Strata-data/models/IQ3_S/Qwen3.8-Flash-Next-GSQ-RCO-IQ3_S-00001-of-00002.gguf",
+  "--expert-profile",
+  "/Users/rafal/Projects/strata-air/Strata/data/expert-profile.bin",
+  "--expert-cache",
+  "auto",
+  "--max-context",
+  "32768",
+  "--kv",
+  "f16",
+  "--prefill",
+  "4096",
+  "--reserve-gib",
+  "4",
+  "--kv",
+  "f16",
+  "--prefill",
+  "4096",
+  "--reserve-gib",
+  "2",
+  "--expert-cache-cap",
+  "3000",
+  "--chunk",
+  "2",
+  "--elastic",
+  "on",
+  "--verbose"
+ ],
+ "memory_before": {
+  "free_gib": 17.97,
+  "file_cache_gib": 2.16,
+  "apps_gib": 8.97,
+  "wired_gib": 2.1,
+  "swap_used_gib": 1.65,
+  "pressure_level": 1
+ },
+ "info": {
+  "context": "32768",
+  "kv": "f16",
+  "kv_resident": "0",
+  "expert_slots": "1529",
+  "expert_cache_mib": "2997",
+  "expert_slots_primary": "1529",
+  "expert_cache_primary_mib": "2997",
+  "spec": "0",
+  "mtp_max": "0",
+  "lookup": "0",
+  "prefetch": "10",
+  "vram_free_mib": "14190",
+  "arena_mib": "0",
+  "pool_workers": "8",
+  "backend": "metal",
+  "expert_io": "direct",
+  "engine": "0.1.42-metal"
+ },
+ "gate": {
+  "chat": {
+   "verdict": "identical",
+   "probes_identical": true,
+   "max_logit_delta": 0.0
+  },
+  "code": {
+   "verdict": "identical",
+   "probes_identical": true,
+   "max_logit_delta": 0.0
+  },
+  "doc8k": {
+   "verdict": "logit mismatch",
+   "probes_identical": false,
+   "max_logit_delta": 0.003692999999998392
+  }
+ },
+ "gate_passed": false,
+ "swapouts": 0,
+ "memory_after": {
+  "free_gib": 17.5,
+  "file_cache_gib": 2.34,
+  "apps_gib": 9.26,
+  "wired_gib": 2.1,
+  "swap_used_gib": 1.65,
+  "pressure_level": 1
+ }
+}

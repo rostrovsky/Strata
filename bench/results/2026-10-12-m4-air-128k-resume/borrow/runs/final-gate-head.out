@@ -1,0 +1,5 @@
+record (HEAD's default path) rc=0 swapouts=0: expert cache 1529 experts
+default rc=0 swapouts=0: GATE PASSED: chat identical, code identical, doc8k identical; expert cache 1529 experts
+indexed rc=0 swapouts=0: GATE PASSED: chat identical, code identical, doc8k identical; expert cache 1529 experts
+elastic rc=0 swapouts=0: GATE PASSED: chat identical, code identical, doc8k identical; expert cache 1529 experts
+elastic8k rc=0 swapouts=0: GATE PASSED: chat identical, code identical, doc8k identical; expert cache 1529 experts

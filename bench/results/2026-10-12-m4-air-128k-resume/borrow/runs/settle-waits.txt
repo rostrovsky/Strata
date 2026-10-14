@@ -1,0 +1,34 @@
+# every change of shape with the wait for freed memory (Engine::let_go), from the engines' logs
+# settle2 (an experimental build: 'came back in', otherwise the same wait), final-turns (the final build, B starts), the two gates (final build)
+== runs/settle2/turns-2-engine.txt
+the old buffers' memory (6.80 GiB) came back in 143 ms (half of it in 143): this process holds 6.80 GiB less, 6.79 GiB more are free
+the old buffers' memory (5.81 GiB) came back in 59 ms (half of it in 59): this process holds 4.68 GiB less, 5.52 GiB more are free
+the old buffers' memory (6.80 GiB) came back in 208 ms (half of it in 208): this process holds 7.09 GiB less, 6.81 GiB more are free
+the old buffers' memory (5.81 GiB) came back in 522 ms (half of it in 522): this process holds 4.45 GiB less, 5.52 GiB more are free
+== runs/settle2/turns-3-engine.txt
+the old buffers' memory (6.84 GiB) came back in 638 ms (half of it in 638): this process holds 6.83 GiB less, 6.78 GiB more are free
+the old buffers' memory (5.84 GiB) came back in 56 ms (half of it in 56): this process holds 4.69 GiB less, 5.55 GiB more are free
+the old buffers' memory (6.81 GiB) came back in 164 ms (half of it in 164): this process holds 7.11 GiB less, 6.82 GiB more are free
+the old buffers' memory (5.82 GiB) came back in 57 ms (half of it in 57): this process holds 4.46 GiB less, 5.52 GiB more are free
+== runs/final-turns/turns-2-engine.txt
+the old buffers' memory (6.35 GiB) is free again after 68 ms: 5.50 GiB more are free
+the old buffers' memory (5.35 GiB) is free again after 288 ms: 5.05 GiB more are free
+the old buffers' memory (6.35 GiB) is free again after 794 ms: 6.35 GiB more are free
+the old buffers' memory (5.35 GiB) is free again after 593 ms: 5.09 GiB more are free
+== runs/final-turns/turns-3-engine.txt
+the old buffers' memory (6.35 GiB) is free again after 78 ms: 6.35 GiB more are free
+the old buffers' memory (5.35 GiB) is free again after 997 ms: 5.06 GiB more are free
+the old buffers' memory (5.97 GiB) is free again after 64 ms: 5.71 GiB more are free
+the old buffers' memory (4.97 GiB) is free again after 53 ms: 4.76 GiB more are free
+== gate/gate-elastic.log
+the old buffers' memory (2.93 GiB) is free again after 43 ms: 2.94 GiB more are free
+the old buffers' memory (2.13 GiB) is free again after 32 ms: 2.03 GiB more are free
+== gate/gate-elastic8k.log
+the old buffers' memory (2.93 GiB) is free again after 43 ms: 1.90 GiB more are free
+the old buffers' memory (3.58 GiB) is free again after 38 ms: 3.47 GiB more are free
+== gate/gate-head-elastic.log
+the old buffers' memory (2.93 GiB) is free again after 32 ms: 2.93 GiB more are free
+the old buffers' memory (2.13 GiB) is free again after 31 ms: 2.03 GiB more are free
+== gate/gate-head-elastic8k.log
+the old buffers' memory (2.93 GiB) is free again after 44 ms: 0.00 GiB more are free
+the old buffers' memory (3.58 GiB) is free again after 38 ms: 0.00 GiB more are free

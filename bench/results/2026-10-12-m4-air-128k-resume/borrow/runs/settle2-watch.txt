@@ -1,0 +1,8 @@
+22:23:12 BASELINE swapouts 1586587, swap used 1685.88 MiB, pressure 1, free 13.72 + file cache 3.51 GiB, compressor 11.01 in 4.11 GiB, SoC 46.9 C, battery 32.2 C
+22:23:12 STARTED pid 1411: .venv/bin/python -u bench/results/2026-10-12-m4-air-128k-resume/borrow/runs.py turns --config strata-iq3_s.json --out build-metal/borrow/runs/settle2 --cool 45 --runs 2 --ab STRATA_ELASTIC_SETTLE=0 bu
+22:23:17 ok +5 s: swap-outs new 0, pressure 1, free 13.59 + file 3.51 GiB, compressor 11.0 in 4.11 GiB, SoC 42.9 C | 
+22:25:18 ok +126 s: swap-outs new 0, pressure 1, free 14.24 + file 3.18 GiB, compressor 10.98 in 4.1 GiB, SoC 46.4 C | turn 3 sent 22:24:19.0, first token 22:24:21.4: 20 tokens read (2651 reused), t1=2.47 t10=3.72 t50=9.91 t64=12.20; written 6.48 tok/s, misses/token 64
+22:27:19 ok +247 s: swap-outs new 0, pressure 1, free 13.52 + file 3.23 GiB, compressor 10.97 in 4.09 GiB, SoC 51.8 C | turn 3 sent 22:26:41.1, first token 22:26:43.8: 20 tokens read (2651 reused), t1=2.62 t10=3.89 t50=10.16 t64=12.47; written 6.39 tok/s, misses/token 6
+22:29:20 ok +368 s: swap-outs new 0, pressure 1, free 0.92 + file 3.33 GiB, compressor 10.87 in 4.05 GiB, SoC 66.8 C | | the context has its answering shape after 0.43 s (0 experts read back): 10957.3 MiB on the GPU, 11945.5 MiB in all, 0.0 MiB of it compressed
+22:31:21 ok +490 s: swap-outs new 0, pressure 1, free 5.83 + file 5.7 GiB, compressor 10.77 in 4.0 GiB, SoC 49.4 C | temperature before the run: SoC 44.8 C, battery 33.2 C
+22:33:45 DONE exit code 0, new swap-outs over the whole run 0 pages, swap used 1685.88 MiB (was 1685.88), peak pressure level 1, engine still running: [], stopped: False

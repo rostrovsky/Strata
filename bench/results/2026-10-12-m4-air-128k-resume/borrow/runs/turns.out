@@ -1,0 +1,42 @@
+temperature before the run: SoC 41.8 C, battery 28.5 C
+build-metal/borrow/strata-head: ready in 5.2 s; context 131072, expert cache 3320 experts (6493 MiB), direct reads
+  turn 1 sent 21:32:36.5, first token 21:32:58.7: 2000 tokens read (0 reused), t1=22.14 t10=23.61 t50=29.69 t64=32.08; written 6.34 tok/s, misses/token 59.3, swap-outs 0
+    | the context has its long-prompt shape after 0.35 s (0 experts read back): 9111.4 MiB on the GPU, 10525.2 MiB in all, 0.0 MiB of it compressed
+    | the context has its answering shape after 0.42 s (0 experts read back): 11345.0 MiB on the GPU, 11753.4 MiB in all, 0.0 MiB of it compressed
+  turn 2 sent 21:33:08.7, first token 21:33:19.3: 525 tokens read (2063 reused), t1=10.58 t10=11.95 t50=18.28 t64=20.70; written 6.22 tok/s, misses/token 70.4, swap-outs 0
+    | the context has its short-prompt shape after 0.08 s (0 experts read back): 12195.9 MiB on the GPU, 11477.7 MiB in all, 0.0 MiB of it compressed
+    | the context has its answering shape after 0.04 s (0 experts read back): 11346.0 MiB on the GPU, 11494.0 MiB in all, 0.0 MiB of it compressed
+  turn 3 sent 21:33:29.5, first token 21:33:32.0: 20 tokens read (2651 reused), t1=2.53 t10=3.81 t50=10.14 t64=12.44; written 6.36 tok/s, misses/token 67.8, swap-outs 0
+temperature before the run: SoC 43.9 C, battery 29.1 C
+build-metal/borrow/strata: ready in 5.2 s; context 131072, expert cache 3320 experts (6493 MiB), direct reads
+  turn 1 sent 21:34:33.2, first token 21:34:55.3: 2000 tokens read (0 reused), t1=22.10 t10=23.57 t50=29.54 t64=31.92; written 6.41 tok/s, misses/token 59.3, swap-outs 0
+    | the context has its long-prompt shape after 0.34 s (0 experts read back): 9111.4 MiB on the GPU, 10995.8 MiB in all, 0.0 MiB of it compressed
+    | the context has its answering shape after 0.42 s (0 experts read back): 11345.0 MiB on the GPU, 12229.8 MiB in all, 0.0 MiB of it compressed
+  turn 2 sent 21:35:05.1, first token 21:35:19.8: 525 tokens read (2063 reused), t1=14.62 t10=16.11 t50=22.46 t64=24.89; written 6.14 tok/s, misses/token 72.6, swap-outs 0
+    | 522 new tokens: the memory to read them beside the cache is not free (0.44 GiB are, 1.19 GiB are needed), they take the cache's
+    | the context has its long-prompt shape after 0.35 s (0 experts read back): 9112.7 MiB on the GPU, 10915.5 MiB in all, 0.0 MiB of it compressed
+    | less memory is free than at the start: the expert cache comes back with 6.28 GiB of its 6.35
+    | the context has its answering shape after 0.41 s (0 experts read back): 11273.4 MiB on the GPU, 12276.0 MiB in all, 0.0 MiB of it compressed
+  turn 3 sent 21:35:30.1, first token 21:35:32.6: 20 tokens read (2651 reused), t1=2.48 t10=3.78 t50=10.08 t64=12.38; written 6.36 tok/s, misses/token 68.4, swap-outs 0
+temperature before the run: SoC 44.8 C, battery 29.8 C
+build-metal/borrow/strata: ready in 5.2 s; context 131072, expert cache 3320 experts (6493 MiB), direct reads
+  turn 1 sent 21:36:38.9, first token 21:37:01.1: 2000 tokens read (0 reused), t1=22.19 t10=23.67 t50=29.62 t64=32.01; written 6.42 tok/s, misses/token 59.3, swap-outs 0
+    | the context has its long-prompt shape after 0.41 s (0 experts read back): 9111.4 MiB on the GPU, 10997.0 MiB in all, 0.0 MiB of it compressed
+    | the context has its answering shape after 0.42 s (0 experts read back): 11345.0 MiB on the GPU, 12229.6 MiB in all, 0.0 MiB of it compressed
+  turn 2 sent 21:37:10.9, first token 21:37:25.5: 525 tokens read (2063 reused), t1=14.54 t10=16.03 t50=22.53 t64=25.06; written 5.99 tok/s, misses/token 74.8, swap-outs 0
+    | 522 new tokens: the memory to read them beside the cache is not free (0.20 GiB are, 1.19 GiB are needed), they take the cache's
+    | the context has its long-prompt shape after 0.39 s (0 experts read back): 9112.7 MiB on the GPU, 10910.5 MiB in all, 0.0 MiB of it compressed
+    | less memory is free than at the start: the expert cache comes back with 5.93 GiB of its 6.35
+    | the context has its answering shape after 0.39 s (0 experts read back): 10914.7 MiB on the GPU, 11914.7 MiB in all, 0.0 MiB of it compressed
+  turn 3 sent 21:37:36.1, first token 21:37:38.7: 20 tokens read (2651 reused), t1=2.58 t10=3.96 t50=10.47 t64=12.83; written 6.15 tok/s, misses/token 71.7, swap-outs 0
+temperature before the run: SoC 44.4 C, battery 30.6 C
+build-metal/borrow/strata-head: ready in 5.2 s; context 131072, expert cache 3320 experts (6493 MiB), direct reads
+  turn 1 sent 21:39:00.5, first token 21:39:22.6: 2000 tokens read (0 reused), t1=22.09 t10=23.57 t50=29.51 t64=31.89; written 6.43 tok/s, misses/token 59.3, swap-outs 0
+    | the context has its long-prompt shape after 0.34 s (0 experts read back): 9111.4 MiB on the GPU, 10509.8 MiB in all, 0.0 MiB of it compressed
+    | the context has its answering shape after 0.42 s (0 experts read back): 11345.0 MiB on the GPU, 11735.9 MiB in all, 0.0 MiB of it compressed
+  turn 2 sent 21:39:32.4, first token 21:39:44.4: 525 tokens read (2063 reused), t1=12.00 t10=13.36 t50=19.68 t64=22.07; written 6.25 tok/s, misses/token 70.4, swap-outs 0
+    | the context has its short-prompt shape after 0.06 s (0 experts read back): 12195.9 MiB on the GPU, 11461.1 MiB in all, 0.0 MiB of it compressed
+    | the context has its answering shape after 0.03 s (0 experts read back): 11346.0 MiB on the GPU, 11476.2 MiB in all, 0.0 MiB of it compressed
+  turn 3 sent 21:39:54.5, first token 21:39:57.0: 20 tokens read (2651 reused), t1=2.48 t10=3.76 t50=10.02 t64=12.32; written 6.40 tok/s, misses/token 67.8, swap-outs 0
+
+same written ids in every run, per turn: [True, True, True]

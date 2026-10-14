@@ -1,0 +1,41 @@
+memory: {'free_gib': 13.92, 'file_cache_gib': 3.24, 'apps_gib': 11.9, 'wired_gib': 2.14, 'swap_used_gib': 1.65, 'pressure_level': 1}
+temperature before the run: SoC 44.9 C, battery 34.3 C
+borrow/strata: ready in 5.2 s; context 131072, expert cache 3320 experts (6493 MiB), direct reads
+chat      6.84 tok/s (200 tokens), first token after 3.10 s, hits 85.6%, 69.4 GB from the SSD, swap-outs 0, 8.2 W; per token 146 ms = GPU 80 + SSD 58 + CPU 8 (GPU busy 101; 60 misses, 304 MB; read ahead 90, 63 routed to, 16 waited for, predict 4.0 ms)
+code      6.74 tok/s (200 tokens), first token after 6.93 s, hits 86.3%, 73.3 GB from the SSD, swap-outs 0; per token 149 ms = GPU 80 + SSD 60 + CPU 8 (GPU busy 120; 63 misses, 299 MB; read ahead 84, 60 routed to, 14 waited for, predict 4.0 ms)
+reason    6.45 tok/s (200 tokens), first token after 8.60 s, hits 83.3%, 80.8 GB from the SSD, swap-outs 0, 21.7 W; per token 155 ms = GPU 79 + SSD 68 + CPU 8 (GPU busy 105; 78 misses, 313 MB; read ahead 76, 55 routed to, 12 waited for, predict 4.0 ms)
+decode: 6.67 tok/s over 597 tokens, hits 85.1%, 223.6 GB from the SSD, swap-outs 0, 15.0 W, 0.446 tokens per joule
+temperature before the run: SoC 44.6 C, battery 34.2 C
+borrow/strata: ready in 5.0 s; context 131072, expert cache 3085 experts (6034 MiB), direct reads
+chat      6.54 tok/s (200 tokens), first token after 3.23 s, hits 84.6%, 74.2 GB from the SSD, swap-outs 0; per token 153 ms = GPU 79 + SSD 65 + CPU 9 (GPU busy 90; 65 misses, 327 MB; read ahead 97, 69 routed to, 19 waited for, predict 4.0 ms)
+code      6.61 tok/s (200 tokens), first token after 4.82 s, hits 85.6%, 74.7 GB from the SSD, swap-outs 0, 16.3 W; per token 152 ms = GPU 80 + SSD 63 + CPU 8 (GPU busy 91; 67 misses, 316 MB; read ahead 88, 64 routed to, 16 waited for, predict 4.0 ms)
+reason    6.40 tok/s (200 tokens), first token after 6.34 s, hits 83.4%, 78.3 GB from the SSD, swap-outs 0, 22.5 W; per token 156 ms = GPU 79 + SSD 69 + CPU 8 (GPU busy 121; 78 misses, 313 MB; read ahead 76, 55 routed to, 12 waited for, predict 4.0 ms)
+decode: 6.51 tok/s over 597 tokens, hits 84.6%, 227.2 GB from the SSD, swap-outs 0, 19.4 W, 0.336 tokens per joule
+temperature before the run: SoC 44.8 C, battery 34.3 C
+borrow/strata: ready in 5.0 s; context 131072, expert cache 3085 experts (6034 MiB), direct reads
+chat      6.61 tok/s (200 tokens), first token after 3.10 s, hits 84.6%, 74.2 GB from the SSD, swap-outs 0, 7.8 W; per token 151 ms = GPU 80 + SSD 63 + CPU 9 (GPU busy 105; 65 misses, 327 MB; read ahead 97, 69 routed to, 18 waited for, predict 4.0 ms)
+code      6.54 tok/s (200 tokens), first token after 5.07 s, hits 85.6%, 74.7 GB from the SSD, swap-outs 0; per token 153 ms = GPU 80 + SSD 65 + CPU 9 (GPU busy 100; 67 misses, 316 MB; read ahead 88, 64 routed to, 16 waited for, predict 4.0 ms)
+reason    6.31 tok/s (200 tokens), first token after 6.90 s, hits 83.4%, 78.3 GB from the SSD, swap-outs 0, 22.2 W; per token 159 ms = GPU 82 + SSD 68 + CPU 9 (GPU busy 95; 78 misses, 313 MB; read ahead 76, 55 routed to, 12 waited for, predict 4.2 ms)
+decode: 6.49 tok/s over 597 tokens, hits 84.6%, 227.2 GB from the SSD, swap-outs 0, 15.0 W, 0.431 tokens per joule
+temperature before the run: SoC 44.8 C, battery 34.3 C
+borrow/strata: ready in 5.2 s; context 131072, expert cache 3320 experts (6493 MiB), direct reads
+chat      6.83 tok/s (200 tokens), first token after 3.03 s, hits 85.6%, 69.4 GB from the SSD, swap-outs 0, 12.7 W; per token 147 ms = GPU 80 + SSD 58 + CPU 9 (GPU busy 97; 60 misses, 304 MB; read ahead 90, 63 routed to, 16 waited for, predict 4.0 ms)
+code      6.73 tok/s (200 tokens), first token after 7.20 s, hits 86.3%, 73.3 GB from the SSD, swap-outs 0; per token 149 ms = GPU 80 + SSD 60 + CPU 8 (GPU busy 135; 63 misses, 299 MB; read ahead 84, 60 routed to, 15 waited for, predict 4.0 ms)
+reason    6.54 tok/s (200 tokens), first token after 9.51 s, hits 83.9%, 78.1 GB from the SSD, swap-outs 0, 20.4 W; per token 153 ms = GPU 79 + SSD 65 + CPU 8 (GPU busy 87; 75 misses, 299 MB; read ahead 72, 52 routed to, 11 waited for, predict 4.0 ms)
+decode: 6.70 tok/s over 597 tokens, hits 85.3%, 220.8 GB from the SSD, swap-outs 0, 16.6 W, 0.404 tokens per joule
+temperature before the run: SoC 44.9 C, battery 34.3 C
+borrow/strata: ready in 5.2 s; context 131072, expert cache 3320 experts (6493 MiB), direct reads
+chat      6.84 tok/s (200 tokens), first token after 3.04 s, hits 85.6%, 69.4 GB from the SSD, swap-outs 0; per token 146 ms = GPU 80 + SSD 58 + CPU 9 (GPU busy 100; 60 misses, 304 MB; read ahead 90, 63 routed to, 16 waited for, predict 4.0 ms)
+code      6.73 tok/s (200 tokens), first token after 7.73 s, hits 86.3%, 73.3 GB from the SSD, swap-outs 0, 20.8 W; per token 149 ms = GPU 80 + SSD 60 + CPU 8 (GPU busy 124; 63 misses, 299 MB; read ahead 84, 60 routed to, 14 waited for, predict 4.0 ms)
+reason    6.36 tok/s (200 tokens), first token after 9.38 s, hits 82.8%, 83.1 GB from the SSD, swap-outs 0; per token 157 ms = GPU 79 + SSD 70 + CPU 8 (GPU busy 100; 80 misses, 324 MB; read ahead 78, 57 routed to, 13 waited for, predict 4.0 ms)
+decode: 6.64 tok/s over 597 tokens, hits 84.9%, 225.8 GB from the SSD, swap-outs 0, 20.8 W, 0.319 tokens per joule
+temperature before the run: SoC 44.4 C, battery 34.3 C
+borrow/strata: ready in 5.0 s; context 131072, expert cache 3085 experts (6034 MiB), direct reads
+chat      6.62 tok/s (200 tokens), first token after 3.19 s, hits 84.6%, 74.3 GB from the SSD, swap-outs 0, 7.6 W; per token 151 ms = GPU 80 + SSD 63 + CPU 9 (GPU busy 102; 65 misses, 327 MB; read ahead 97, 69 routed to, 18 waited for, predict 4.0 ms)
+code      6.59 tok/s (200 tokens), first token after 6.66 s, hits 85.5%, 77.1 GB from the SSD, swap-outs 0, 21.8 W; per token 152 ms = GPU 80 + SSD 64 + CPU 8 (GPU busy 103; 67 misses, 318 MB; read ahead 89, 65 routed to, 16 waited for, predict 4.0 ms)
+reason    6.28 tok/s (200 tokens), first token after 8.96 s, hits 82.8%, 82.9 GB from the SSD, swap-outs 0; per token 159 ms = GPU 80 + SSD 71 + CPU 9 (GPU busy 91; 80 misses, 323 MB; read ahead 78, 57 routed to, 13 waited for, predict 4.0 ms)
+decode: 6.49 tok/s over 597 tokens, hits 84.3%, 234.3 GB from the SSD, swap-outs 0, 14.7 W, 0.442 tokens per joule
+
+medians of 3 runs:
+  build-metal/borrow/strata --expert-cache-cap 6500: cache 6493 MiB, decode 6.67 tok/s (6.67, 6.70, 6.64), hits 85.1%, swap-outs 0
+  build-metal/borrow/strata --expert-cache-cap 6042: cache 6034 MiB, decode 6.49 tok/s (6.51, 6.49, 6.49), hits 84.6%, swap-outs 0

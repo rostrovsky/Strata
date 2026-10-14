@@ -1,6 +1,6 @@
 # Strata optimization handoff — M4 MacBook Air, 32 GiB
 
-Updated **2026-10-14** (the newest part is the first block of "Read this first"). The work was stopped in the morning at the user's request, resumed in the
+Updated **2026-10-15** (the newest part is the first block of "Read this first"). The work was stopped in the morning at the user's request, resumed in the
 afternoon ("continue the OPTIMIZATION.md work"), and stopped again where every next step either takes the Mac for
 half an hour or risks swap, which is the user's call. In the evening the user asked for the first of those steps:
 a full-context prompt with the corrected plan ran **without a swap-out**, and the 128k configuration was installed.
@@ -12,6 +12,42 @@ afternoon's), [the morning after](bench/results/2026-10-12-m4-air-128k-resume/RE
 (its section 12). Sections below that describe the morning are marked where the afternoon or the evening changed them.
 
 ## Read this first
+
+**2026-10-14, night — no compression at a short stretch or at a KV step.** Section 16 of the
+[report](bench/results/2026-10-12-m4-air-128k-resume/README.md#16-evening-of-2026-10-14-no-compression-at-a-short-stretch-or-at-a-kv-step).
+Two moments in which `--elastic` made macOS compress other programs' memory (points 3 and 4 of section 12's list),
+and a third found on the way. Real model, this evening's desktop (other programs held 15.4 GiB, caches 6.5-8.7
+GiB), every run traced per second, no swap-out.
+
+- **What macOS gives at once is the free pages, not the file cache.** A probe that wires 64 MiB steps
+  ([givable_probe.c](bench/results/2026-10-12-m4-air-128k-resume/borrow/givable_probe.c)) saw macOS compress as soon as the free pages were gone, with the file cache below the
+  floor the kernel keeps of it (`vm.vm_page_filecache_min`, 4.4-5.3 GiB with the engine loaded; the file cache
+  2.9-3.4) and also 0.4-1.6 GiB above it. `HostMemory::givable()` counts the free pages only.
+- **A stretch of 33-1,024 new tokens is read beside the cache only if the free pages have room** for that shape's
+  work memory (0.94 GiB) and 0.25 GiB more; the read-ahead buffer only if they have room for it too. Before it
+  borrowed 2.1 GiB of "free or file cache": in the three-turn conversation the second turn had macOS compress 782,
+  930, 167 and 133 MiB in that second (HEAD's engine, four starts); now 0 in four. Otherwise the stretch takes the
+  cache's memory, as a long prompt does: **its first token comes 3.3-4.8 s later** (14.5-16.2 s instead of
+  10.5-12.0 for 525 tokens; 10-16 GB more from the SSD), the next turn is the same. On this desktop, with the engine
+  loaded, 0.1-0.9 GiB were free, so that is the usual case now. `STRATA_ELASTIC_BORROW=available`: the old rule.
+- **A KV step while the cache is there is paid by memory held for it** (`Engine::kv_hold_`, one step, 0.47 GiB,
+  mlock'd and let go of the moment before the KV cache maps its cells; taken again when the cache comes back after
+  a long prompt). Before, the cache was made anew in the middle of the answer: 0.58-0.70 s and 105-1,546 MiB
+  compressed in that second; now 0.00 s and nothing, identical IDs and logits (`STRATA_KV_STEP=1024`, A B B A). It
+  costs the cache those 0.47 GiB: 2.7% of the written speed at a 6.5 GiB cache (6.67 against 6.49 tok/s, A B B A A
+  B; less at 10-11 GiB, not measured). `STRATA_KV_HOLD=0`: as before. A second step before the next long
+  prompt still makes the cache anew.
+- **Buffers made where others were are made after the old ones' memory is back** (`Engine::let_go`): changing to
+  the long-prompt shape and back, a cache made anew, a back-off. Metal lets go of a freed buffer's pages 31-997 ms
+  later (median 66 ms); with 0.1-0.5 GiB free the change of shape had compressed 8-255 MiB in three of six cases
+  (and 74 in one of four in another series), with the wait nothing in 23 of 24 and 20 MiB once. The wait is before
+  a long prompt's first pass and before its first token; turn 1's first token was within run-to-run noise.
+  `STRATA_ELASTIC_SETTLE=0`: in one go.
+- Same output: the exact gate against HEAD's engine (identical IDs and logits on four paths; against
+  `strata-reference` the 7,900-token document differs by 0.0037 in logits, the tie rule of section 15, as for
+  HEAD); 30 tiny-model runs, with a new `metal/tests/kv_hold_test.py`. `gate.sh`'s old reference engine now makes
+  macOS compress ~20 GiB while it records (no swap-out);
+  [gate_head.sh](bench/results/2026-10-12-m4-air-128k-resume/borrow/gate/gate_head.sh) uses a current build instead.
 
 **2026-10-14, evening — two older defects in the engine's logs.**
 

@@ -1,0 +1,14 @@
+plain: shapes taken: none
+elastic: shapes taken: long-prompt, answering, long-prompt, answering, short-prompt, answering, short-prompt, answering; experts read back: [0, 0, 0, 0]
+elastic-long: shapes taken: long-prompt, answering, long-prompt, answering, long-prompt, answering, long-prompt, answering; experts read back: [0, 0, 0, 0]
+elastic-long-refill: shapes taken: long-prompt, answering, long-prompt, answering, long-prompt, answering, long-prompt, answering; experts read back: [0, 4, 4, 4]
+elastic-long-refill-part: shapes taken: long-prompt, answering, long-prompt, answering, long-prompt, answering, long-prompt, answering; experts read back: [0, 2, 2, 2]
+elastic-long-plan-small: shapes taken: long-prompt, answering, long-prompt, answering, long-prompt, answering, long-prompt, answering; experts read back: [0, 0, 0, 0]
+elastic: identical ids and logits, the same reuse over 6 requests
+elastic-long: identical ids and logits, the same reuse over 6 requests
+elastic-long-refill: identical ids and logits, the same reuse over 6 requests
+elastic-long-refill-part: identical ids and logits, the same reuse over 6 requests
+elastic-long-plan-small: identical ids and logits, the same reuse over 6 requests
+read back after long prompts: 12 experts with --elastic-refill all, 6 with 0.003
+a plan with room for passes of 1,024: the prompt was read in passes of 2,048
+all passed

@@ -1,0 +1,9 @@
+23:25:42 BASELINE swapouts 1586587, swap used 1685.88 MiB, pressure 1, free 13.12 + file cache 3.7 GiB, compressor 10.75 in 3.89 GiB, SoC 48.8 C, battery 34.3 C
+23:25:42 STARTED pid 16152: bench/results/2026-10-12-m4-air-128k-resume/borrow/gate/gate.sh
+23:25:48 ok +5 s: swap-outs new 0, pressure 1, free 5.67 + file 6.52 GiB, compressor 10.75 in 3.89 GiB, SoC 51.6 C | 
+23:27:49 ok +126 s: swap-outs new 0, pressure 1, free 0.01 + file 7.72 GiB, compressor 16.65 in 6.63 GiB, SoC 70.2 C | 
+23:29:50 ok +247 s: swap-outs new 0, pressure 1, free 5.96 + file 2.73 GiB, compressor 14.08 in 5.43 GiB, SoC 65.8 C | every engine must report: expert cache 1529 experts
+23:31:50 ok +368 s: swap-outs new 0, pressure 1, free 5.64 + file 2.83 GiB, compressor 13.79 in 5.28 GiB, SoC 66.8 C | default rc=1 swapouts=0 1
+23:33:51 ok +489 s: swap-outs new 0, pressure 1, free 7.98 + file 2.81 GiB, compressor 13.7 in 5.24 GiB, SoC 65.6 C | indexed rc=1 swapouts=0 1
+23:35:52 ok +610 s: swap-outs new 0, pressure 1, free 5.33 + file 3.55 GiB, compressor 13.36 in 5.04 GiB, SoC 66.7 C | elastic rc=1 swapouts=0 1
+23:38:21 DONE exit code 0, new swap-outs over the whole run 0 pages, swap used 1685.88 MiB (was 1685.88), peak pressure level 1, engine still running: [], stopped: False

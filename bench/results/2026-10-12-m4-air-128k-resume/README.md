@@ -966,10 +966,12 @@ the swap watch with a trace beside it; `trace_run.sh` for bench.py is in `build-
    measured (`--no-preload` exists). The server starts the engine afresh after 900 s without a request.
 3. **The short-prompt shape takes memory that is not free.** It borrows 2.1 GiB for its one pass if that much is
    "free or file cache"; in the three-turn run 0.7-1.1 GiB were free and macOS compressed 0.97, 0.17 and 0.72 GiB
-   of other programs' memory in that second (nothing in the fourth run). Both settings.
+   of other programs' memory in that second (nothing in the fourth run). Both settings. (Done:
+   [section 16](#16-evening-of-2026-10-14-no-compression-at-a-short-stretch-or-at-a-kv-step).)
 4. **A KV step in the middle of an answer frees the cache and makes it anew in one go**: 0.31 and 0.42 GiB
    compressed in that second ([kvstep-vmstat.txt](refill/kvstep-vmstat.txt), 07:09:32 and 07:10:10), with and
-   without the read-back. It could be paid from memory kept aside for it, as it is with a capped cache.
+   without the read-back. It could be paid from memory kept aside for it, as it is with a capped cache. (Done:
+   section 16.)
 5. Points 3-5 of section 11's list stand: a full-context prompt on this build, the back-off on the real model,
    the targets.
 
@@ -1109,3 +1111,184 @@ ARGSORT operator tests, the protocol suite, parity on eight paths and the shape 
 each also with `STRATA_KV_STEP=256`; the shape test with each kernel taken for every row, and with a plan made to
 say it only has room for passes of 1,024 while the prompt is read in passes of 2,048. Nine patch files, applied
 to a clean checkout of the pin: 33 files, none differs. No swap-out all day (the counter is at 1,586,587).
+
+## 16. Evening of 2026-10-14: no compression at a short stretch or at a KV step
+
+Points 3 and 4 of section 12's list: two moments in which the engine with `--elastic` made macOS compress other
+programs' memory, both seen in per-second `vm_stat` traces of 2026-10-13. Everything below is the real model on the
+desktop as it was this evening (browser, VM, VS Code, the Claude app; other programs held 15.4 GiB, half a day
+before 8.8, so the engine's caches were 6.5-8.7 GiB, not 10-11), every run under `metal/tools/swapwatch.py` with a
+1 Hz `vm_stat` trace and a 1 Hz trace of free pages, file cache and the kernel's floor for it
+([memtrace.c](borrow/memtrace.c)) beside it, the SoC cooled to 45 C before every engine start. Files in
+[borrow/](borrow/).
+
+### What macOS gives without compressing
+
+The short-prompt shape took its memory if "free or file cache" had it, with 1.5 GiB over. The file cache is not
+free for this purpose, and neither is the part of it above the floor the kernel keeps
+(`vm.vm_page_filecache_min`). Measured with [givable_probe.c](borrow/givable_probe.c), which wires memory in steps of
+64 MiB (as Metal's resident buffers are wired) until macOS has compressed 16 MiB:
+
+| | Free (with speculative) | File cache | Its floor | Wired when macOS compressed |
+| --- | ---: | ---: | ---: | ---: |
+| HEAD's engine loaded (installed configuration, 7,199 MiB cache), idle, 64 MiB per 50 ms | 0.11 GiB | 2.93 | 4.89 | 0.25 GiB |
+| ... again | 0.77 GiB | 2.93 | 4.80 | 1.06 GiB |
+| ... 64 MiB per 250 ms | 0.74 GiB | 3.19 | 4.46 | 0.69 GiB |
+| No engine, 3 GiB of a file read into the cache first | 9.59 GiB | 6.22 | 4.59 (5.61 once the kernel recomputed it) | 9.81 GiB |
+| ... again | 10.36 GiB | 6.00 | 5.58 | 10.56 GiB |
+
+([probe1.out](borrow/runs/probe1.out), [probe-file.out](borrow/runs/probe-file.out).) macOS gives the free pages
+and 0.2-0.35 GiB more (purgeable memory, it seems), then compresses, whether the file cache is below its floor (the
+engine's state on this desktop: the floor follows the memory that is not wired and stood at 4.4-5.3 GiB with the
+engine loaded, the file cache at 2.9-3.4) or 0.4-1.6 GiB above it; it dropped 0.02-0.18 GiB of files in the second
+it compressed 11-142 MiB. The sysctl's value is also stale until the next page-out recomputes it (4.59 -> 5.61 GiB
+above). So `HostMemory::givable()` counts the free pages only (less `vm.vm_page_free_target`, 62.5 MiB), and the
+file cache not at all.
+
+### The short-prompt shape borrows only free pages
+
+A stretch of 33 to 1,024 new tokens is read in one pass beside the cache if the free pages have room for that
+shape's work memory (0.94 GiB) and 0.25 GiB more; it takes the read-ahead buffer (a layer's three tensors, 1.1 GiB,
+or one tensor, 0.45 GiB) only if they have room for that too. Before, the buffer was taken after the shape from
+whatever "free or file cache" said, which is how the pass came to wire 2.1 GiB with 0.7-1.1 GiB free. Where the free
+pages do not have the room, the stretch takes the cache's memory, as a long prompt does (`Engine::can_borrow`, the
+line "the memory to read them beside the cache is not free (0.44 GiB are, 1.19 GiB are needed)").
+`STRATA_ELASTIC_BORROW=available` is the old rule.
+
+The three-turn conversation of section 12 ([runs.py](borrow/runs.py) `turns`), HEAD's engine (A, `ff1c7a0d`)
+against this one (B), the same 6,493 MiB cache in every start (`--expert-cache-cap 6500`), A B B A, twice:
+
+| Turn 2: 525 more tokens of the document | A | B | B | A |
+| --- | ---: | ---: | ---: | ---: |
+| Free when they came | 0.41 GiB | 0.44 | 0.20 | 0.60 |
+| Read | beside the cache | in its place | in its place | beside the cache |
+| Compressed in that second | **782 MiB** | 0 | 0 | **930 MiB** |
+| First token | 10.58 s | 14.62 s | 14.54 s | 12.00 s |
+| 64th token | 20.70 s | 24.89 s | 25.06 s | 22.07 s |
+| From the SSD | 51.5 GB | 66.2 | 67.0 | 57.8 |
+
+The final build, again ([final-turns.out](borrow/runs/final-turns.out)):
+
+| Turn 2 | A | B | B | A |
+| --- | ---: | ---: | ---: | ---: |
+| Free when they came | 0.49 GiB | 0.89 | 0.50 | 0.91 |
+| Compressed in that second | **167 MiB** | 0 | 0 | **133 MiB** |
+| First token | 10.77 s | 16.18 s | 14.67 s | 10.53 s |
+| 64th token | 21.24 s | 26.90 s | 25.29 s | 20.68 s |
+
+- Per engine start ([per_engine.py](refill/per_engine.py)): A 0.79, 0.91, 0.16, 0.13 GiB compressed; B 0.00, 0.01,
+  0.00, 0.02. No swap-out in any run.
+- **What it costs: turn 2's first token 3.3-4.8 s later** (10.5-12.0 s -> 14.5-16.2 s), the 64th 3.6-4.7 s later.
+  Its 525 tokens are read with every expert from the SSD (10-16 GB more), and the cache is given up and comes back
+  empty (and 0.1-0.9 GiB smaller: less memory was free by then). Turn 3: 2.48-2.61 s with A, 2.48-2.91 s with B
+  (the slowest where the cache had come back 0.9 GiB smaller).
+  The written IDs are the same in every turn of all eight starts.
+- With 1.2-2.4 GiB free (a cap of 7,000 MiB, [settle2.out](borrow/runs/settle2.out)) the stretch was read beside
+  the cache without the read-ahead buffer: first token 13.64-13.70 s, between the two.
+
+### Making buffers where others were: the old ones first
+
+The fallback above is the long-prompt shape, and that change of shape had the same flaw on a smaller scale: it
+freed the cache (6-8 GiB) and made the long passes' buffers in the same second, and Metal lets go of a buffer's
+pages late. With 0.1-0.5 GiB free, macOS compressed 8, 71 and 255 MiB in the second of three of B's six such
+changes above ([kvstep1.out](borrow/runs/kvstep1.out), [turns.out](borrow/runs/turns.out)). So `Engine::let_go`
+frees first (the context keeps the answering shape's small work memory and no cache), waits until that memory is
+free again, and only then makes the new buffers; also when the cache comes back, when it is made anew for a KV step
+(below), and for a back-off. `STRATA_ELASTIC_SETTLE=0`: in one go, as before.
+
+- The memory was free again after 31-997 ms (median 66 ms) in 24 changes of shape (six engine starts above and the
+  two gates below; 31-44 ms for the gates' 2-4 GiB). This process's footprint drops at once; the free pages are
+  what show the pages are back ([settle1.out](borrow/runs/settle1.out): 6.34 GiB less footprint, 0.26 GiB fewer
+  free pages, after 54 ms).
+- Compressed in those seconds: nothing in 23 of 24; 20 MiB in one (a turn 1, with 0.60 GiB free before it).
+  Without the wait in the same series ([settle2.out](borrow/runs/settle2.out)): 74 MiB in one of four.
+- The wait is time before a long prompt's first pass and before its first token: turn 1's first token was within
+  run-to-run noise (22.35/23.06 s without, 22.40-23.24 s with), and the 1.39 s of waits in one turn 2 above are in
+  its 16.18 s.
+
+### A KV step while the cache is there: paid by memory held for it
+
+The KV cache takes 0.47 GiB (16,384 cells) at a time. A step while the expert cache was there made the cache anew,
+smaller (`make_room_for_kv`): the 7-10 GiB went and the new one came in the same second. Now one step's memory is
+held aside from the start (`Engine::kv_hold_`: wired memory of this process, mlock'd, not a Metal buffer: unmapping
+it frees its pages at once), and a step taken while the cache is there lets go of it the moment before the KV cache
+maps its cells; the cache is not touched. The hold comes out of the cache's memory (or what a cap left unused) and
+is taken again when the cache comes back after the next long prompt, which makes the cache anew anyway. A second
+step before that is paid by the cache as before (now through `let_go`). `STRATA_KV_HOLD=0`: no hold.
+
+`STRATA_KV_STEP=1024` so that a short conversation crosses a step; a 30-token question and 800 tokens written, fed in
+(teacher forcing; the model ended its own answer after 178 tokens, before the step), no cache cap, A B B A
+([final-kvanswer.out](borrow/runs/final-kvanswer.out); a first series, [kvanswer.out](borrow/runs/kvanswer.out)):
+
+| A step in the middle of the answer (token 740) | A | B | B | A |
+| --- | ---: | ---: | ---: | ---: |
+| Expert cache | 7,650 MiB | 8,384 MiB | 8,195 MiB | 7,779 MiB |
+| Paid by | the cache, made anew: 0.70 s | the hold: 0.00 s | the hold: 0.00 s | the cache, made anew: 0.58 s |
+| Longest wait between two tokens | 1.12 s | 0.26 s | 0.28 s | 1.02 s |
+| Compressed in that second | **1,546 MiB** | 0 | 0 | **105 MiB** |
+| Tokens 700-800 | 17.43 s | 15.55 s | 15.69 s | 17.55 s |
+| Compressed while the engine was loaded | 1.51 GiB | 0.00 | 0.00 | 0.10 |
+
+Identical IDs and logits in all four (`--chunk 8`: without it the cache's size chooses the pass size of the
+question, and an A with a larger cache read it in passes of 9 in the first series). The first series, before the
+wait above was in: 303 and 582 MiB compressed at A's steps (0.53 and 0.65 s), nothing at B's. The cases of section 12
+([kvstep1.out](borrow/runs/kvstep1.out)): A made the cache anew before a 900-token pass and borrowed for the pass in
+the same second, and macOS compressed **2,239 MiB** in it; after a 700-token pass, 129 MiB at the step. In B both
+stretches took the long-prompt shape (0.09 and 0.33 GiB were free), so no step came while the cache was there.
+
+### What the hold costs: a cache one step smaller
+
+`smaller.sh`: the same build with `--expert-cache-cap 6500` and 6042 (one step less), three short requests of the
+benchmark with 200 tokens written each, in the order A B B A A B ([final-smaller.out](borrow/runs/final-smaller.out)):
+
+| Cache | 6,493 MiB | 6,034 MiB |
+| --- | ---: | ---: |
+| Written, three starts | 6.67, 6.70, 6.64 tok/s | 6.51, 6.49, 6.49 tok/s |
+| Hits | 85.1% | 84.6% |
+| From the SSD per start | 221-226 GB | 227-234 GB |
+
+**2.7% (0.18 tok/s) for 459 MiB** at a cache of 6.5 GiB, all the time; with the 10-11 GiB of a less crowded desktop
+the share should be smaller (not measured). With `--expert-cache-cap` the hold comes from what the cap leaves
+unused and the cache keeps its size.
+
+### Same output
+
+- **Tiny model**, 30 runs ([borrow/tests/](borrow/tests/), [run_tests.sh](borrow/tests/run_tests.sh)): everything of
+  section 12's list (the shape test, also with `STRATA_KV_STEP=256` and both back-off simulations; parity against
+  `strata-reference`; the protocol suite, also with `STRATA_VERIFY_CACHE=1`; each also with
+  `STRATA_ELASTIC_REFILL=all`), the shape test without the hold, with the old borrow rule, without the wait (also a
+  back-off with `STRATA_KV_STEP=256`), with `STRATA_KV_STEP=1024` and without the short shape's read-ahead, and a
+  new test,
+  [metal/tests/kv_hold_test.py](../../../metal/tests/kv_hold_test.py): a question with a long answer, a long
+  continuation, a short one with a long answer, `STRATA_KV_STEP=256`; two of its five steps are paid by the hold
+  (the first, and the one after the long continuation, when the hold had been taken again); IDs and logits those of
+  an engine without `--elastic`, with the hold and without.
+- **Real-model exact gate.** Against HEAD's engine ([gate/gate_head.sh](borrow/gate/gate_head.sh): its plain path
+  recorded, the same 1,529-expert cache everywhere): the default, indexed, `--elastic` and `--elastic --prefill 8192`
+  paths of this build **identical in IDs and logits** on chat, code and the 7,900-token document
+  ([final-gate-head.out](borrow/runs/final-gate-head.out)). Against `strata-reference`
+  ([gate/gate.sh](borrow/gate/gate.sh), as `build-metal/resume-128k/gate.sh`; [final-gate.out](borrow/runs/final-gate.out)):
+  chat and code identical, the document identical in IDs with logits off by at most 0.0037 on all four paths, which
+  is the tie rule of section 15 (any build since patch 0009 does that; this build equals HEAD's above). No swap-out.
+- **Real model, the two builds against each other**: the three-turn conversation (IDs, eight starts), the KV step
+  (IDs and logits), the 700- and 900-token cases of section 12 (IDs and logits).
+
+### Not done, and seen on the way
+
+1. **The fallback costs 3-5 s on a turn of 33-1,024 new tokens when the free pages do not have 1.2 GiB.** On this
+   desktop that is most of the time once the engine is loaded (0.1-0.9 GiB free). A shape that keeps the short
+   pass's work memory (0.94 GiB) held as the KV step's is would avoid it, for 0.94 GiB of cache all the time; not
+   built or measured.
+2. A second KV step before the next long prompt still makes the cache anew (now after its memory is back, so
+   without the overlap). Not measured on the real model: it needs 16,384 tokens of answers and short turns in a row.
+3. The 20 MiB at one change of shape with the wait, above, are not explained.
+4. **`gate.sh`'s reference run compresses a lot now**: `strata-reference` (built before the reads were aligned,
+   section 9) filled the file cache to 7-8 GiB, and macOS compressed 19.8 GiB of other programs' memory (and
+   decompressed 14.7) in the two minutes it ran; no swap-out. `gate_head.sh` records with a current build instead.
+5. Points 1, 2 and 5 of section 12's list stand. Not tested: the server and pi on this build; a long session where a
+   second KV step comes before a long prompt; the back-off on the real model.
+
+The build that was measured and gated is `build-metal/borrow/strata` (HEAD `ff1c7a0d` and this change, SHA-256
+`b3ea9f16...`; HEAD's own as `build-metal/borrow/strata-head`). `build-metal/bin/strata` was rebuilt from the working
+tree (`4fae187e...`), which also holds another session's uncommitted `--preload` change (its default unchanged); the
+30 tiny-model runs pass on both. The patched llama.cpp tree and `metal/patches/` were not touched.

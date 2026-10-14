@@ -1,0 +1,49 @@
+engine: ready in 5.7 s; context 131072, expert cache 3682 experts (7199 MiB), direct reads
+
+21:23:24 probe: steps of 64 MiB every 50 ms
+start: free 0.08 GiB, speculative 0.03, file cache 2.93, its floor 4.89 (vm.vm_page_filecache_min)
+     s  held GiB  free  spec  file  floor  compressed MiB
+  0.07      0.06  0.08  0.03  2.93   4.87         0
+  0.13      0.12  0.08  0.03  2.93   4.85         0
+  0.20      0.19  0.06  0.01  2.90   4.83         6
+  0.28      0.25  0.06  0.00  2.90   4.80        60
+compressed at 0.25 GiB held; started with 0.08 GiB free (and 0.03 speculative), file cache 2.93 -> floor 4.89; compressed 60 MiB in all, swap-outs 0
+
+21:23:56 probe: steps of 64 MiB every 50 ms
+start: free 0.75 GiB, speculative 0.02, file cache 2.93, its floor 4.80 (vm.vm_page_filecache_min)
+     s  held GiB  free  spec  file  floor  compressed MiB
+  0.06      0.06  0.69  0.02  2.93   4.80         0
+  0.12      0.12  0.62  0.02  2.92   4.80         0
+  0.19      0.19  0.62  0.02  2.92   4.80         0
+  0.25      0.25  0.62  0.02  2.92   4.80         0
+  0.32      0.31  0.62  0.02  2.92   4.80         0
+  0.38      0.38  0.62  0.02  2.92   4.80         0
+  0.45      0.44  0.62  0.02  2.92   4.80         0
+  0.51      0.50  0.62  0.02  2.92   4.80         0
+  0.58      0.56  0.62  0.02  2.92   4.80         0
+  0.64      0.62  0.62  0.02  2.92   4.80         0
+  0.71      0.69  0.62  0.02  2.92   4.80         0
+  0.78      0.75  0.62  0.02  2.92   4.62         0
+  0.86      0.81  0.62  0.02  2.92   4.60         0
+  0.93      0.88  0.62  0.02  2.92   4.57         0
+  1.00      0.94  0.62  0.02  2.92   4.54         0
+  1.07      1.00  0.62  0.02  2.92   4.50         0
+  1.14      1.06  0.09  0.00  2.90   4.46       285
+compressed at 1.06 GiB held; started with 0.75 GiB free (and 0.02 speculative), file cache 2.93 -> floor 4.80; compressed 285 MiB in all, swap-outs 0
+
+21:24:28 probe: steps of 64 MiB every 250 ms
+start: free 0.61 GiB, speculative 0.13, file cache 3.19, its floor 4.46 (vm.vm_page_filecache_min)
+     s  held GiB  free  spec  file  floor  compressed MiB
+  0.26      0.06  0.55  0.12  3.18   4.46         0
+  0.53      0.12  0.49  0.12  3.18   4.46         0
+  0.79      0.19  0.49  0.12  3.18   4.46         0
+  1.06      0.25  0.49  0.12  3.18   4.46         0
+  1.33      0.31  0.31  0.12  3.18   4.46         0
+  1.59      0.38  0.24  0.12  3.19   4.46         0
+  1.86      0.44  0.18  0.12  3.18   4.46         0
+  2.13      0.50  0.12  0.12  3.18   4.46         0
+  2.40      0.56  0.06  0.12  3.19   4.46         0
+  2.67      0.62  0.06  0.04  3.11   4.63         0
+  2.94      0.69  0.11  0.01  3.04   4.59        36
+compressed at 0.69 GiB held; started with 0.61 GiB free (and 0.13 speculative), file cache 3.19 -> floor 4.46; compressed 36 MiB in all, swap-outs 0
+engine swap-outs: 0

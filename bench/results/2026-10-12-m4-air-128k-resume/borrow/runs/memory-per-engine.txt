@@ -1,0 +1,237 @@
+== probe1: seconds with 1 MiB or more compressed
+21:22:51 compressed     181 MiB, free  0.01, file cache  2.87, wired 13.11 GiB
+21:22:52 compressed     946 MiB, free  0.14, file cache  2.93, wired 14.11 GiB
+21:23:24 compressed       3 MiB, free  0.06, file cache  2.90, wired 14.21 GiB
+21:23:25 compressed      57 MiB, free  0.32, file cache  2.91, wired 14.08 GiB
+21:23:57 compressed     163 MiB, free  0.07, file cache  2.89, wired 15.10 GiB
+21:23:58 compressed     122 MiB, free  1.16, file cache  2.91, wired 14.08 GiB
+21:24:31 compressed      36 MiB, free  0.81, file cache  3.05, wired 14.09 GiB
+-- per engine start (stretches with more than 8 GiB wired)
+engine 1: 21:22:51-21:24:36 (100 s): compressed 1.47 GiB, decompressed 0.11, free min 0.01 median 0.75 GiB, free + file cache min 2.88, swap-outs 0
+
+== probe-file: seconds with 1 MiB or more compressed
+21:26:40 compressed      54 MiB, free  9.88, file cache  5.95, wired  2.31 GiB
+21:27:20 compressed     142 MiB, free  0.06, file cache  5.82, wired 12.85 GiB
+-- per engine start (stretches with more than 8 GiB wired)
+
+== turns: seconds with 1 MiB or more compressed
+21:33:09 compressed     782 MiB, free  0.06, file cache  3.03, wired 14.74 GiB
+21:33:10 compressed       6 MiB, free  0.07, file cache  3.05, wired 14.72 GiB
+21:33:12 compressed      12 MiB, free  0.07, file cache  3.05, wired 14.73 GiB
+21:33:13 compressed       7 MiB, free  0.54, file cache  3.07, wired 14.73 GiB
+21:37:11 compressed       7 MiB, free  0.07, file cache  3.06, wired 12.99 GiB
+21:39:32 compressed     930 MiB, free  0.06, file cache  3.04, wired 15.54 GiB
+21:39:33 compressed       4 MiB, free  0.55, file cache  3.03, wired 15.56 GiB
+-- per engine start (stretches with more than 8 GiB wired)
+engine 1: 21:32:33-21:33:41 (65 s): compressed 0.79 GiB, decompressed 0.11, free min 0.06 median 0.30 GiB, free + file cache min 3.10, swap-outs 0
+engine 2: 21:34:30-21:35:42 (68 s): compressed 0.00 GiB, decompressed 0.01, free min 0.06 median 0.36 GiB, free + file cache min 3.30, swap-outs 0
+engine 3: 21:36:36-21:37:48 (68 s): compressed 0.01 GiB, decompressed 0.00, free min 0.07 median 0.55 GiB, free + file cache min 3.12, swap-outs 0
+engine 4: 21:38:58-21:40:06 (66 s): compressed 0.91 GiB, decompressed 0.19, free min 0.06 median 0.47 GiB, free + file cache min 3.09, swap-outs 0
+
+== kvstep1: seconds with 1 MiB or more compressed
+21:42:04 compressed       3 MiB, free  0.11, file cache  3.03, wired 14.31 GiB
+21:42:11 compressed      42 MiB, free  0.07, file cache  2.95, wired 14.40 GiB
+21:42:12 compressed       3 MiB, free  0.07, file cache  2.95, wired 14.48 GiB
+21:42:28 compressed      18 MiB, free  0.06, file cache  2.96, wired 14.35 GiB
+21:42:30 compressed       8 MiB, free  0.08, file cache  2.97, wired 14.05 GiB
+21:47:39 compressed     994 MiB, free  0.06, file cache  3.13, wired 15.73 GiB
+21:47:40 compressed      50 MiB, free  0.07, file cache  3.14, wired 15.73 GiB
+21:48:00 compressed     129 MiB, free  1.90, file cache  2.94, wired 14.12 GiB
+21:49:15 compressed      50 MiB, free  0.08, file cache  3.10, wired 14.43 GiB
+21:49:16 compressed      54 MiB, free  4.09, file cache  3.09, wired  9.85 GiB
+21:49:18 compressed      39 MiB, free  0.06, file cache  3.23, wired 13.56 GiB
+21:50:47 compressed    2239 MiB, free  0.07, file cache  3.22, wired 16.07 GiB
+21:52:13 compressed     255 MiB, free  0.08, file cache  3.20, wired 14.56 GiB
+-- per engine start (stretches with more than 8 GiB wired)
+engine 1: 21:42:04-21:42:36 (32 s): compressed 0.07 GiB, decompressed 0.01, free min 0.06 median 0.11 GiB, free + file cache min 3.01, swap-outs 0
+engine 2: 21:43:25-21:43:56 (31 s): compressed 0.00 GiB, decompressed 0.01, free min 0.06 median 0.11 GiB, free + file cache min 3.13, swap-outs 0
+engine 3: 21:44:44-21:45:16 (31 s): compressed 0.00 GiB, decompressed 0.01, free min 0.05 median 0.07 GiB, free + file cache min 3.15, swap-outs 0
+engine 4: 21:46:11-21:46:41 (30 s): compressed 0.00 GiB, decompressed 0.09, free min 0.05 median 0.11 GiB, free + file cache min 3.11, swap-outs 0
+engine 5: 21:47:35-21:48:09 (34 s): compressed 1.15 GiB, decompressed 0.06, free min 0.06 median 1.36 GiB, free + file cache min 3.17, swap-outs 0
+engine 6: 21:49:13-21:49:49 (34 s): compressed 0.14 GiB, decompressed 0.07, free min 0.05 median 0.26 GiB, free + file cache min 3.16, swap-outs 0
+engine 7: 21:50:44-21:51:09 (25 s): compressed 2.19 GiB, decompressed 0.27, free min 0.06 median 0.08 GiB, free + file cache min 3.27, swap-outs 0
+engine 8: 21:52:09-21:52:35 (26 s): compressed 0.25 GiB, decompressed 0.06, free min 0.06 median 0.31 GiB, free + file cache min 3.26, swap-outs 0
+
+== kvanswer: seconds with 1 MiB or more compressed
+21:56:40 compressed     303 MiB, free  0.98, file cache  3.23, wired 14.60 GiB
+22:02:44 compressed     222 MiB, free  0.06, file cache  2.98, wired 15.72 GiB
+22:02:45 compressed      60 MiB, free  0.11, file cache  2.98, wired 15.60 GiB
+22:02:48 compressed     350 MiB, free  0.57, file cache  3.04, wired 14.73 GiB
+22:13:11 compressed     582 MiB, free  5.85, file cache  3.05, wired 10.80 GiB
+-- per engine start (stretches with more than 8 GiB wired)
+engine 1: 21:54:41-21:56:50 (124 s): compressed 0.30 GiB, decompressed 0.06, free min 0.26 median 0.53 GiB, free + file cache min 3.50, swap-outs 0
+engine 2: 21:58:31-22:00:37 (121 s): compressed 0.00 GiB, decompressed 0.02, free min 0.21 median 0.65 GiB, free + file cache min 3.46, swap-outs 0
+engine 3: 22:02:33-22:10:19 (124 s): compressed 0.62 GiB, decompressed 1.35, free min 0.06 median 0.86 GiB, free + file cache min 3.04, swap-outs 0
+engine 4: 22:11:19-22:13:22 (118 s): compressed 0.57 GiB, decompressed 0.17, free min 0.05 median 0.46 GiB, free + file cache min 3.62, swap-outs 0
+
+== settle1: seconds with 1 MiB or more compressed
+-- per engine start (stretches with more than 8 GiB wired)
+engine 1: 22:20:16-22:20:38 (22 s): compressed 0.00 GiB, decompressed 0.04, free min 0.88 median 0.90 GiB, free + file cache min 4.59, swap-outs 0
+engine 2: 22:20:40-22:21:26 (45 s): compressed 0.00 GiB, decompressed 0.00, free min 0.15 median 1.00 GiB, free + file cache min 3.72, swap-outs 0
+
+== settle2: seconds with 1 MiB or more compressed
+22:31:25 compressed      71 MiB, free  0.06, file cache  3.23, wired 13.41 GiB
+22:31:26 compressed       3 MiB, free  0.07, file cache  3.24, wired 13.43 GiB
+-- per engine start (stretches with more than 8 GiB wired)
+engine 1: 22:23:21-22:24:30 (67 s): compressed 0.00 GiB, decompressed 0.02, free min 0.01 median 0.30 GiB, free + file cache min 3.33, swap-outs 0
+engine 3: 22:25:44-22:26:14 (30 s): compressed 0.00 GiB, decompressed 0.00, free min 0.46 median 0.52 GiB, free + file cache min 3.74, swap-outs 0
+engine 4: 22:26:16-22:26:28 (12 s): compressed 0.00 GiB, decompressed 0.00, free min 0.83 median 0.84 GiB, free + file cache min 4.13, swap-outs 0
+engine 5: 22:26:30-22:26:53 (23 s): compressed 0.00 GiB, decompressed 0.00, free min 0.84 median 0.98 GiB, free + file cache min 4.09, swap-outs 0
+engine 7: 22:28:22-22:28:52 (29 s): compressed 0.00 GiB, decompressed 0.03, free min 0.23 median 0.24 GiB, free + file cache min 3.57, swap-outs 0
+engine 8: 22:28:54-22:29:31 (37 s): compressed 0.00 GiB, decompressed 0.05, free min 0.12 median 0.59 GiB, free + file cache min 3.46, swap-outs 0
+engine 9: 22:31:22-22:32:37 (72 s): compressed 0.07 GiB, decompressed 0.09, free min 0.06 median 0.77 GiB, free + file cache min 3.17, swap-outs 0
+
+== final-turns: seconds with 1 MiB or more compressed
+22:38:22 compressed      47 MiB, free  0.01, file cache  3.08, wired 14.15 GiB
+22:38:23 compressed     120 MiB, free  0.06, file cache  3.06, wired 14.83 GiB
+22:42:53 compressed      20 MiB, free  0.09, file cache  3.33, wired 13.13 GiB
+22:46:09 compressed     133 MiB, free  0.06, file cache  3.10, wired 14.64 GiB
+-- per engine start (stretches with more than 8 GiB wired)
+engine 1: 22:37:47-22:38:56 (67 s): compressed 0.16 GiB, decompressed 0.02, free min 0.01 median 0.54 GiB, free + file cache min 3.09, swap-outs 0
+engine 2: 22:40:21-22:41:36 (71 s): compressed 0.00 GiB, decompressed 0.09, free min 0.06 median 0.58 GiB, free + file cache min 3.39, swap-outs 0
+engine 3: 22:42:50-22:44:04 (70 s): compressed 0.02 GiB, decompressed 0.02, free min 0.06 median 0.53 GiB, free + file cache min 3.38, swap-outs 0
+engine 5: 22:45:37-22:46:41 (61 s): compressed 0.13 GiB, decompressed 0.05, free min 0.06 median 0.29 GiB, free + file cache min 3.16, swap-outs 0
+
+== final-kvanswer: seconds with 1 MiB or more compressed
+22:50:13 compressed    1546 MiB, free  2.35, file cache  3.13, wired 14.05 GiB
+23:02:19 compressed     105 MiB, free  0.94, file cache  3.32, wired 14.12 GiB
+-- per engine start (stretches with more than 8 GiB wired)
+engine 1: 22:48:15-22:50:23 (123 s): compressed 1.51 GiB, decompressed 0.21, free min 0.07 median 0.41 GiB, free + file cache min 3.31, swap-outs 0
+engine 2: 22:52:13-22:54:17 (118 s): compressed 0.00 GiB, decompressed 0.05, free min 0.47 median 1.09 GiB, free + file cache min 3.91, swap-outs 0
+engine 3: 22:56:27-22:58:32 (119 s): compressed 0.00 GiB, decompressed 0.13, free min 0.06 median 0.39 GiB, free + file cache min 3.68, swap-outs 0
+engine 4: 23:00:22-23:02:29 (122 s): compressed 0.10 GiB, decompressed 0.06, free min 0.08 median 0.44 GiB, free + file cache min 3.83, swap-outs 0
+
+== final-smaller: seconds with 1 MiB or more compressed
+-- per engine start (stretches with more than 8 GiB wired)
+engine 1: 23:04:42-23:05:16 (34 s): compressed 0.00 GiB, decompressed 0.00, free min 0.95 median 1.01 GiB, free + file cache min 4.25, swap-outs 0
+engine 2: 23:05:18-23:05:53 (33 s): compressed 0.00 GiB, decompressed 0.00, free min 0.45 median 0.97 GiB, free + file cache min 3.82, swap-outs 0
+engine 4: 23:06:02-23:06:33 (30 s): compressed 0.00 GiB, decompressed 0.00, free min 0.85 median 0.89 GiB, free + file cache min 4.21, swap-outs 0
+engine 5: 23:08:13-23:10:00 (102 s): compressed 0.00 GiB, decompressed 0.01, free min 0.36 median 1.57 GiB, free + file cache min 3.76, swap-outs 0
+engine 6: 23:11:40-23:13:29 (104 s): compressed 0.00 GiB, decompressed 0.02, free min 0.29 median 1.20 GiB, free + file cache min 3.82, swap-outs 0
+engine 7: 23:15:24-23:15:59 (33 s): compressed 0.00 GiB, decompressed 0.00, free min 0.12 median 0.19 GiB, free + file cache min 4.02, swap-outs 0
+engine 8: 23:16:01-23:16:36 (35 s): compressed 0.00 GiB, decompressed 0.00, free min 0.06 median 0.28 GiB, free + file cache min 3.69, swap-outs 0
+engine 9: 23:16:38-23:17:16 (37 s): compressed 0.00 GiB, decompressed 0.00, free min 0.62 median 0.66 GiB, free + file cache min 4.22, swap-outs 0
+engine 10: 23:18:56-23:19:30 (33 s): compressed 0.00 GiB, decompressed 0.01, free min 0.24 median 0.29 GiB, free + file cache min 4.01, swap-outs 0
+engine 11: 23:19:32-23:20:07 (35 s): compressed 0.00 GiB, decompressed 0.01, free min 0.06 median 0.46 GiB, free + file cache min 3.61, swap-outs 0
+engine 12: 23:20:09-23:20:48 (37 s): compressed 0.00 GiB, decompressed 0.00, free min 0.16 median 0.89 GiB, free + file cache min 3.63, swap-outs 0
+engine 13: 23:22:44-23:24:02 (76 s): compressed 0.00 GiB, decompressed 0.00, free min 0.33 median 0.79 GiB, free + file cache min 3.94, swap-outs 0
+engine 14: 23:24:05-23:24:36 (31 s): compressed 0.00 GiB, decompressed 0.00, free min 0.55 median 0.58 GiB, free + file cache min 4.20, swap-outs 0
+
+== final-gate: seconds with 1 MiB or more compressed
+23:25:49 compressed     199 MiB, free  1.35, file cache  7.04, wired 10.23 GiB
+23:25:50 compressed    2428 MiB, free  0.06, file cache  6.98, wired 14.51 GiB
+23:25:51 compressed     627 MiB, free  0.06, file cache  7.00, wired 14.33 GiB
+23:25:52 compressed     143 MiB, free  0.06, file cache  6.98, wired 14.34 GiB
+23:25:53 compressed      56 MiB, free  0.07, file cache  6.98, wired 14.34 GiB
+23:25:54 compressed      28 MiB, free  0.08, file cache  7.00, wired 14.33 GiB
+23:25:55 compressed     234 MiB, free  0.07, file cache  6.92, wired 14.33 GiB
+23:25:56 compressed     205 MiB, free  0.07, file cache  6.91, wired 14.35 GiB
+23:25:57 compressed     106 MiB, free  0.07, file cache  6.92, wired 14.33 GiB
+23:25:58 compressed      23 MiB, free  0.06, file cache  6.92, wired 14.35 GiB
+23:25:59 compressed      60 MiB, free  0.08, file cache  6.92, wired 14.34 GiB
+23:26:00 compressed      39 MiB, free  0.09, file cache  6.93, wired 14.33 GiB
+23:26:02 compressed       7 MiB, free  0.09, file cache  6.92, wired 14.34 GiB
+23:26:04 compressed     227 MiB, free  0.07, file cache  7.00, wired 14.33 GiB
+23:26:06 compressed     452 MiB, free  0.06, file cache  7.17, wired 14.33 GiB
+23:26:07 compressed       3 MiB, free  0.07, file cache  7.09, wired 14.35 GiB
+23:26:08 compressed      25 MiB, free  0.07, file cache  7.10, wired 14.35 GiB
+23:26:09 compressed     189 MiB, free  0.07, file cache  7.04, wired 14.33 GiB
+23:26:10 compressed      86 MiB, free  0.79, file cache  6.96, wired 14.34 GiB
+23:26:20 compressed      16 MiB, free  0.05, file cache  7.54, wired 14.33 GiB
+23:26:21 compressed     584 MiB, free  0.04, file cache  7.27, wired 14.33 GiB
+23:26:22 compressed     218 MiB, free  0.06, file cache  7.36, wired 14.35 GiB
+23:26:23 compressed     211 MiB, free  0.06, file cache  7.36, wired 14.34 GiB
+23:26:24 compressed     230 MiB, free  0.06, file cache  7.43, wired 14.33 GiB
+23:26:27 compressed      99 MiB, free  0.06, file cache  7.79, wired 14.35 GiB
+23:26:28 compressed     241 MiB, free  0.06, file cache  7.86, wired 14.32 GiB
+23:26:29 compressed     108 MiB, free  0.06, file cache  7.89, wired 14.32 GiB
+23:26:30 compressed       2 MiB, free  0.06, file cache  7.82, wired 14.34 GiB
+23:26:31 compressed     128 MiB, free  0.07, file cache  7.83, wired 14.32 GiB
+23:26:32 compressed      92 MiB, free  0.06, file cache  7.84, wired 14.32 GiB
+23:26:33 compressed     428 MiB, free  0.06, file cache  7.82, wired 14.34 GiB
+23:26:34 compressed     628 MiB, free  0.06, file cache  7.98, wired 14.34 GiB
+23:26:35 compressed     205 MiB, free  0.08, file cache  8.03, wired 14.34 GiB
+23:26:36 compressed     292 MiB, free  0.07, file cache  8.17, wired 14.32 GiB
+23:26:37 compressed     174 MiB, free  0.09, file cache  8.19, wired 14.32 GiB
+23:26:38 compressed     132 MiB, free  0.06, file cache  8.19, wired 14.34 GiB
+23:26:39 compressed     252 MiB, free  0.06, file cache  8.22, wired 14.34 GiB
+23:26:40 compressed      33 MiB, free  0.07, file cache  8.16, wired 14.34 GiB
+23:26:41 compressed      57 MiB, free  0.08, file cache  8.15, wired 14.32 GiB
+23:26:42 compressed     105 MiB, free  0.06, file cache  8.08, wired 14.34 GiB
+23:26:43 compressed      96 MiB, free  0.05, file cache  8.10, wired 14.33 GiB
+23:26:44 compressed     152 MiB, free  0.06, file cache  8.07, wired 14.33 GiB
+23:26:45 compressed     131 MiB, free  0.06, file cache  8.05, wired 14.34 GiB
+23:26:47 compressed     216 MiB, free  0.06, file cache  8.10, wired 14.34 GiB
+23:26:48 compressed     141 MiB, free  0.06, file cache  8.08, wired 14.33 GiB
+23:26:49 compressed     253 MiB, free  0.06, file cache  8.09, wired 14.33 GiB
+23:26:50 compressed     287 MiB, free  0.05, file cache  8.11, wired 14.32 GiB
+23:26:51 compressed     215 MiB, free  0.06, file cache  8.06, wired 14.33 GiB
+23:26:52 compressed      97 MiB, free  0.06, file cache  8.05, wired 14.33 GiB
+23:26:53 compressed     149 MiB, free  0.06, file cache  7.98, wired 14.33 GiB
+23:26:54 compressed     143 MiB, free  0.07, file cache  7.92, wired 14.33 GiB
+23:26:55 compressed      30 MiB, free  0.06, file cache  7.94, wired 14.32 GiB
+23:26:56 compressed      58 MiB, free  0.06, file cache  7.83, wired 14.32 GiB
+23:26:57 compressed     137 MiB, free  0.07, file cache  7.81, wired 14.33 GiB
+23:26:58 compressed     138 MiB, free  0.07, file cache  7.75, wired 14.33 GiB
+23:26:59 compressed     155 MiB, free  0.06, file cache  7.75, wired 14.33 GiB
+23:27:00 compressed     227 MiB, free  0.06, file cache  7.80, wired 14.33 GiB
+23:27:01 compressed     506 MiB, free  0.06, file cache  7.84, wired 14.33 GiB
+23:27:02 compressed     201 MiB, free  0.06, file cache  7.77, wired 14.33 GiB
+23:27:03 compressed      56 MiB, free  0.07, file cache  7.71, wired 14.33 GiB
+23:27:04 compressed     103 MiB, free  0.06, file cache  7.70, wired 14.31 GiB
+23:27:05 compressed     156 MiB, free  0.06, file cache  7.71, wired 14.33 GiB
+23:27:06 compressed     171 MiB, free  0.05, file cache  7.76, wired 14.33 GiB
+23:27:08 compressed     105 MiB, free  0.07, file cache  7.85, wired 14.34 GiB
+23:27:09 compressed     368 MiB, free  0.06, file cache  7.95, wired 14.34 GiB
+23:27:10 compressed     181 MiB, free  0.06, file cache  7.90, wired 14.34 GiB
+23:27:11 compressed     288 MiB, free  0.06, file cache  7.96, wired 14.33 GiB
+23:27:12 compressed      29 MiB, free  0.07, file cache  7.87, wired 14.33 GiB
+23:27:13 compressed      58 MiB, free  0.06, file cache  7.86, wired 14.32 GiB
+23:27:14 compressed     169 MiB, free  0.06, file cache  7.91, wired 14.33 GiB
+23:27:15 compressed     207 MiB, free  0.06, file cache  7.96, wired 14.32 GiB
+23:27:16 compressed      42 MiB, free  0.06, file cache  7.88, wired 14.32 GiB
+23:27:17 compressed     334 MiB, free  0.06, file cache  7.96, wired 14.34 GiB
+23:27:18 compressed     449 MiB, free  0.06, file cache  8.00, wired 14.33 GiB
+23:27:19 compressed     168 MiB, free  0.06, file cache  7.99, wired 14.33 GiB
+23:27:20 compressed     265 MiB, free  0.06, file cache  7.99, wired 14.33 GiB
+23:27:21 compressed     213 MiB, free  0.06, file cache  8.01, wired 14.34 GiB
+23:27:22 compressed     140 MiB, free  0.06, file cache  7.90, wired 14.32 GiB
+23:27:23 compressed     272 MiB, free  0.06, file cache  7.87, wired 14.32 GiB
+23:27:24 compressed     152 MiB, free  0.06, file cache  7.89, wired 14.33 GiB
+23:27:25 compressed     110 MiB, free  0.06, file cache  7.86, wired 14.32 GiB
+23:27:26 compressed      51 MiB, free  0.06, file cache  7.72, wired 14.34 GiB
+23:27:27 compressed     376 MiB, free  0.04, file cache  7.90, wired 14.32 GiB
+23:27:29 compressed     238 MiB, free  0.06, file cache  7.97, wired 14.34 GiB
+23:27:30 compressed     286 MiB, free  0.06, file cache  7.98, wired 14.34 GiB
+23:27:31 compressed      41 MiB, free  0.07, file cache  7.95, wired 14.32 GiB
+23:27:32 compressed     107 MiB, free  0.06, file cache  7.95, wired 14.34 GiB
+23:27:33 compressed     134 MiB, free  0.06, file cache  7.93, wired 14.32 GiB
+23:27:34 compressed     135 MiB, free  0.08, file cache  7.88, wired 14.33 GiB
+23:27:35 compressed     155 MiB, free  0.05, file cache  7.92, wired 14.32 GiB
+23:27:36 compressed     109 MiB, free  0.06, file cache  7.88, wired 14.32 GiB
+23:27:37 compressed      87 MiB, free  0.05, file cache  7.83, wired 14.34 GiB
+23:27:38 compressed     461 MiB, free  0.05, file cache  8.00, wired 14.32 GiB
+23:27:39 compressed     332 MiB, free  0.06, file cache  7.90, wired 14.34 GiB
+23:27:40 compressed      22 MiB, free  0.06, file cache  7.85, wired 14.34 GiB
+23:27:41 compressed     269 MiB, free  0.05, file cache  7.95, wired 14.34 GiB
+23:27:42 compressed     186 MiB, free  0.05, file cache  8.02, wired 14.34 GiB
+23:27:43 compressed      69 MiB, free  0.08, file cache  7.98, wired 14.34 GiB
+23:27:44 compressed       2 MiB, free  0.06, file cache  7.95, wired 14.32 GiB
+23:27:45 compressed     203 MiB, free  0.06, file cache  8.02, wired 14.34 GiB
+23:27:46 compressed      37 MiB, free  0.05, file cache  8.01, wired 14.34 GiB
+23:27:47 compressed      76 MiB, free  0.06, file cache  7.92, wired 14.34 GiB
+23:27:48 compressed     118 MiB, free  0.07, file cache  7.75, wired 14.33 GiB
+-- per engine start (stretches with more than 8 GiB wired)
+engine 1: 23:25:49-23:27:54 (119 s): compressed 19.76 GiB, decompressed 14.69, free min 0.04 median 0.06 GiB, free + file cache min 6.98, swap-outs 0
+engine 2: 23:27:59-23:30:19 (133 s): compressed 0.00 GiB, decompressed 0.86, free min 5.32 median 6.37 GiB, free + file cache min 8.05, swap-outs 0
+engine 3: 23:30:23-23:32:38 (129 s): compressed 0.00 GiB, decompressed 0.17, free min 5.10 median 5.88 GiB, free + file cache min 7.94, swap-outs 0
+engine 4: 23:32:42-23:34:57 (128 s): compressed 0.00 GiB, decompressed 0.38, free min 7.13 median 8.02 GiB, free + file cache min 9.49, swap-outs 0
+engine 5: 23:35:01-23:37:15 (128 s): compressed 0.00 GiB, decompressed 0.07, free min 4.78 median 5.26 GiB, free + file cache min 8.35, swap-outs 0
+
+== final-gate-head: seconds with 1 MiB or more compressed
+-- per engine start (stretches with more than 8 GiB wired)
+engine 1: 23:45:22-23:47:08 (102 s): compressed 0.00 GiB, decompressed 0.11, free min 3.44 median 3.83 GiB, free + file cache min 6.79, swap-outs 0
+engine 2: 23:47:11-23:49:11 (114 s): compressed 0.00 GiB, decompressed 0.03, free min 3.17 median 3.64 GiB, free + file cache min 6.69, swap-outs 0
+engine 3: 23:49:15-23:51:26 (125 s): compressed 0.00 GiB, decompressed 0.12, free min 3.13 median 3.45 GiB, free + file cache min 6.63, swap-outs 0
+engine 4: 23:51:30-23:53:41 (125 s): compressed 0.00 GiB, decompressed 0.01, free min 4.75 median 5.92 GiB, free + file cache min 7.66, swap-outs 0
+engine 5: 23:53:46-23:55:55 (123 s): compressed 0.00 GiB, decompressed 0.02, free min 2.97 median 3.45 GiB, free + file cache min 7.24, swap-outs 0

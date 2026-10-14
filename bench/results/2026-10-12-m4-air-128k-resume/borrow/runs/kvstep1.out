@@ -1,0 +1,54 @@
+== answer: 30 tokens, 800 written, A B B A
+temperature before the run: SoC 43.7 C, battery 31.3 C
+STRATA_KV_STEP=1024 build-metal/borrow/strata-head: ready in 5.5 s; context 131072, expert cache 3913 experts (7650 MiB), direct reads
+  sent 21:42:06.6; first token 4.01 s, last (178) 29.67 s; written 6.90 tok/s; longest waits between tokens: 0.28 s before token 123 (21:42:28.3), 0.26 s before token 32 (21:42:15.2), 0.25 s before token 94 (21:42:24.1); swap-outs 0
+  this is what the others are compared with
+temperature before the run: SoC 44.8 C, battery 31.7 C
+STRATA_KV_STEP=1024 build-metal/borrow/strata: ready in 5.5 s; context 131072, expert cache 3899 experts (7622 MiB), direct reads
+  sent 21:43:27.8; first token 3.58 s, last (178) 28.83 s; written 7.01 tok/s; longest waits between tokens: 0.25 s before token 46 (21:43:38.3), 0.25 s before token 32 (21:43:35.9), 0.24 s before token 94 (21:43:44.8); swap-outs 0
+  identical IDs and logits
+temperature before the run: SoC 44.4 C, battery 31.8 C
+STRATA_KV_STEP=1024 build-metal/borrow/strata: ready in 5.5 s; context 131072, expert cache 3899 experts (7622 MiB), direct reads
+  sent 21:44:48.0; first token 3.55 s, last (178) 28.66 s; written 7.05 tok/s; longest waits between tokens: 0.25 s before token 32 (21:44:56.1), 0.24 s before token 94 (21:45:04.9), 0.24 s before token 123 (21:45:09.0); swap-outs 0
+  identical IDs and logits
+temperature before the run: SoC 44.7 C, battery 31.9 C
+STRATA_KV_STEP=1024 build-metal/borrow/strata-head: ready in 5.5 s; context 131072, expert cache 3913 experts (7650 MiB), direct reads
+  sent 21:46:13.1; first token 3.57 s, last (178) 28.70 s; written 7.04 tok/s; longest waits between tokens: 0.25 s before token 32 (21:46:21.2), 0.24 s before token 94 (21:46:30.0), 0.23 s before token 121 (21:46:33.6); swap-outs 0
+  identical IDs and logits
+all identical
+== kv700: 700 tokens, 120 written, A B
+temperature before the run: SoC 44.5 C, battery 31.9 C
+STRATA_KV_STEP=1024 build-metal/borrow/strata-head: ready in 5.5 s; context 131072, expert cache 3913 experts (7650 MiB), direct reads
+  sent 21:47:38.7; first token 11.78 s, last (120) 31.37 s; written 6.07 tok/s; longest waits between tokens: 0.91 s before token 70 (21:48:01.2), 0.31 s before token 61 (21:47:58.9), 0.30 s before token 72 (21:48:01.7); swap-outs 0
+    | the context has its short-prompt shape after 0.12 s (0 experts read back): 12901.6 MiB on the GPU, 12048.6 MiB in all, 0.0 MiB of it compressed
+    | the context has its answering shape after 0.04 s (0 experts read back): 12051.9 MiB on the GPU, 12098.2 MiB in all, 0.0 MiB of it compressed
+    | the conversation reaches 769 tokens: the KV cache takes its memory for 2048 (0.03 GiB more), the expert cache gives it: 7.48 -> 7.45 GiB (it fills again as its experts are asked for), 0.51 s
+  this is what the others are compared with
+temperature before the run: SoC 44.8 C, battery 32.1 C
+STRATA_KV_STEP=1024 build-metal/borrow/strata: ready in 5.5 s; context 131072, expert cache 3899 experts (7622 MiB), direct reads
+  sent 21:49:16.7; first token 13.95 s, last (120) 32.74 s; written 6.33 tok/s; longest waits between tokens: 0.32 s before token 61 (21:49:39.5), 0.28 s before token 98 (21:49:45.8), 0.25 s before token 113 (21:49:48.3); swap-outs 0
+    | 697 new tokens: the memory to read them beside the cache is not free (0.09 GiB are, 1.19 GiB are needed), they take the cache's
+    | the context has its long-prompt shape after 0.41 s (0 experts read back): 9730.8 MiB on the GPU, 11160.5 MiB in all, 0.0 MiB of it compressed
+    | the conversation reaches 2748 tokens: the KV cache takes its memory for 3072 (0.06 GiB more), the expert cache gives it: 7.45 -> 7.39 GiB when it comes back, 0.00 s
+    | less memory is free than at the start: the expert cache comes back with 7.06 GiB of its 7.39
+    | the context has its answering shape after 0.46 s (0 experts read back): 11681.0 MiB on the GPU, 12109.4 MiB in all, 0.0 MiB of it compressed
+  identical IDs and logits
+all identical
+== kv900: 900 tokens, 64 written, A B
+temperature before the run: SoC 44.3 C, battery 32.2 C
+STRATA_KV_STEP=1024 build-metal/borrow/strata-head: ready in 5.5 s; context 131072, expert cache 3913 experts (7650 MiB), direct reads
+  sent 21:50:46.3; first token 14.42 s, last (64) 23.93 s; written 6.62 tok/s; longest waits between tokens: 0.26 s before token 53 (21:51:08.4), 0.24 s before token 61 (21:51:09.6), 0.23 s before token 62 (21:51:09.9); swap-outs 0
+    | the conversation reaches 900 tokens: the KV cache takes its memory for 2048 (0.03 GiB more), the expert cache gives it: 7.48 -> 7.45 GiB (it fills again as its experts are asked for), 0.70 s
+    | the context has its short-prompt shape after 0.04 s (0 experts read back): 12904.2 MiB on the GPU, 12090.6 MiB in all, 41.4 MiB of it compressed
+    | the context has its answering shape after 0.03 s (0 experts read back): 12054.5 MiB on the GPU, 12121.2 MiB in all, 39.7 MiB of it compressed
+  this is what the others are compared with
+temperature before the run: SoC 44.2 C, battery 32.3 C
+STRATA_KV_STEP=1024 build-metal/borrow/strata: ready in 5.8 s; context 131072, expert cache 4337 experts (8478 MiB), direct reads
+  sent 21:52:12.1; first token 14.77 s, last (64) 24.14 s; written 6.72 tok/s; longest waits between tokens: 0.26 s before token 53 (21:52:34.5), 0.24 s before token 62 (21:52:36.0), 0.24 s before token 61 (21:52:35.7); swap-outs 0
+    | 897 new tokens: the memory to read them beside the cache is not free (0.33 GiB are, 1.19 GiB are needed), they take the cache's
+    | the context has its long-prompt shape after 0.47 s (0 experts read back): 10558.2 MiB on the GPU, 12010.7 MiB in all, 0.0 MiB of it compressed
+    | the conversation reaches 2948 tokens: the KV cache takes its memory for 4096 (0.09 GiB more), the expert cache gives it: 8.29 -> 8.20 GiB when it comes back, 0.01 s
+    | less memory is free than at the start: the expert cache comes back with 7.92 GiB of its 8.20
+    | the context has its answering shape after 0.51 s (0 experts read back): 12595.2 MiB on the GPU, 13042.1 MiB in all, 0.0 MiB of it compressed
+  identical IDs and logits
+all identical

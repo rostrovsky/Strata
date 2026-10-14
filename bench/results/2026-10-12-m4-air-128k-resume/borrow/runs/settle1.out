@@ -1,0 +1,14 @@
+temperature before the run: SoC 41.9 C, battery 32.2 C
+STRATA_ELASTIC_SETTLE=1 build-metal/borrow/strata-settle: ready in 5.6 s; context 131072, expert cache 3320 experts (6493 MiB), direct reads
+  turn 1 sent 22:20:18.1, first token 22:20:40.5: 2000 tokens read (0 reused), t1=22.41 t10=23.89 t50=29.90 t64=32.30; written 6.37 tok/s, misses/token 59.3, swap-outs 0
+    | the old buffers' memory (6.35 GiB) came back in 54 ms (half of it in 54): this process holds 6.34 GiB less, -0.26 GiB more are free
+    | the context has its long-prompt shape after 0.38 s (0 experts read back): 9111.4 MiB on the GPU, 10982.6 MiB in all, 0.0 MiB of it compressed
+    | the old buffers' memory (5.35 GiB) came back in 160 ms (half of it in 55): this process holds 4.69 GiB less, 5.06 GiB more are free
+    | the context has its answering shape after 0.56 s (0 experts read back): 11345.0 MiB on the GPU, 12211.1 MiB in all, 0.0 MiB of it compressed
+  turn 2 sent 22:20:50.5, first token 22:21:04.2: 525 tokens read (2063 reused), t1=13.70 t10=15.08 t50=21.45 t64=23.89; written 6.18 tok/s, misses/token 70.4, swap-outs 0
+    | the context has its short-prompt shape after 0.05 s (0 experts read back): 12195.9 MiB on the GPU, 11927.3 MiB in all, 0.0 MiB of it compressed
+    | this stretch is read beside the cache without read-ahead: the memory for it is not free
+    | the context has its answering shape after 0.03 s (0 experts read back): 11346.0 MiB on the GPU, 11944.4 MiB in all, 0.0 MiB of it compressed
+  turn 3 sent 22:21:14.5, first token 22:21:17.0: 20 tokens read (2651 reused), t1=2.51 t10=3.83 t50=10.26 t64=12.61; written 6.24 tok/s, misses/token 67.8, swap-outs 0
+
+same written ids in every run, per turn: [True, True, True]

@@ -1,0 +1,54 @@
+temperature before the run: SoC 42.9 C, battery 32.2 C
+STRATA_ELASTIC_SETTLE=0 build-metal/borrow/strata-settle: ready in 5.6 s; context 131072, expert cache 3576 experts (6992 MiB), direct reads
+  turn 1 sent 22:23:23.2, first token 22:23:45.5: 2000 tokens read (0 reused), t1=22.35 t10=23.84 t50=29.75 t64=32.02; written 6.51 tok/s, misses/token 56.6, swap-outs 0
+    | the context has its long-prompt shape after 0.38 s (0 experts read back): 9611.4 MiB on the GPU, 11501.3 MiB in all, 0.0 MiB of it compressed
+    | the context has its answering shape after 0.46 s (0 experts read back): 11844.3 MiB on the GPU, 12730.7 MiB in all, 0.0 MiB of it compressed
+  turn 2 sent 22:23:55.3, first token 22:24:08.9: 525 tokens read (2063 reused), t1=13.64 t10=15.00 t50=21.26 t64=23.62; written 6.31 tok/s, misses/token 67.5, swap-outs 0
+    | the context has its short-prompt shape after 0.06 s (0 experts read back): 12695.3 MiB on the GPU, 12457.4 MiB in all, 0.0 MiB of it compressed
+    | this stretch is read beside the cache without read-ahead: the memory for it is not free
+    | the context has its answering shape after 0.03 s (0 experts read back): 11845.3 MiB on the GPU, 12474.0 MiB in all, 0.0 MiB of it compressed
+  turn 3 sent 22:24:19.0, first token 22:24:21.4: 20 tokens read (2651 reused), t1=2.47 t10=3.72 t50=9.91 t64=12.20; written 6.48 tok/s, misses/token 64.1, swap-outs 0
+temperature before the run: SoC 44.8 C, battery 32.4 C
+STRATA_ELASTIC_SETTLE=1 build-metal/borrow/strata-settle: ready in 5.3 s; context 131072, expert cache 3559 experts (6959 MiB), direct reads
+  turn 1 sent 22:25:42.9, first token 22:26:05.4: 2000 tokens read (0 reused), t1=22.46 t10=23.94 t50=29.83 t64=32.12; written 6.52 tok/s, misses/token 56.7, swap-outs 0
+    | the old buffers' memory (6.80 GiB) came back in 143 ms (half of it in 143): this process holds 6.80 GiB less, 6.79 GiB more are free
+    | the context has its long-prompt shape after 0.49 s (0 experts read back): 9576.7 MiB on the GPU, 11459.0 MiB in all, 0.0 MiB of it compressed
+    | the old buffers' memory (5.81 GiB) came back in 59 ms (half of it in 59): this process holds 4.68 GiB less, 5.52 GiB more are free
+    | the context has its answering shape after 0.48 s (0 experts read back): 11811.3 MiB on the GPU, 12685.8 MiB in all, 0.0 MiB of it compressed
+  turn 2 sent 22:26:15.1, first token 22:26:30.7: 525 tokens read (2063 reused), t1=15.60 t10=17.12 t50=23.53 t64=25.96; written 6.08 tok/s, misses/token 70.9, swap-outs 0
+    | 522 new tokens: the memory to read them beside the cache is not free (1.14 GiB are, 1.19 GiB are needed), they take the cache's
+    | the old buffers' memory (6.80 GiB) came back in 208 ms (half of it in 208): this process holds 7.09 GiB less, 6.81 GiB more are free
+    | the context has its long-prompt shape after 0.57 s (0 experts read back): 9578.0 MiB on the GPU, 11365.7 MiB in all, 0.0 MiB of it compressed
+    | less memory is free than at the start: the expert cache comes back with 6.60 GiB of its 6.80
+    | the old buffers' memory (5.81 GiB) came back in 522 ms (half of it in 522): this process holds 4.45 GiB less, 5.52 GiB more are free
+    | the context has its answering shape after 0.93 s (0 experts read back): 11607.6 MiB on the GPU, 12592.9 MiB in all, 0.0 MiB of it compressed
+  turn 3 sent 22:26:41.1, first token 22:26:43.8: 20 tokens read (2651 reused), t1=2.62 t10=3.89 t50=10.16 t64=12.47; written 6.39 tok/s, misses/token 65.8, swap-outs 0
+temperature before the run: SoC 44.7 C, battery 32.8 C
+STRATA_ELASTIC_SETTLE=1 build-metal/borrow/strata-settle: ready in 5.3 s; context 131072, expert cache 3576 experts (6992 MiB), direct reads
+  turn 1 sent 22:28:20.5, first token 22:28:43.5: 2000 tokens read (0 reused), t1=22.96 t10=24.44 t50=30.34 t64=32.63; written 6.52 tok/s, misses/token 56.7, swap-outs 0
+    | the old buffers' memory (6.84 GiB) came back in 638 ms (half of it in 638): this process holds 6.83 GiB less, 6.78 GiB more are free
+    | the context has its long-prompt shape after 0.99 s (0 experts read back): 9611.4 MiB on the GPU, 11494.1 MiB in all, 0.0 MiB of it compressed
+    | the old buffers' memory (5.84 GiB) came back in 56 ms (half of it in 56): this process holds 4.69 GiB less, 5.55 GiB more are free
+    | the context has its answering shape after 0.48 s (0 experts read back): 11822.8 MiB on the GPU, 12698.1 MiB in all, 0.0 MiB of it compressed
+  turn 2 sent 22:28:53.2, first token 22:29:08.1: 525 tokens read (2063 reused), t1=14.81 t10=16.35 t50=23.00 t64=25.55; written 5.87 tok/s, misses/token 74.4, swap-outs 0
+    | 522 new tokens: the memory to read them beside the cache is not free (0.47 GiB are, 1.19 GiB are needed), they take the cache's
+    | the old buffers' memory (6.81 GiB) came back in 164 ms (half of it in 164): this process holds 7.11 GiB less, 6.82 GiB more are free
+    | the context has its long-prompt shape after 0.51 s (0 experts read back): 9590.5 MiB on the GPU, 11384.0 MiB in all, 0.0 MiB of it compressed
+    | less memory is free than at the start: the expert cache comes back with 5.97 GiB of its 6.84
+    | the old buffers' memory (5.82 GiB) came back in 57 ms (half of it in 57): this process holds 4.46 GiB less, 5.52 GiB more are free
+    | the context has its answering shape after 0.43 s (0 experts read back): 10957.3 MiB on the GPU, 11945.5 MiB in all, 0.0 MiB of it compressed
+  turn 3 sent 22:29:18.8, first token 22:29:22.0: 20 tokens read (2651 reused), t1=3.13 t10=4.51 t50=11.20 t64=13.60; written 6.02 tok/s, misses/token 71.4, swap-outs 0
+temperature before the run: SoC 44.8 C, battery 33.2 C
+STRATA_ELASTIC_SETTLE=0 build-metal/borrow/strata-settle: ready in 5.2 s; context 131072, expert cache 3437 experts (6721 MiB), direct reads
+  turn 1 sent 22:31:24.8, first token 22:31:47.8: 2000 tokens read (0 reused), t1=23.06 t10=24.57 t50=30.75 t64=33.26; written 6.18 tok/s, misses/token 62.3, swap-outs 0
+    | the context has its long-prompt shape after 0.37 s (0 experts read back): 9340.8 MiB on the GPU, 11227.8 MiB in all, 0.0 MiB of it compressed
+    | less memory is free than at the start: the expert cache comes back with 5.94 GiB of its 6.57
+    | the context has its answering shape after 0.40 s (0 experts read back): 10923.2 MiB on the GPU, 11806.3 MiB in all, 0.0 MiB of it compressed
+  turn 2 sent 22:31:58.1, first token 22:32:12.7: 525 tokens read (2063 reused), t1=14.60 t10=16.11 t50=22.85 t64=25.53; written 5.77 tok/s, misses/token 77.6, swap-outs 0
+    | 522 new tokens: the memory to read them beside the cache is not free (0.57 GiB are, 1.19 GiB are needed), they take the cache's
+    | the context has its long-prompt shape after 0.33 s (0 experts read back): 8694.9 MiB on the GPU, 10494.0 MiB in all, 0.0 MiB of it compressed
+    | less memory is free than at the start: the expert cache comes back with 5.51 GiB of its 6.57
+    | the context has its answering shape after 0.38 s (0 experts read back): 10483.5 MiB on the GPU, 11484.7 MiB in all, 0.0 MiB of it compressed
+  turn 3 sent 22:32:23.7, first token 22:32:26.7: 20 tokens read (2651 reused), t1=2.96 t10=4.38 t50=11.21 t64=13.73; written 5.85 tok/s, misses/token 75.8, swap-outs 0
+
+same written ids in every run, per turn: [True, True, True]

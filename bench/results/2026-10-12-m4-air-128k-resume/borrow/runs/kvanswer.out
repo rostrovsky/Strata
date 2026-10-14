@@ -1,0 +1,21 @@
+temperature before the run: SoC 44.7 C, battery 32.6 C
+STRATA_KV_STEP=1024 build-metal/borrow/strata-head: ready in 5.6 s; context 131072, expert cache 3992 experts (7804 MiB), direct reads
+  sent 21:54:44.3; first token 3.49 s, last (800) 126.60 s; written 6.49 tok/s; longest waits between tokens: 0.96 s before token 740 (21:56:40.7), 0.31 s before token 351 (21:55:40.7), 0.30 s before token 99 (21:55:02.5); swap-outs 0
+    | the conversation reaches 769 tokens: the KV cache takes its memory for 2048 (0.03 GiB more), the expert cache gives it: 7.63 -> 7.60 GiB (it fills again as its experts are asked for), 0.53 s
+  this is what the others are compared with
+temperature before the run: SoC 44.7 C, battery 33.5 C
+STRATA_KV_STEP=1024 build-metal/borrow/strata: ready in 5.6 s; context 131072, expert cache 4009 experts (7837 MiB), direct reads
+  sent 21:58:33.2; first token 3.47 s, last (800) 124.68 s; written 6.59 tok/s; longest waits between tokens: 0.29 s before token 99 (21:58:51.3), 0.28 s before token 430 (21:59:40.0), 0.27 s before token 392 (21:59:34.3); swap-outs 0
+    | the conversation reaches 769 tokens: the KV cache takes its memory for 2048 (0.03 GiB more), the expert cache gives it: 7.66 -> 7.66 GiB (30.0 MiB of it were held for it), 0.00 s
+  identical IDs and logits
+temperature before the run: SoC 44.9 C, battery 34.8 C
+STRATA_KV_STEP=1024 build-metal/borrow/strata: ready in 5.5 s; context 131072, expert cache 3987 experts (7794 MiB), direct reads
+  sent 22:02:35.4; first token 3.60 s, last (800) 464.50 s; written 1.73 tok/s; longest waits between tokens: 337.03 s before token 249 (22:08:55.8), 0.35 s before token 250 (22:08:56.1), 0.32 s before token 99 (22:02:56.1); swap-outs 0
+    | the conversation reaches 769 tokens: the KV cache takes its memory for 2048 (0.03 GiB more), the expert cache gives it: 7.62 -> 7.62 GiB (30.0 MiB of it were held for it), 0.00 s
+  identical IDs and logits
+temperature before the run: SoC 44.7 C, battery 32.5 C
+STRATA_KV_STEP=1024 build-metal/borrow/strata-head: ready in 5.9 s; context 131072, expert cache 4435 experts (8668 MiB), direct reads
+  sent 22:11:22.0; first token 3.40 s, last (800) 120.98 s; written 6.80 tok/s; longest waits between tokens: 1.05 s before token 740 (22:13:12.5), 0.29 s before token 745 (22:13:13.6), 0.27 s before token 782 (22:13:20.2); swap-outs 0
+    | the conversation reaches 769 tokens: the KV cache takes its memory for 2048 (0.03 GiB more), the expert cache gives it: 8.47 -> 8.44 GiB (it fills again as its experts are asked for), 0.65 s
+  DIFFERENT IDs or logits
+DIFFERENCES

@@ -1,0 +1,11 @@
+21:54:38 BASELINE swapouts 1586587, swap used 1685.88 MiB, pressure 1, free 13.83 + file cache 3.17 GiB, compressor 12.54 in 4.55 GiB, SoC 46.5 C, battery 32.6 C
+21:54:38 STARTED pid 98198: .venv/bin/python -u bench/results/2026-10-12-m4-air-128k-resume/borrow/runs.py answer --config strata-iq3_s.json --cool 45 --out build-metal/borrow/runs/kvanswer --tokens 30 --new 800 --force STRATA_K
+21:54:43 ok +5 s: swap-outs new 0, pressure 1, free 0.61 + file 3.19 GiB, compressor 12.54 in 4.54 GiB, SoC 45.3 C | temperature before the run: SoC 44.7 C, battery 32.6 C
+21:56:44 ok +126 s: swap-outs new 0, pressure 1, free 0.98 + file 3.25 GiB, compressor 12.77 in 4.64 GiB, SoC 71.0 C | STRATA_KV_STEP=1024 build-metal/borrow/strata-head: ready in 5.6 s; context 131072, expert cache 3992 experts (7804 MiB), direct reads
+21:58:45 ok +247 s: swap-outs new 0, pressure 1, free 0.29 + file 3.19 GiB, compressor 12.69 in 4.6 GiB, SoC 59.9 C | STRATA_KV_STEP=1024 build-metal/borrow/strata: ready in 5.6 s; context 131072, expert cache 4009 experts (7837 MiB), direct reads
+22:00:46 ok +368 s: swap-outs new 0, pressure 1, free 12.99 + file 3.13 GiB, compressor 12.68 in 4.6 GiB, SoC 59.2 C | identical IDs and logits
+22:02:47 ok +489 s: swap-outs new 0, pressure 1, free 0.07 + file 3.0 GiB, compressor 12.3 in 4.58 GiB, SoC 60.8 C | STRATA_KV_STEP=1024 build-metal/borrow/strata: ready in 5.5 s; context 131072, expert cache 3987 experts (7794 MiB), direct reads
+22:08:59 ok +861 s: swap-outs new 0, pressure 1, free 0.88 + file 3.51 GiB, compressor 11.4 in 4.3 GiB, SoC 46.4 C | STRATA_KV_STEP=1024 build-metal/borrow/strata: ready in 5.5 s; context 131072, expert cache 3987 experts (7794 MiB), direct reads
+22:11:00 ok +982 s: swap-outs new 0, pressure 1, free 13.49 + file 3.56 GiB, compressor 11.12 in 4.19 GiB, SoC 46.6 C | identical IDs and logits
+22:13:00 ok +1102 s: swap-outs new 0, pressure 1, free 0.43 + file 3.77 GiB, compressor 11.11 in 4.19 GiB, SoC 72.9 C | STRATA_KV_STEP=1024 build-metal/borrow/strata-head: ready in 5.9 s; context 131072, expert cache 4435 experts (8668 MiB), direct reads
+22:14:29 DONE exit code 1, new swap-outs over the whole run 0 pages, swap used 1685.88 MiB (was 1685.88), peak pressure level 1, engine still running: [], stopped: False

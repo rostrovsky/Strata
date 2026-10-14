@@ -1,0 +1,9 @@
+21:41:55 BASELINE swapouts 1586587, swap used 1685.88 MiB, pressure 1, free 12.89 + file cache 3.26 GiB, compressor 10.55 in 3.84 GiB, SoC 45.0 C, battery 31.3 C
+21:41:55 STARTED pid 96261: bench/results/2026-10-12-m4-air-128k-resume/borrow/kvstep.sh
+21:42:00 ok +5 s: swap-outs new 0, pressure 1, free 12.13 + file 3.3 GiB, compressor 10.55 in 3.84 GiB, SoC 44.1 C | == answer: 30 tokens, 800 written, A B B A
+21:44:01 ok +126 s: swap-outs new 0, pressure 1, free 12.62 + file 3.07 GiB, compressor 10.48 in 3.82 GiB, SoC 54.0 C | identical IDs and logits
+21:46:02 ok +247 s: swap-outs new 0, pressure 1, free 12.97 + file 3.08 GiB, compressor 10.46 in 3.81 GiB, SoC 45.6 C | identical IDs and logits
+21:48:03 ok +368 s: swap-outs new 0, pressure 1, free 1.59 + file 2.94 GiB, compressor 11.41 in 4.17 GiB, SoC 62.0 C | STRATA_KV_STEP=1024 build-metal/borrow/strata-head: ready in 5.5 s; context 131072, expert cache 3913 experts (7650 MiB), direct reads
+21:50:04 ok +489 s: swap-outs new 0, pressure 1, free 12.42 + file 3.24 GiB, compressor 11.21 in 4.14 GiB, SoC 50.7 C | == kv900: 900 tokens, 64 written, A B
+21:52:05 ok +610 s: swap-outs new 0, pressure 1, free 13.99 + file 3.16 GiB, compressor 12.68 in 4.59 GiB, SoC 44.4 C | this is what the others are compared with
+21:53:44 DONE exit code 0, new swap-outs over the whole run 0 pages, swap used 1685.88 MiB (was 1685.88), peak pressure level 1, engine still running: [], stopped: False

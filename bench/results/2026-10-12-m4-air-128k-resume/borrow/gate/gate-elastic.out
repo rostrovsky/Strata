@@ -1,0 +1,7 @@
+memory: {'free_gib': 17.97, 'file_cache_gib': 2.16, 'apps_gib': 8.97, 'wired_gib': 2.1, 'swap_used_gib': 1.65, 'pressure_level': 1}
+borrow/strata: ready in 3.8 s; context 32768, expert cache 1529 experts (2997 MiB), direct reads
+chat      identical (32 ids), 4.57 tok/s, reported logits identical
+code      identical (32 ids), 4.70 tok/s, reported logits identical
+doc8k     identical (32 ids), 5.03 tok/s, reported logits differ (max delta 0.003693)
+GATE FAILED: chat identical, code identical, doc8k logit mismatch
+swap-outs over the whole run: 0
