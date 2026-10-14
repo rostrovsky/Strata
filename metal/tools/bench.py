@@ -151,6 +151,7 @@ class Engine:
                 break
         else:
             sys.exit(f"the engine ended before READY (see {log_path})")
+        self.t0 = t0                    # the launch (time.time())
         self.ready_s = time.time() - t0
 
     def describe(self):
@@ -206,7 +207,7 @@ class Engine:
                         "tps_first": first / (stamps[first] - stamps[0]) if first > 0 else 0.0,
                         "tps": (gen - 1) / (dms / 1000) if gen > 1 and dms > 0 else 0.0,
                         "hits": hits, "lookups": look, "hit_rate": hits / max(1, look), "ssd_gb": fmb / 1000,
-                        "wall_s": time.time() - start, "stamps": stamps, "token_s": [round(t - start, 3) for t in stamps],
+                        "wall_s": time.time() - start, "sent_s": round(start - self.t0, 3), "stamps": stamps, "token_s": [round(t - start, 3) for t in stamps],
                         "progress": progress_rows, "swapouts": swapouts() - s0,
                         "watts": watts(p0, power_counters())}
         sys.exit("the engine ended inside a request (see the log)")

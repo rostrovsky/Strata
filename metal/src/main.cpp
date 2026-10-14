@@ -83,7 +83,8 @@ struct Options {
     bool elastic_refill_given = false;
     bool prefill_ahead = true;           // --prefill-ahead: read the next expert tensors while the GPU computes with this one
     int prefill_ahead_tensors = 3;       // ... a layer's three (STRATA_PREFILL_AHEAD_TENSORS=1: one)
-    bool preload = true;
+    double preload_gib = -1.0;           // --preload G|all: the engine's start fills G GiB of the cache from the profile (< 0: all)
+    bool preload_given = false;
     std::string mtp;                     // --mtp FILE: the MTP head; its drafts are checked by the model, several tokens a pass
     int spec = 3;                        // --spec N: drafts per pass, at most
     float spec_min_p = 0.75f;            // --spec-min-p P: a draft is added only while the head gives it this probability
@@ -144,7 +145,9 @@ void usage() {
         "  --expert-cache auto|N|Nmib   the expert cache: all Metal allows (auto), N experts, or N MiB\n"
         "  --expert-cache-cap N     with auto: at most N MiB (benchmarks: the same cache in every run)\n"
         "  --expert-profile FILE    Strata's expert ranking (data/expert-profile.bin): the cache starts filled with it\n"
-        "  --no-preload             start with an empty expert cache\n"
+        "  --preload G|all          the start reads the profile's most used G GiB into the cache (default all; 0: it\n"
+        "                           starts empty and fills as its experts are asked for)\n"
+        "  --no-preload             start with an empty expert cache (--preload 0)\n"
         "  --prefetch N             read up to N experts each layer is predicted to route to before it is computed\n"
         "                           (default 10, 0 = off); --prefetch-margin M: only those predicted M above the 10th (0);\n"
         "                           --prefetch-learn R: how fast the prediction corrects itself (0.1, 0 = never)\n"
@@ -218,7 +221,15 @@ int parse_args(int argc, char** argv, Options& o) {
             o.elastic_refill_gib = v == "all" ? -1.0 : std::max(0.0, std::atof(v.c_str()));
             o.elastic_refill_given = true;
         }
-        else if (a == "--no-preload") o.preload = false;
+        else if (a == "--preload") {
+            const std::string v = next("--preload");
+            o.preload_gib = v == "all" ? -1.0 : std::max(0.0, std::atof(v.c_str()));
+            o.preload_given = true;
+        }
+        else if (a == "--no-preload") {
+            o.preload_gib = 0.0;
+            o.preload_given = true;
+        }
         else if (a == "--mtp") o.mtp = next("--mtp");
         else if (a == "--spec") o.spec = std::clamp(std::atoi(next("--spec")), 0, 8);
         else if (a == "--spec-min-p") o.spec_min_p = (float) std::atof(next("--spec-min-p"));
@@ -839,7 +850,7 @@ struct Engine {
     // replaced within 65 tokens, and a second and third turn of the conversation had the same misses whether it
     // had been read back or not (7.6 GiB cache: 6,080 and 6,426 against 6,080 and 6,429).
     int64_t refill_cache() {
-        if (!o.preload || o.elastic_refill_gib == 0.0) return 0;
+        if (o.elastic_refill_gib == 0.0) return 0;
         const size_t ne = (size_t) std::max<int64_t>(1, files.n_expert);
         std::vector<uint8_t> held((size_t) llama_model_n_layer(model) * ne, 0);
         for (size_t i = 0; i < kept_layers_.size(); ++i) held[(size_t) kept_layers_[i] * ne + (size_t) kept_experts_[i]] = 1;
@@ -1320,6 +1331,9 @@ struct Engine {
         // (STRATA_ELASTIC_REFILL=all|G: --elastic-refill from the environment where the option is not given; tests)
         if (const char* rf = std::getenv("STRATA_ELASTIC_REFILL"); rf != nullptr && !o.elastic_refill_given)
             o.elastic_refill_gib = std::strcmp(rf, "all") == 0 ? -1.0 : std::max(0.0, std::atof(rf));
+        // (STRATA_PRELOAD=all|G: --preload from the environment where neither it nor --no-preload is given)
+        if (const char* pr = std::getenv("STRATA_PRELOAD"); pr != nullptr && !o.preload_given)
+            o.preload_gib = std::strcmp(pr, "all") == 0 ? -1.0 : std::max(0.0, std::atof(pr));
 
         // --elastic: the KV cache takes its memory 16,384 cells at a time, as the conversation reaches them
         // (STRATA_KV_STEP=N: another step; 0: all of it at the start, as without --elastic)
@@ -1592,27 +1606,44 @@ struct Engine {
                          (unsigned long long) st.n_slots, (unsigned long long) files.n_pairs,
                          files.n_pairs ? 100.0 * (double) st.n_slots / (double) files.n_pairs : 0.0, (double) st.size / kGiB,
                          o.io_threads, o.expert_io == "direct" ? "past the OS file cache" : "through the OS file cache");
-            if (o.preload && !o.profile.empty()) {
+            if (!o.profile.empty()) {
                 std::vector<int32_t>& pl = profile_layers_;
                 std::vector<int32_t>& pe = profile_experts_;
                 std::string perr;
                 if (!read_profile(o.profile, pl, pe, perr)) {
                     std::fprintf(stderr, "strata metal: expert profile: %s; the cache starts empty\n", perr.c_str());
                 } else {
-                    const auto tp = Clock::now();
-                    const uint64_t d0 = disk_bytes_read();
-                    const int64_t n = llama_moe_cache_preload(ctx, pl.data(), pe.data(), pl.size());
-                    // the profile also says which of a layer's experts a long prompt will most likely need (expert_io.hpp)
+                    // the profile says which of a layer's experts a long prompt will most likely need (expert_io.hpp),
+                    // whether or not the start fills the cache with them
                     for (size_t i = 0; i < pl.size(); ++i) {
                         if (pl[i] < 0 || pe[i] < 0 || pe[i] >= files.n_expert) continue;
                         if ((size_t) pl[i] >= fetch.by_profile.size()) fetch.by_profile.resize((size_t) pl[i] + 1);
                         fetch.by_profile[(size_t) pl[i]].push_back(pe[i]);
                     }
-                    const double s = ms_since(tp) / 1000.0;
-                    std::fprintf(stderr, "strata metal: expert cache filled with the profile's %lld most used experts "
-                                         "in %.1f s (%.2f GiB, %.2f GiB/s; %.2f GiB came from the SSD)\n",
-                                 (long long) n, s, (double) fetch.bytes / kGiB, s > 0 ? (double) fetch.bytes / kGiB / s : 0.0,
-                                 (double) (disk_bytes_read() - d0) / kGiB);
+                    // The start fills the cache with all of the profile it has room for (--preload all).  Measured on
+                    // the M4 Air (2026-10-15, a 6.3 GiB cache, A B C C B A, times from the launch): with nothing
+                    // filled READY came 2.1 s sooner, and a 33-token question's first and 50th token 1.6-1.9 s sooner,
+                    // a 2,000-token prompt's 1.8-1.9 s (the cache is given up for it anyway); but a 500-token prompt's
+                    // 0.04-1.5 s later.  Its pass beside the cache reads the experts it would have copied (10 GB more),
+                    // and the engine is READY while macOS is still making room for its memory, so the pass found no
+                    // free pages for its read-ahead buffer in three of the four starts with nothing or 1 GiB filled
+                    // (in none of those with all).  --preload 0 or G stays for measuring.
+                    size_t n_fill = pl.size();
+                    if (o.preload_gib >= 0.0 && st.size > 0)
+                        n_fill = std::min(n_fill, (size_t) (o.preload_gib * kGiB * (double) st.n_slots / (double) st.size));
+                    if (n_fill == 0) {
+                        std::fprintf(stderr, "strata metal: the expert cache starts empty and fills as its experts are "
+                                             "asked for (--preload 0)\n");
+                    } else {
+                        const auto tp = Clock::now();
+                        const uint64_t d0 = disk_bytes_read();
+                        const int64_t n = llama_moe_cache_preload(ctx, pl.data(), pe.data(), n_fill);
+                        const double s = ms_since(tp) / 1000.0;
+                        std::fprintf(stderr, "strata metal: expert cache filled with the profile's %lld most used experts "
+                                             "in %.1f s (%.2f GiB, %.2f GiB/s; %.2f GiB came from the SSD)\n",
+                                     (long long) n, s, (double) fetch.bytes / kGiB, s > 0 ? (double) fetch.bytes / kGiB / s : 0.0,
+                                     (double) (disk_bytes_read() - d0) / kGiB);
+                    }
                 }
             }
             if (o.prefetch > 0)

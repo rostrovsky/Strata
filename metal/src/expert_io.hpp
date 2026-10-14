@@ -810,7 +810,11 @@ struct ExpertFetch {
                 for (Staged& st : staging.slot)
                     if (st.t != nullptr && std::find(nx, nx + 4, st.t) == nx + 4) drop(st);
                 Staged& st = staging.slot[slot_of(t)];
-                if (st.t == bulk && checked.find(f.tensor) != checked.end()) {
+                // (also for a tensor no read has proven yet: this call waits for the staged reads, and below the
+                // first bytes it hands over are compared with the mapped file, as those of a read are.  Until
+                // 2026-10-14 only proven tensors' were used, and a start without the profile's fill had proven
+                // none: its first long pass read every layer ahead and then again, 62 GB instead of 31 for 500 tokens.)
+                if (st.t == bulk) {
                     pool->wait(st.ticket, true);
                     st.ticket = 0;
                     staged = &st;
