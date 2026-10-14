@@ -13,7 +13,8 @@ What is checked: READY and INFO; the same prompt gives the same ids with the exp
 path over the mapped file), with direct reads, with every prompt chunk size, with prefetch and (a long prompt) with
 read-ahead, and with --elastic (the context changing its shape for the long prompt and back); a prompt asked again
 and a prompt that continues the last one reuse the context (RESUME) and give the ids a fresh engine gives; STOP ends a request;
-bad requests are answered with ERR and the engine goes on.
+bad requests are answered with ERR and the engine goes on; every engine ends with exit code 0 when it is ended as
+serve/server.py ends it (QUIT, and its stdin closed at once: that aborted every time until 2026-10-14).
 """
 from __future__ import annotations
 
@@ -25,6 +26,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
 PROMPT = "1,2,3,4,5,6,7,8,9,10"
+EXITS = []   # every engine's exit code (Engine.close)
 
 
 class Engine:
@@ -64,11 +66,16 @@ class Engine:
         raise SystemExit("the engine ended inside a request")
 
     def close(self):
+        """QUIT and end of input, as serve/server.py ends the engine -> its exit code (None: killed)"""
         try:
             self.send("QUIT")
-            self.p.wait(timeout=30)
+            self.p.stdin.close()
+            code = self.p.wait(timeout=30)
         except (OSError, subprocess.TimeoutExpired):
             self.p.kill()
+            code = None
+        EXITS.append(code)
+        return code
 
 
 def main():
@@ -147,6 +154,8 @@ def main():
         back, _, _, _ = x.gen(10, long_prompt)
         x.close()
         check(f"long prompt, {' '.join(extra)}: same ids", got == long_ref and back == long_ref, f"{got} {back} {err}")
+
+    check(f"QUIT and end of input: all {len(EXITS)} engines exit with 0", all(c == 0 for c in EXITS), str(EXITS))
 
     print(f"\n{'all passed' if not failed else str(len(failed)) + ' failed'}")
     sys.exit(1 if failed else 0)

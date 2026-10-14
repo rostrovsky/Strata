@@ -480,9 +480,12 @@ cmake -S ../llama.cpp -B ../llama.cpp/build -DLLAMA_BUILD_TESTS=ON && cmake --bu
 .venv/bin/python metal/tests/serve_protocol_test.py --model /tmp/tiny/qwen4exp-moe.gguf
 ```
 
-29 checks: the protocol's lines, the same ids with the cache on, off, with direct and cached reads, every chunk
-size, prefetch, `--elastic` and (a long prompt) read-ahead, context reuse against a fresh engine, STOP, and the
-error answers. Two more tests on the same model: `metal/tests/elastic_shapes_test.py --model ...` (six requests
+30 checks: the protocol's lines, the same ids with the cache on, off, with direct and cached reads, every chunk
+size, prefetch, `--elastic` and (a long prompt) read-ahead, context reuse against a fresh engine, STOP, the
+error answers, and that every engine exits with code 0 when it is ended as the server ends it (QUIT, then its stdin
+closed at once). Until 2026-10-14 that ending aborted ("mutex lock failed: Invalid argument" in the engine's log, 13
+of 17 engines in this test): the engine's stdin thread locked a mutex that `serve()` had already destroyed. The
+thread now shares the object it reads into. Two more tests on the same model: `metal/tests/elastic_shapes_test.py --model ...` (six requests
 through `--elastic`'s three shapes against an engine without it), `metal/tests/optimization_parity_test.py`
 (ids and logits of the default, indexed and elastic paths against a reference build) and
 `metal/tests/vision_test.py --model ...` (pictures: random rows on the tiny model, read whole, in passes that cut
@@ -504,9 +507,20 @@ On the real model (the server must not be running):
 ```
 
 `bench.py` reports tokens/s for reading and writing, the time to the first token, the cache's hits, the GB read from
-the SSD, where a token's time went, the Mac's watts (from the battery's telemetry, no sudo) and the swap-outs of every
+the SSD (see below), where a token's time went, the Mac's watts (from the battery's telemetry, no sudo) and the swap-outs of every
 request. `--gate check` compares ids with a reference; where one differs it runs the request again with the
 reference's tokens fed in and accepts the difference only if both engines had the two tokens within 0.05 logits.
 `--cool` waits for the SoC to cool first (it needs `metal/tools/temps.m` compiled to `build-metal/bench/temps`; the
 command is in the file). `metal/tools/cache_sim.py` replays a routing trace (`STRATA_ROUTE_TRACE=FILE`) under other
 cache rules; `metal/tools/membench.mm` measures how fast the GPU and the CPU read memory.
+
+**The bytes read from the SSD** (bench.py, the DONE line's file MB, the server's log line, the cache fill's line) are
+macOS's count of what the SSD delivered to the engine's process (`proc_pid_rusage`, `ri_diskio_bytesread`). Checked
+on 2026-10-14 against the disk driver's own count (IOBlockStorageDriver "Bytes (Read)", 1-2 GB per run): the same
+to 0.1 MB for direct reads, aligned or not, reads through the file cache, page faults on the mapped file and
+`madvise(WILLNEED)`; nothing for bytes the file cache held. On the real model it is within 0.8% of the engine's own
+count of the bytes it asked for while writing (12 answers, 2026-10-13, 7.6 GiB cache). The figures are large
+because they are real: a written token read 288-327 MB (1.9-2.1 GB/s), 55-64% of it read ahead of its layer, with
+83-88% of the lookups hits. The 36 requests in the server's logs of 2026-10-12 to 14 read 1.1-2.5 GB/s on average;
+this SSD gave 3.5 GB/s to 8 threads reading 2 MiB pieces. The server's line says GB and the rate since 2026-10-14
+(`852.9 GB from the SSD (1.36 GB/s, read-ahead included)` where it said `852861.0 MB from the SSD`).

@@ -13,6 +13,25 @@ afternoon's), [the morning after](bench/results/2026-10-12-m4-air-128k-resume/RE
 
 ## Read this first
 
+**2026-10-14, evening — two older defects in the engine's logs.**
+
+- **The abort at every exit through the server** (`libc++abi: terminating ... mutex lock failed: Invalid argument`,
+  in `strata-iq3_s.log` since 2026-10-12). The server writes QUIT and closes the engine's stdin at once; the
+  engine's stdin thread then saw the end of its input and locked the mutex of an object that `serve()` had already
+  destroyed. The thread now shares that object (`Input`, `metal/src/main.cpp`). Tiny model, ended as the server
+  ends it: 6 of 6 starts aborted (exit -6) before, 0 of 18 in three ways of ending after; SIGINT and SIGTERM end it
+  by the signal, as before. `serve_protocol_test.py` now ends its 17 engines that way and checks their exit codes
+  (13 aborted with the old build); it, `elastic_shapes_test.py` and `vision_test.py` pass.
+- **The "MB from the SSD" figure was right.** It is macOS's count of the bytes the SSD delivered to the process
+  (`ri_diskio_bytesread`): equal to the disk driver's own count to 0.1 MB for every kind of read the engine does
+  (nothing for bytes the file cache held), and within 0.8% of the engine's own count of what it asked for while
+  writing (12 answers of 2026-10-13). The large figures are real: a written token read 288-327 MB at 1.9-2.1 GB/s,
+  55-64% of it read ahead; the 36 requests in the logs averaged 1.1-2.5 GB/s, and this SSD gives 3.5 GB/s. So
+  every conclusion that used it stands: the 162 against 238 GB below, 805 against 1,400 GB for the full-context
+  prompt, 44% less with 8,192-token passes, the 1,396.8 GB of the first full-context request, and bench.py's "GB
+  from the SSD" in the reports. The server's line now gives GB and the rate (`852.9 GB from the SSD (1.36 GB/s,
+  read-ahead included)`, where it said `852861.0 MB`). Details: `docs/APPLE_METAL.md`, "Tests and tools".
+
 **2026-10-14 — pictures.** [Report](bench/results/2026-10-14-m4-air-vision/README.md). The model is multimodal, and the
 Mac could not show it a picture: the vision projector had not been downloaded, there was no `strata-vision`, and the
 Metal engine refused `GENI`. Now the projector is in `Strata-data/models/mmproj/` (0.91 GB), `strata-vision` is

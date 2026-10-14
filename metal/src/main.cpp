@@ -341,7 +341,11 @@ uint64_t own_compressed() {
     return ti.compressed;
 }
 
-// bytes this process has read from disk so far
+// bytes this process has read from disk so far: what the SSD delivered to it, not what came from the OS file cache.
+// Checked on the M4 Air against the disk driver's own count (IOBlockStorageDriver "Bytes (Read)"): the same to 0.1 MB
+// for direct reads (aligned or not), reads through the file cache, page faults on the mapped file and
+// madvise(WILLNEED); nothing for bytes the file cache held.  A request reads more than its missed experts: the
+// experts read ahead of their layer and the long passes' staging are in it.
 uint64_t disk_bytes_read() {
     rusage_info_v2 ri{};
     if (proc_pid_rusage(getpid(), RUSAGE_INFO_V2, (rusage_info_t*) &ri) != 0) return 0;
@@ -379,8 +383,10 @@ bool read_profile(const std::string& path, std::vector<int32_t>& layers, std::ve
     return true;
 }
 
-// stdin on its own thread, so a STOP is seen while a request runs
-struct Input {
+// stdin on its own thread, so a STOP is seen while a request runs.  The thread owns the object with serve(): the
+// server writes QUIT and closes the pipe at once, and the thread's lock at the end of input came after serve() had
+// returned and destroyed the mutex - "mutex lock failed: Invalid argument", an abort at every exit through the server.
+struct Input : std::enable_shared_from_this<Input> {
     std::mutex mu;
     std::condition_variable cv;
     std::deque<std::string> lines;
@@ -388,7 +394,7 @@ struct Input {
     std::atomic<bool> stop{false};
 
     void start() {
-        std::thread([this] {
+        std::thread([this, self = shared_from_this()] {
             std::string buf, l;
             char chunk[1 << 16];
             for (;;) {
@@ -2183,8 +2189,8 @@ int run_once(Engine& e) {
 
 int serve(Engine& e) {
     setvbuf(stdout, nullptr, _IOLBF, 0);
-    Input in;
-    in.start();
+    const auto in = std::make_shared<Input>();
+    in->start();
     uint64_t used = 0, ws = 0;
     e.gpu_memory(used, ws);
     std::printf("INFO context=%lld kv=%s kv_resident=0 expert_slots=%llu expert_cache_mib=%llu expert_slots_primary=%llu "
@@ -2199,7 +2205,7 @@ int serve(Engine& e) {
     std::fflush(stdout);
 
     std::string line;
-    while (in.next(line)) {
+    while (in->next(line)) {
         if (line.empty()) continue;
         if (line == "QUIT") break;
         // GENI <max_new> [keys] <embeddings file> <id,id,...>: a prompt with pictures (--vision, Engine::load_pictures)
@@ -2288,7 +2294,7 @@ int serve(Engine& e) {
             std::printf("ERR a token id is outside the vocabulary\n");
             continue;
         }
-        in.stop.store(false);
+        in->stop.store(false);
         Engine::Result r;
         std::string err;
         for (llama_token f : ex.force)
@@ -2313,7 +2319,7 @@ int serve(Engine& e) {
         }
         const int32_t n_vocab = e.n_vocab;
         const bool ok = e.generate(
-            ids, max_new, sp, ex, in.stop,
+            ids, max_new, sp, ex, in->stop,
             [](llama_token t) {
                 std::printf("T %d\n", (int) t);
                 std::fflush(stdout);
@@ -2382,11 +2388,12 @@ int serve(Engine& e) {
         std::fflush(stdout);
         std::fprintf(stderr,
                      "strata serve: prompt %lld (%lld reused, %lld read in %.2f s), %lld tokens in %.2f s (%.2f tok/s), %s; "
-                     "expert cache %.1f%% hits, %llu fetched in %.2f s, %.1f MB from the SSD\n",
+                     "expert cache %.1f%% hits, %llu fetched in %.2f s, %.1f GB from the SSD (%.2f GB/s, read-ahead included)\n",
                      (long long) n, (long long) r.resume, (long long) r.prompt_read, r.prompt_ms / 1000.0, (long long) r.produced,
                      r.decode_ms / 1000.0, r.decode_ms > 0 ? 1000.0 * (double) std::max<int64_t>(0, r.produced - 1) / r.decode_ms : 0.0,
                      r.finish, r.lookups ? 100.0 * (double) r.hits / (double) r.lookups : 0.0, (unsigned long long) r.file_blobs,
-                     r.fetch_ms / 1000.0, r.file_mb);
+                     r.fetch_ms / 1000.0, r.file_mb / 1000.0,
+                     r.prompt_ms + r.decode_ms > 0 ? r.file_mb / (r.prompt_ms + r.decode_ms) : 0.0);
     }
     return 0;
 }
