@@ -1,0 +1,13 @@
+A: the same ids and logits in turn as alone (read from 0); the same ids, logits within 1e-4 in passes of 40 and of 7
+A, then more: the same ids and logits in turn as alone (read from 127); the same ids, logits within 1e-4 in passes of 40 and of 7
+A, then other text: the same ids and logits in turn as alone (read from 127); the same ids, logits within 1e-4 in passes of 40 and of 7
+B in A's place: the same ids and logits in turn as alone (read from 0); the same ids, logits within 1e-4 in passes of 40 and of 7
+no picture: the same ids and logits in turn as alone (read from 0); the same ids, logits within 1e-4 in passes of 40 and of 7
+two pictures: the same ids and logits in turn as alone (read from 0); the same ids, logits within 1e-4 in passes of 40 and of 7
+the cache was used past the picture and not across another one: [0, 127, 127, 0, 0, 0]
+another picture, other logits
+refused (without --vision): yes ['ERR this engine was started without --vision']
+refused (cannot end in a picture): yes ['ERR the prompt cannot end in a picture']
+refused (more pictures than the prompt): yes ['ERR the embeddings file has more pictures than the prompt']
+refused (fewer <|image_pad|>): yes ['ERR picture 1 has 48 rows but fewer <|image_pad|> tokens']
+all passed

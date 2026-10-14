@@ -1,0 +1,26 @@
+loading the vision encoder ...
+loading the model (the first start takes a minute or two) ...
+[strata] the config has a "vision" section but no --vision in its args: added --vision and --vram-reserve-mib 700 (run setup again with --vision to write them)
+[strata] the config has a "vision" section but no --vision in its args: added --vision and --vram-reserve-mib 700 (run setup again with --vision to write them)
+[strata] starting the engine: reading the model's weights ...
+[strata] the model unloads after 900.0 s without requests
+ready: http://127.0.0.1:8091/v1  (OpenAI: /v1/chat/completions, Anthropic: /v1/messages, context 131072 tokens, images on)
+       open http://127.0.0.1:8091/ in a browser to chat; close this window to stop the model
+[strata] reading the prompt: 310 of 1,071 tokens (28%), 5 s so far
+[strata] reading the prompt: 665 of 1,071 tokens (62%), 11 s so far
+[strata] reading the prompt: 1,019 of 1,071 tokens (95%), 16 s so far
+[strata] reading the prompt: 1,070 of 1,071 tokens (99%), 18 s so far
+[strata] done: 669 tokens in 117 s (6.8 tok/s) (stop, cancel=False), expert cache 88.4% hit
+[strata] reading the prompt: 1,753 of 1,777 tokens (98%), 2 s so far
+[strata] reading the prompt: 1,767 of 1,777 tokens (99%), 3 s so far
+[strata] done: 371 tokens in 63 s (6.3 tok/s) (stop, cancel=False), expert cache 86.5% hit
+[strata] reading the prompt: 276 of 1,111 tokens (24%), 5 s so far
+[strata] reading the prompt: 622 of 1,111 tokens (55%), 11 s so far
+[strata] reading the prompt: 944 of 1,111 tokens (84%), 16 s so far
+[strata] reading the prompt: 1,106 of 1,111 tokens (99%), 18 s so far
+[strata] reading the prompt: 1,110 of 1,111 tokens (99%), 20 s so far
+[strata] done: 3000 tokens in 515 s (6.1 tok/s) (length, cancel=False), expert cache 88.1% hit
+[strata] the reply reached max tokens while still thinking, so it has no answer: a thinking budget (reasoning_budget_tokens, in the request or in strata-<model>.json for every request) leaves room to answer
+
+[strata] stopping (Ctrl+C again to end the engine at once) ...
+[strata] stopped

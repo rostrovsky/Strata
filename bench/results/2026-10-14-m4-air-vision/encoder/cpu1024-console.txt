@@ -1,0 +1,27 @@
+load_hparams: Qwen-VL models require at minimum 1024 image tokens to function correctly on grounding tasks
+load_hparams: if you encounter problems with accuracy, try adding --image-min-tokens 1024
+load_hparams: more info: https://github.com/ggml-org/llama.cpp/issues/16842
+
+strata-vision: model files loaded in 0.4 s
+strata-vision: on the CPU, 5 threads, no warm-up
+READY 2560
+OK 1024 32 32 206352
+OK 1024 32 32 213719
+      420.55 real      2083.92 user         5.97 sys
+          1335246848  maximum resident set size
+                   0  average shared memory size
+                   0  average unshared data size
+                   0  average unshared stack size
+               89934  page reclaims
+                 325  page faults
+                   0  swaps
+                   0  block input operations
+                   0  block output operations
+                   0  messages sent
+                   0  messages received
+                   0  signals received
+                   4  voluntary context switches
+             1306862  involuntary context switches
+      12263872110295  instructions retired
+       7520125015651  cycles elapsed
+          1222264464  peak memory footprint

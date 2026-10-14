@@ -1,0 +1,4 @@
+pi (exit 0) in 46.6 s:
+**Instrument:** Dial caliper (Mitutoyo "Shock Proof" series, 0.01 mm resolution).
+**Markings:** Brand "Mitutoyo" on dial and case; dial shows model ref. "505-682" (partially obscured by glare).
+**Reading:** 0.00 mm — jaws fully closed, main scale at 0, dial needle at 0.

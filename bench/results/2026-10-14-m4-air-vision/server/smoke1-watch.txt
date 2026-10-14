@@ -1,0 +1,9 @@
+17:58:09 BASELINE swapouts 1586587, swap used 1693.88 MiB, pressure 1, free 1.64 + file cache 8.21 GiB, compressor 6.43 in 1.89 GiB, SoC 42.6 C, battery 30.1 C
+17:58:09 STARTED pid 65722: .venv/bin/python -u build-metal/vision/vision_smoke.py build-metal/vision/smoke1 /Users/rafal/Pictures/calipers.jpg
+17:58:14 ok +5 s: swap-outs new 0, pressure 1, free 0.06 + file 5.37 GiB, compressor 9.73 in 3.2 GiB, SoC 43.3 C | 
+18:00:15 ok +126 s: swap-outs new 0, pressure 1, free 0.36 + file 5.03 GiB, compressor 10.85 in 3.72 GiB, SoC 77.2 C | 
+18:02:16 ok +247 s: swap-outs new 0, pressure 1, free 0.39 + file 4.68 GiB, compressor 10.7 in 3.66 GiB, SoC 67.0 C | }
+18:04:17 ok +368 s: swap-outs new 0, pressure 1, free 0.08 + file 4.08 GiB, compressor 10.35 in 3.53 GiB, SoC 65.2 C | }
+18:06:18 ok +489 s: swap-outs new 0, pressure 1, free 0.38 + file 4.24 GiB, compressor 10.17 in 3.42 GiB, SoC 65.3 C | }
+18:08:19 ok +610 s: swap-outs new 0, pressure 1, free 0.33 + file 4.33 GiB, compressor 10.32 in 3.5 GiB, SoC 64.2 C | }
+18:11:03 DONE exit code 0, new swap-outs over the whole run 0 pages, swap used 1693.88 MiB (was 1693.88), peak pressure level 1, engine still running: [], stopped: False

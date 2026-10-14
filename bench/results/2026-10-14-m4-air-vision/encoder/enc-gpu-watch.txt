@@ -1,0 +1,4 @@
+17:29:01 BASELINE swapouts 1586587, swap used 1701.88 MiB, pressure 1, free 1.86 + file cache 8.08 GiB, compressor 6.61 in 2.01 GiB, SoC 43.8 C, battery 27.5 C
+17:29:01 STARTED pid 62985: /private/tmp/claude-501/-Users-rafal-Projects-strata-air/ef8503f7-f78c-45e0-a176-7e24cc22d14d/scratchpad/vis/enc.sh --gpu
+17:29:06 ok +5 s: swap-outs new 0, pressure 1, free 0.06 + file 8.09 GiB, compressor 6.61 in 2.01 GiB, SoC 68.5 C | strata-vision: model files loaded in 0.4 s
+17:30:35 DONE exit code 0, new swap-outs over the whole run 0 pages, swap used 1701.88 MiB (was 1701.88), peak pressure level 1, engine still running: [], stopped: False

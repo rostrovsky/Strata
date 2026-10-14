@@ -2,7 +2,8 @@
 
 Strata runs on Apple silicon Macs through a separate engine in `metal/`. **Status: experimental.** Everything here was
 built and measured on one machine: a MacBook Air M4 (10-core GPU, 32 GB, fanless, macOS 15.7.9) with the IQ3_S model, on
-2026-10-11. Nothing else has been run: no other Mac, no other size, no images. Back to the [README](../README.md).
+2026-10-11. Nothing else has been run: no other Mac, no other size. Pictures came on 2026-10-14 and were tried with
+one photo (see "Pictures"). Back to the [README](../README.md).
 
 The CUDA / HIP engine (`src/`) cannot be compiled for a Mac: its kernels are CUDA C++. This engine takes the model graph
 and the Metal kernels from [llama.cpp](https://github.com/ggml-org/llama.cpp) (the `qwen4exp` architecture, `ggml-metal`,
@@ -46,8 +47,10 @@ reads ahead in both of its paths:
 
 ### Nothing is written
 
-The model files are opened read-only and the engine writes no pack, no cache file and no copy of the experts. Three
-things that would otherwise put model data into swap are switched off or checked:
+The model files are opened read-only and the engine writes no pack, no cache file and no copy of the experts. (A
+picture is the exception, in the server's temporary folder: the picture itself while it is encoded, and its rows,
+about 10 MB, kept for when it is sent again; see "Pictures".) Three things that would otherwise put model data into
+swap are switched off or checked:
 
 - **The cache is sized from free memory, not from the RAM size.** The engine counts what is free or file cache, takes
   off what macOS already holds in swap (memory other programs will want back) and 3 GiB more (`--reserve-gib`), and
@@ -302,6 +305,58 @@ expert cache. Measured with `--load-only` (nothing is read or written by such a 
   is read a token at a time. Until that is looked at, 65,536 is the largest size that leaves a cache worth having
   with programs open (5.7 GiB with 21.1 GiB free).
 
+## Pictures
+
+Qwen3.8-Flash-Next reads pictures (2026-10-14). The vision encoder and projector are a file of their own,
+`mmproj-Qwen3.8-Flash-Next-BF16.gguf` (0.91 GB, in the same repository as the model, one for every size), which
+`setup-mac.sh` downloads unless it is given `--vision no`. The path is the one the other backends take: the server
+hands each picture to `strata-vision` (llama.cpp's `mtmd` on Metal, built with the engine), which writes the
+picture's rows (2,560 floats per image token), and sends the engine a `GENI` request (`--vision`). The engine reads a
+picture's run of `<|image_pad|>` tokens as those rows, at mtmd's M-RoPE positions: every row of the picture at the
+position p of its first token, its height p + y and its width p + x, and the text after it from p + max(width,
+height). Text requests do not change.
+
+The config's `"vision"` section:
+
+```json
+"vision": {"exe": ".../build-metal/bin/strata-vision", "mmproj": ".../Strata-data/models/mmproj/mmproj-Qwen3.8-Flash-Next-BF16.gguf",
+           "model": "<shard 1>", "gpu": true, "max_tokens": 2048, "on_demand": true}
+```
+
+`"on_demand": true` (only the Mac's setup writes it) starts the encoder for each request that has pictures and ends it
+once they are encoded. A resident encoder would hold 1.1 GB for good, and the engine sizes its expert cache from the
+memory that is free when it starts. A picture that was sent before (most clients send it again every turn) is not
+encoded again, and with one picture the encoder's own file is what the engine reads: nothing is written for the
+request (a conversation sent its picture again every turn, and wrote ~10 MB to the SSD each time).
+
+Measured on the Air with one photo (`calipers.jpg`, a WebP of 1,280 x 1,280 pixels: a Mitutoyo dial caliper in its
+case), the installed configuration, other programs open, under the swap watch (no swap-out in any run):
+
+| | |
+| --- | --- |
+| Encoding (GPU) | 2.7-2.9 s at 1,024 image tokens; 5.1 s at 1,600 (the photo's full size); 25.7 s at 4,096. On the CPU 206 s at 1,024. |
+| Encoder's memory | 1.13-1.16 GB at its peak, for the encoding only; its start loads the 0.91 GB file in 0.4-1.0 s. No compression of other programs' memory around it (vm_stat, 1 s). |
+| Prompt with the picture | 1,071 tokens (1,024 of them the picture) read in 18.2 s; 1,635 tokens in 20.9 s |
+| Answer | 6.8-8.1 tok/s (the same as after a text prompt of that length) |
+| The next turn | 1,739 of 1,777 tokens reused: the picture is taken from the conversation cache, not read again |
+
+At 1,024 image tokens the photo is shrunk to 1,024 pixels and the model misread the small print on the dial
+("525-108C" for "505-682"); at its full size (`"max_tokens": 2048` lets a picture of up to about 1,448 x 1,448 pixels
+keep its size) it read every line: `→|← 0.01mm`, `505-682`, `SHOCK PROOF`, `MADE IN JAPAN`. Both times it named
+the instrument, the brand, the 0.01 mm graduation and the case. What the caliper shows (0.00 mm: the jaws are closed)
+it gave right at 1,024 tokens and wrong at 1,600 without thinking (70.00 mm, from the first number of the beam's scale
+that the slider does not cover); that is the model's reading of the picture, not the engine's. With thinking (4,230
+tokens, 10.6 minutes) and through pi without it (46.6 s for the request, the 2,502-token prompt read in 27.3 s) it was
+right in every point. The [report](../bench/results/2026-10-14-m4-air-vision/README.md) has the answers.
+
+Two prompts that share a picture and differ after it in the same message read the picture again: a conversation is
+taken up again only where a message ends (the recurrent layers' state is kept there). A picture that is not the same
+picture (same size, other rows) is never taken from the cache. While the context holds a picture there are no drafts
+(`--lookup`), and a picture is refused beside the MTP head. A picture read in passes of its own, or cut between two
+passes, gives logits that differ from one long pass in the sixth decimal (llama.cpp builds a pass's input rows one
+way for text, another for picture rows, another for both); the same prompt gives the same logits on every start, and
+a conversation taken up from the cache gives those of a fresh engine.
+
 ## Left open
 
 Where the work of 2026-10-11 stopped (the owner asked for no further optimisation once the closed-state runs were
@@ -351,6 +406,7 @@ done). None of this is fixed or decided; the numbers are under "Measured" unless
 | `--mtp FILE`, `--spec N`, `--spec-min-p P` | the MTP head: up to N drafts per pass (3) while the head gives them probability P (0.75) or more. Off unless `--mtp` is given. |
 | `--lookup N` | draft what followed the last N tokens where they stood before in the context (0 = off) |
 | `--io-threads N` | threads reading experts (default 8; 4 or more read the same on the Air's SSD) |
+| `--vision` | `--serve` takes pictures too (`GENI` requests, the rows `strata-vision` made; see "Pictures"). The server adds it when the config has a `"vision"` section. |
 | `--plan` / `--load-only` | print the memory plan without loading / load, print it as it came out, exit |
 | `--verbose` | llama.cpp's own log, and the engine's memory after every prompt pass and every change of shape |
 
@@ -368,8 +424,9 @@ names each one.
 
 ## What is not there
 
-- **No images, no `logit_bias`, no parallel requests** (`"parallel"`), no `SAVE` / `RESTORE` of conversations, no
-  `VRAM` command. The server answers such requests with the engine's error.
+- **No `logit_bias`, no parallel requests** (`"parallel"`), no `SAVE` / `RESTORE` of conversations, no `VRAM`
+  command. The server answers such requests with the engine's error. Pictures: no drafts while the context holds
+  one, none beside the MTP head, and one photo is all they were tried with.
 - **One KV format** (F16; `--kv q8_0` is passed to llama.cpp, not measured).
 - **The cache does not shrink while it runs.** Programs opened after the start get what is left; unload the model
   (`idle_unload_s`, or stop the server) to give the memory back. (With `--elastic` it comes back from a long prompt
@@ -385,7 +442,10 @@ names each one.
 - `metal/src/main.cpp`: the engine. The memory plan, the load (experts stay mapped from the GGUF, everything else of
   the layers goes into GPU buffers of its own), the cache fill from the profile, the conversation checkpoints (the
   recurrent layers' state at the last message boundary and before the last prompt token, so the next turn and a
-  repeated prompt reuse the context), drafting and checking (`--mtp`, `--lookup`), and the serve loop.
+  repeated prompt reuse the context), drafting and checking (`--mtp`, `--lookup`), pictures (`GENI`: a picture's
+  rows and M-RoPE positions in llama.cpp's mixed token and embedding batches, `Image`, `decode_pictures`), and the
+  serve loop. `tools/vision/strata_vision.cpp` is the image encoder, built beside the engine
+  (`-DSTRATA_METAL_VISION=OFF`: without it).
 - `metal/src/expert_io.hpp`: where each tensor sits in the shards; the threads that read experts into their slots
   (reads a layer waits for go before reads ahead, and a read that has not started can be dropped); the read-ahead of a
   long prompt's tensors. The first read of each tensor is compared with the mapped file; a mismatch turns the fetch
@@ -423,8 +483,11 @@ cmake -S ../llama.cpp -B ../llama.cpp/build -DLLAMA_BUILD_TESTS=ON && cmake --bu
 29 checks: the protocol's lines, the same ids with the cache on, off, with direct and cached reads, every chunk
 size, prefetch, `--elastic` and (a long prompt) read-ahead, context reuse against a fresh engine, STOP, and the
 error answers. Two more tests on the same model: `metal/tests/elastic_shapes_test.py --model ...` (six requests
-through `--elastic`'s three shapes against an engine without it) and `metal/tests/optimization_parity_test.py`
-(ids and logits of the default, indexed and elastic paths against a reference build). The kernel tests are built
+through `--elastic`'s three shapes against an engine without it), `metal/tests/optimization_parity_test.py`
+(ids and logits of the default, indexed and elastic paths against a reference build) and
+`metal/tests/vision_test.py --model ...` (pictures: random rows on the tiny model, read whole, in passes that cut
+them, and after the conversation cache and a checkpoint after a picture, against fresh engines; a different picture of
+the same size not taken from the cache; the refusals). The kernel tests are built
 with `-DSTRATA_METAL_BUILD_TESTS=ON` and run by `ctest --test-dir build-metal`.
 The tiny model has 4 experts, so it cannot miss: what the read-ahead does is checked on the real model, by the gate
 and by `STRATA_VERIFY_CACHE=1`. `serve/` is not changed apart from the Monitor's CPU name and a note about GPU

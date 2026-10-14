@@ -1,0 +1,17 @@
+the vision encoder starts for each request with pictures
+loading the model (the first start takes a minute or two) ...
+[strata] the config has a "vision" section but no --vision in its args: added --vision and --vram-reserve-mib 700 (run setup again with --vision to write them)
+[strata] the config has a "vision" section but no --vision in its args: added --vision and --vram-reserve-mib 700 (run setup again with --vision to write them)
+[strata] starting the engine: reading the model's weights ...
+[strata] the model unloads after 900.0 s without requests
+ready: http://127.0.0.1:8091/v1  (OpenAI: /v1/chat/completions, Anthropic: /v1/messages, context 131072 tokens, images on)
+       open http://127.0.0.1:8091/ in a browser to chat; close this window to stop the model
+[strata] reading the prompt: 385 of 1,687 tokens (22%), 5 s so far
+[strata] reading the prompt: 841 of 1,687 tokens (49%), 10 s so far
+[strata] reading the prompt: 1,296 of 1,687 tokens (76%), 15 s so far
+[strata] reading the prompt: 1,682 of 1,687 tokens (99%), 20 s so far
+[strata] reading the prompt: 1,686 of 1,687 tokens (99%), 21 s so far
+[strata] done: 4230 tokens in 629 s (7.0 tok/s) (stop, cancel=False), expert cache 90.4% hit
+
+[strata] stopping (Ctrl+C again to end the engine at once) ...
+[strata] stopped

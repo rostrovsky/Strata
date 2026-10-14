@@ -1,6 +1,6 @@
 # Strata optimization handoff — M4 MacBook Air, 32 GiB
 
-Updated **2026-10-13, morning** (the newest part is the first block of "Read this first"). The work was stopped in the morning at the user's request, resumed in the
+Updated **2026-10-14** (the newest part is the first block of "Read this first"). The work was stopped in the morning at the user's request, resumed in the
 afternoon ("continue the OPTIMIZATION.md work"), and stopped again where every next step either takes the Mac for
 half an hour or risks swap, which is the user's call. In the evening the user asked for the first of those steps:
 a full-context prompt with the corrected plan ran **without a swap-out**, and the 128k configuration was installed.
@@ -13,7 +13,18 @@ afternoon's), [the morning after](bench/results/2026-10-12-m4-air-128k-resume/RE
 
 ## Read this first
 
-**Evening, 2026-10-13 — the newest state.** Section 15 of the
+**2026-10-14 — pictures.** [Report](bench/results/2026-10-14-m4-air-vision/README.md). The model is multimodal, and the
+Mac could not show it a picture: the vision projector had not been downloaded, there was no `strata-vision`, and the
+Metal engine refused `GENI`. Now the projector is in `Strata-data/models/mmproj/` (0.91 GB), `strata-vision` is
+built with the engine (Metal: 2.7-2.9 s for 1,024 image tokens, 5.1 s for 1,600; the CPU took 206 s), the engine
+reads pictures at mtmd's M-RoPE positions in mixed batches and its conversation cache tells pictures apart, and the
+server starts the encoder only for a request with pictures (1.1 GB while it encodes, never taken from the expert
+cache; no compressions around it). Installed with `"max_tokens": 2048`; pi's entry takes images. On the caliper photo,
+through pi: "Mitutoyo, 505-682, 0.01 mm, 0.00 mm, jaws closed" in 46.6 s. At 1,024 image tokens the model misread the
+small print; without thinking it once read the caliper as 70.00 mm (the model's error; with thinking it was right).
+Text requests take the same path as before. No swap-out.
+
+**Evening, 2026-10-13.** Section 15 of the
 [report](bench/results/2026-10-12-m4-air-128k-resume/README.md#15-evening-of-2026-10-13-the-long-pass-sized-per-prompt-and-one-tie-rule-for-the-top-k).
 
 - **The long pass is sized per prompt** (`Engine::reshape`; `STRATA_ELASTIC_LONG=plan`: as before). The plan's size

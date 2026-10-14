@@ -1,0 +1,3 @@
+7e7744db4595a2c5 strata
+bdc1ba47cc700c63 strata-vision
+built before the first real-model run (17:58); every run on this page used these

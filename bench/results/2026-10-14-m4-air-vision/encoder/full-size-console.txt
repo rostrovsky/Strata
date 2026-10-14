@@ -1,0 +1,4 @@
+strata-vision --gpu --no-warmup --max-tokens 4096 on calipers.png (1280 x 1280), 2026-10-14 18:16, run by hand (no swap watch):
+OK 1600 40 40 5114       (1,600 image tokens, a 40 x 40 grid, 5,114 ms)
+        5.89 real         0.34 user         0.19 sys
+          1158973120  peak memory footprint

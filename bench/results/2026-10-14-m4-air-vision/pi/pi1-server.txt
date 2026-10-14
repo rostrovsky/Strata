@@ -1,0 +1,16 @@
+the vision encoder starts for each request with pictures
+loading the model (the first start takes a minute or two) ...
+[strata] starting the engine: reading the model's weights ...
+[strata] the model unloads after 900.0 s without requests
+ready: http://127.0.0.1:8080/v1  (OpenAI: /v1/chat/completions, Anthropic: /v1/messages, context 131072 tokens, images on)
+       open http://127.0.0.1:8080/ in a browser to chat; close this window to stop the model
+[strata] reading the prompt: 415 of 2,502 tokens (16%), 5 s so far
+[strata] reading the prompt: 987 of 2,502 tokens (39%), 11 s so far
+[strata] reading the prompt: 1,507 of 2,502 tokens (60%), 16 s so far
+[strata] reading the prompt: 2,027 of 2,502 tokens (81%), 21 s so far
+[strata] reading the prompt: 2,495 of 2,502 tokens (99%), 25 s so far
+[strata] reading the prompt: 2,501 of 2,502 tokens (99%), 27 s so far
+[strata] done: 89 tokens in 40 s (7.1 tok/s) (stop, cancel=False), expert cache 87.0% hit
+
+[strata] stopping (Ctrl+C again to end the engine at once) ...
+[strata] stopped
