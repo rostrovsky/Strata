@@ -1,0 +1,37 @@
+strata metal: --vision is not used by the Metal engine
+strata metal: Apple M4, 32.0 GiB of unified memory, Metal's working set 21.3 GiB
+strata metal: model: 2 shard(s), 4.2 GiB dense, 46.8 GiB of routed experts (48 layers x 512, 1.95 MiB each on average), 26.8 GiB n-gram table
+strata metal: memory now: 20.7 GiB free or file cache, 8.6 GiB held by other programs, 2.3 GiB wired, 1.1 GiB in swap
+strata metal: weights loaded in 2.2 s, 3.89 GiB on the GPU
+strata metal: context 7.06 GiB on the GPU (3.20 of it for the passes) and 0.89 GiB of host memory; expert cache 4.61 GiB (auto; Metal has room for 10.1, the free memory for 4.6)
+strata metal: other programs hold 4.9 GiB of memory. The expert cache takes only what is free, so that macOS does not have to swap them out; with programs closed before the start it can be up to 5.5 GiB larger (every GiB holds ~525 more experts)
+strata metal: --elastic: answers are written with a 11.65 GiB expert cache (0.27 GiB of work memory). A long prompt is read in passes of 8192 with 4.10 GiB of work memory in the cache's place; up to 1024 new tokens in one pass beside the cache, where 0.94 GiB are free for it
+strata metal: --elastic: the KV cache has its memory for the first 16384 tokens; every 16384 more take 0.47 GiB from the expert cache (8.37 GiB of it at 131072 tokens)
+strata metal: expert cache: 6104 of 24576 experts (25%), 11.65 GiB; missed experts are read from the SSD by 8 threads (past the OS file cache)
+strata metal: expert cache filled with the profile's 6104 most used experts in 3.8 s (11.63 GiB, 3.06 GiB/s; 11.72 GiB came from the SSD)
+strata metal: prefetch: the 10 experts each layer is predicted to route to are read 1 layer(s) ahead
+strata metal: prompts are read 12 tokens per pass (more than 32 new tokens: 8192 per pass, their experts streamed from the SSD)
+strata metal: the context has its long-prompt shape after 0.58 s (0 experts read back): 11185.5 MiB on the GPU, 12598.0 MiB in all, 0.0 MiB of it compressed
+strata metal: the conversation reaches 132992 tokens: the KV cache takes its memory for 131072 (3.28 GiB more), the expert cache gives it: 11.65 -> 8.37 GiB when it comes back, 0.17 s
+strata metal: pass of 8192 tokens to 8192: 14546.7 MiB on the GPU, 17439.1 MiB in all, 0.0 MiB of it compressed
+strata metal: pass of 8192 tokens to 16384: 14546.7 MiB on the GPU, 17442.8 MiB in all, 0.0 MiB of it compressed
+strata metal: pass of 8192 tokens to 24576: 14546.7 MiB on the GPU, 17444.1 MiB in all, 0.0 MiB of it compressed
+strata metal: pass of 8192 tokens to 32768: 14546.7 MiB on the GPU, 17444.9 MiB in all, 0.0 MiB of it compressed
+strata metal: pass of 8192 tokens to 40960: 14546.7 MiB on the GPU, 17446.6 MiB in all, 0.0 MiB of it compressed
+strata metal: pass of 8192 tokens to 49152: 14546.7 MiB on the GPU, 17443.7 MiB in all, 0.0 MiB of it compressed
+strata metal: pass of 8192 tokens to 57344: 14546.7 MiB on the GPU, 17448.9 MiB in all, 0.0 MiB of it compressed
+strata metal: pass of 8192 tokens to 65536: 14546.7 MiB on the GPU, 17450.6 MiB in all, 0.0 MiB of it compressed
+strata metal: pass of 8192 tokens to 73728: 14546.7 MiB on the GPU, 17448.0 MiB in all, 0.0 MiB of it compressed
+strata metal: pass of 8192 tokens to 81920: 14546.7 MiB on the GPU, 17453.0 MiB in all, 0.0 MiB of it compressed
+strata metal: pass of 8192 tokens to 90112: 14546.7 MiB on the GPU, 17478.1 MiB in all, 92.5 MiB of it compressed
+strata metal: pass of 8192 tokens to 98304: 14546.7 MiB on the GPU, 17479.4 MiB in all, 92.5 MiB of it compressed
+strata metal: pass of 8192 tokens to 106496: 14546.7 MiB on the GPU, 17480.2 MiB in all, 92.5 MiB of it compressed
+strata metal: pass of 8192 tokens to 114688: 14546.7 MiB on the GPU, 17486.0 MiB in all, 92.5 MiB of it compressed
+strata metal: pass of 8192 tokens to 122880: 14546.7 MiB on the GPU, 17486.8 MiB in all, 145.7 MiB of it compressed
+strata metal: pass of 8057 tokens to 130937: 14546.7 MiB on the GPU, 17488.5 MiB in all, 202.8 MiB of it compressed
+strata metal: conversation checkpoint at 130937 tokens, 112.6 MiB
+strata metal: the context has its answering shape after 0.53 s (0 experts read back): 16777.4 MiB on the GPU, 17259.2 MiB in all, 47.9 MiB of it compressed
+strata metal: pass of 6 tokens to 130943: 16779.4 MiB on the GPU, 17276.3 MiB in all, 47.8 MiB of it compressed
+strata metal: conversation checkpoint at 130943 tokens, 112.6 MiB
+strata metal: pass of 1 tokens to 130944: 16779.4 MiB on the GPU, 17276.5 MiB in all, 47.8 MiB of it compressed
+strata metal: pass of 1 tokens to 130944: 16779.4 MiB on the GPU, 17276.8 MiB in all, 47.7 MiB of it compressed

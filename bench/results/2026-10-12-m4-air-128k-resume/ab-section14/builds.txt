@@ -1,0 +1,14 @@
+section 14's build, rebuilt 2026-10-15 19:31-19:32 (build-metal/ab-section14/):
+  git archive 74017b84 metal CMakeLists.txt | tar -x -C build-metal/ab-section14/src
+  cmake -S build-metal/ab-section14/src/metal -B build-metal/ab-section14/build -DCMAKE_BUILD_TYPE=Release -DSTRATA_LLAMA_DIR=/Users/rafal/Projects/strata-air/llama.cpp
+  cmake --build build-metal/ab-section14/build -j --target strata   (use -j 4: see the report)
+  patch 0001-moe-cache-fetch-stats-preload.patch
+  patch 0002-metal-indexed-qsa.patch
+  patch 0003-metal-topk-workspace.patch
+  patch 0004-kpool-append-reserve.patch
+  patch 0005-context-resize.patch
+  patch 0006-apple-row-prefetch.patch
+  patch 0007-metal-topk-deterministic.patch
+  patch 0008-kv-cache-mapped-as-it-fills.patch
+  SHA-256 8090df98e9278154efad06edf97408b9619a9f5f3866a7bbf830c8007ab19c41
+current build: build-metal/bin/strata SHA-256 4fae187ecf7340b4d279990097ced1af98c51aabe7b3273d7b49c526303fa114

@@ -1481,7 +1481,7 @@ Read speed by depth ([compare.txt](full-128k-1015/compare.txt) and the JSONs' pr
 
 ### Not done
 
-1. **A comparison that separates the code from the desktop.** Either this run with about 10 GiB more free than
+1. **A comparison that separates the code from the desktop** (done the same night: section 19). Either this run with about 10 GiB more free than
    tonight (programs closed: the owner's call), or section 14's build (`b646b475...`, not kept; its engine sources
    are those of `74017b84`) beside this one on the same desktop, A B B A: four runs of about 30 minutes.
 2. **The passes were 2,048 from the first token** because the KV cache takes its memory for 131,072 tokens before
@@ -1491,3 +1491,95 @@ Read speed by depth ([compare.txt](full-128k-1015/compare.txt) and the JSONs' pr
 Files in [full-128k-1015/](full-128k-1015/): the JSON, the console ([full-128k-1015.out](full-128k-1015/full-128k-1015.out)),
 the engine's lines, the watch, the gzipped `vm_stat` trace, [memsum.txt](full-128k-1015/memsum.txt) (both runs),
 [compare.txt](full-128k-1015/compare.txt) with [compare.py](full-128k-1015/compare.py), and [run.sh](full-128k-1015/run.sh).
+
+## 19. Night of 2026-10-15: section 14's build against the final build, A B B A
+
+Section 18's run was slower than section 14's on a fuller desktop. To tell the code from the desktop, the two
+builds read the same prompt by turns on one desktop: A = section 14's engine, rebuilt from the sources of
+`74017b84` (its `metal/` with patches 0001-0008 on the same llama.cpp pin; SHA-256 `8090df98...`, not `b646b475...`,
+because the build's paths are written into the binary; [builds.txt](ab-section14/builds.txt)), B = the final build
+(`build-metal/bin/strata`, `4fae187e...`). Order A B B A, the installed configuration for both (section 14's engine
+says "--vision is not used by the Metal engine" and goes on; in the final one it only lets requests carry pictures),
+section 14's command with `--cool 45`, each run under the swap watch with a per-second `vm_stat`, the Mac kept
+awake ([abba.sh](ab-section14/abba.sh)). Before it the user closed every app but Finder and Claude.
+
+**A swap-out before the series.** Between section 18's run and this one, with no engine running, the system's
+swap-out counter moved by 7,868 pages (123 MiB; 1,586,587 at 19:15, 1,594,455 at 19:33). macOS logged
+memory-pressure notices from 19:23, and from 19:31:52 to 19:32:23 section 14's engine was rebuilt with
+`cmake --build -j`, which starts every compile job at once (117 here). No trace covered that window, so which of
+the two it was is not known. Builds use `-j 4` or fewer from now on. During the series the counter stayed at
+1,594,455 (before, at every reading every two minutes, after each run) and the swap in use at 1,154.44 MiB.
+
+([table.md](ab-section14/table.md), [passes.md](ab-section14/passes.md), [memsum.txt](ab-section14/memsum.txt))
+
+| | Section 14 | A | B | B | A | Section 18 |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| Started | 10-13 08:01 | 20:06 | 20:36 | 21:10 | 21:43 | 18:38 |
+| SoC / battery before, C | 42.0 / 32.8 | 36.2 / 28.4 | 44.6 / 34.8 | 44.9 / 35.4 | 45.0 / 35.5 | 37.6 / 29.2 |
+| Other programs / free, GiB | 9.0 / 16.8 | 10.8 / 9.3 | 8.2 / 17.3 | 7.7 / 18.5 | 7.9 / 18.5 | 19.8 / 0.2 |
+| Cache for answers; at full depth, GiB | 10.28; 7.00 | 10.16; 6.88 | 11.42; 8.13 | 11.41; 8.13 | 11.65; 8.37 | 6.57; 3.29 |
+| Long passes | 16 of 8,192 | 16 of 8,192 | 16 of 8,192 | 16 of 8,192 | 16 of 8,192 | 64 of 2,048 |
+| **Read, tok/s** | 79.6 | **78.6** | **70.3** | **69.3** | **75.4** | 65.3 |
+| First token after, s | 1,645.9 | 1,665.5 | 1,861.4 | 1,889.9 | 1,736.4 | 2,005.1 |
+| ... waiting for the GPU / SSD / CPU, s | 1,572 / 19 / 55 | 1,586 / 20 / 60 | 1,769 / 21 / 72 | 1,816 / 20 / 53 | 1,663 / 19 / 54 | 1,735 / 238 / 33 |
+| From the SSD, GB | 809.3 | 810.8 | 809.1 | 806.4 | 806.5 | 2,952.4 |
+| Power, W | 16.2 | 19.4 | 16.7 | 16.6 | 15.0 | 18.7 |
+| **Written at full depth, tok/s** | 5.95 | **5.58** | **5.87** | **5.89** | **5.95** | 4.31 |
+| ... per token GPU / SSD / CPU, ms; experts missed | 108 / 50 / 10; 58 | 114 / 49 / 17; 60 | 116 / 42 / 13; 50 | 116 / 43 / 12; 50 | 115 / 42 / 12; 49 | 113 / 106 / 15; 125 |
+| Records; the prompt again | 5/5; 0.27 s | 5/5; 0.42 s | 5/5; 0.23 s | 5/5; 0.31 s | 5/5; 0.35 s | 5/5; 0.45 s |
+| Compressed, launch to exit, GiB | 1.10 | 2.68 | 4.70 | 3.10 | 2.00 | 6.70 |
+| Swap-outs | 0 | 0 | 0 | 0 | 0 | 0 |
+
+Other programs' memory and free memory are bench.py's counts at the start. Every run found five records of five,
+wrote the same answer word for word as section 14, and gave the same output again on the repeat.
+
+- **Tonight's desktop was close to section 14's**: other programs held 7.7-10.8 GiB (9.0 then), and all four runs
+  had passes of 8,192 and caches of 10.2-11.7 GiB.
+- **The code: the final build reads 7-10% slower, all of it waiting for the GPU.** With the same start (the last
+  three runs: SoC 44.6-45.0 C, battery 34.8-35.5 C), section 14's build read at 75.4 tok/s and the final build at
+  70.3 and 69.3; its first token came 125 and 154 s later. The first A started from a cooler Mac and read at 78.6.
+  The SSD's part is the same in all four (806-811 GB, 19-21 s; 737.3 GB read ahead and 720.8 used, to the tenth).
+- **Writing is the same**: 5.87 and 5.89 tok/s against 5.58 and 5.95. The GPU's time per written token is 1-2%
+  longer (115.6-116.0 against 113.9-114.7 ms); the rest follows the cache's size (the first A's was 1.3 GiB
+  smaller: 60 experts missed a token instead of 49-50).
+- **The desktop**: section 18 against the final build tonight: 65.3 against 69.3-70.3 tok/s read (first token
+  115-144 s later), 4.31 against 5.87-5.89 tok/s written. All of the loss in writing and part of the loss in
+  reading come from the memory that was free.
+- **Section 18's 359 s, split** (first token, means of the pairs): about 175 s the code (the B's against the A's),
+  about 130 s the desktop (section 18 against the B's), about 55 s the same build on another day (the A's against
+  section 14). The two A's are 71 s apart from each other, so each part is good to a few tens of seconds.
+
+### Where the final build loses its 7-10%: measured, not settled
+
+Pass by pass ([passes.md](ab-section14/passes.md)): the first pass of 8,192 tokens took 71.6-77.7 s in all four runs.
+From the second on, the final build's passes took 111-133 s; section 14's build in the adjacent run took 106-114 s.
+
+- **macOS held more of the final engine's own memory compressed during the passes**: 0.49-1.07 GiB from the second or
+  third pass on (a mean of 0.84 and 0.70 GiB over passes 2-16), against nothing until the pass to 90,112 and then
+  0.09-0.20 GiB for section 14's build in the adjacent run (a mean of 0.26 GiB in the cooler first run). The final
+  build's slowest passes (122-133 s) came with 0.86-1.07 GiB of it compressed, but other passes with 0.83-0.95 GiB
+  took 113-117 s, and the second B's second pass took 118.9 s with nothing compressed (section 14's build: 110.9 s).
+  The two move together in part, not throughout.
+- **The final engine is larger during a long prompt**: 17,974-17,986 MiB in all against 17,489 MiB (17.55-17.56
+  against 17.08 GiB), at caches of about the same size (244-253 MiB less on the GPU, 540-766 MiB more besides, at the
+  pass to 65,536; the engine's pass lines). 480 MiB of that is the KV hold of section 16. The hold is taken at the
+  start and only given back to pay for a KV step; a full-context prompt's KV memory comes out of the cache's share
+  (11.41 -> 8.13 GiB), so the hold stays wired through the whole prompt and the answer although the context has no
+  step left to take.
+- The other changes on a long pass's path since section 14 are patch 0009 (the top-k's tie rule; with passes of
+  8,192 nearly every row goes through the radix selection, whose key now counts negative zero as zero) and the
+  progress report from inside a pass (a print every 5 s from the per-layer read-ahead callback that was already
+  there). Text passes are fed as before (`llama_batch_get_one`).
+
+### Not done
+
+1. **Which change it is.** The final build against itself with `STRATA_KV_HOLD=0` (A B B A, about 2.3 hours) would
+   show whether the hold accounts for it; if not, a build of the final engine without patch 0009 against the final
+   build. Both are the owner's call (the Mac for hours each).
+2. The hold could be given back when the KV cache has taken its memory for the whole context (nothing left to pay
+   for). Not built: it is a guess until item 1 is measured.
+
+Files in [ab-section14/](ab-section14/): per run the JSON, console, the engine's lines, the watch and the gzipped
+`vm_stat` trace; [abba-series.txt](ab-section14/abba-series.txt) (the series' own log), [table.md](ab-section14/table.md)
+([abba_table.py](ab-section14/abba_table.py)), [passes.md](ab-section14/passes.md) ([passes.py](ab-section14/passes.py)),
+[memsum.txt](ab-section14/memsum.txt), [builds.txt](ab-section14/builds.txt), [abba.sh](ab-section14/abba.sh).

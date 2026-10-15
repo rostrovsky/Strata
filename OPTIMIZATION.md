@@ -13,6 +13,28 @@ afternoon's), [the morning after](bench/results/2026-10-12-m4-air-128k-resume/RE
 
 ## Read this first
 
+**2026-10-15, night — section 14's build against the final build, A B B A: the final build reads 7-10% slower.**
+Section 19 of the
+[report](bench/results/2026-10-12-m4-air-128k-resume/README.md#19-night-of-2026-10-15-section-14s-build-against-the-final-build-a-b-b-a).
+The 130,944-token prompt by turns on one desktop (the user closed every app but Finder and Claude; other programs
+held 7.7-10.8 GiB, section 14's 9.0): A = section 14's engine rebuilt from `74017b84` (patches 0001-0008), B =
+`build-metal/bin/strata` `4fae187e...`; the installed configuration, `--cool 45`, each run under the swap watch.
+
+- **Read: A 78.6 and 75.4 tok/s, B 70.3 and 69.3.** Same start for the last three runs (SoC 44.6-45.0 C): the final
+  build's first token came 125 and 154 s later, all of it waiting for the GPU (SSD 806-811 GB and 19-21 s in all four).
+- **Written at full depth: A 5.58 and 5.95, B 5.87 and 5.89 tok/s**: the same; GPU per token 1-2% longer.
+- Five records of five and section 14's answer word for word in every run. **No swap-out** in the series (counter
+  1,594,455 throughout). But between section 18's run and the series, with no engine running, it moved by 7,868
+  pages (123 MiB): memory-pressure notices from other programs, then a rebuild with a bare `cmake --build -j` (117
+  compile jobs at once); which one is not known. Builds use `-j 4` or fewer now.
+- **Section 18's 359 s later first token** splits into about 175 s the code, 130 s the desktop (passes of 2,048 and a
+  smaller cache: all of the slower writing), 55 s the same build on another day.
+- Not settled which change costs the 7-10%. The final engine holds 480 MiB more during a long prompt (section 16's
+  KV hold, kept wired although a full context has no KV step left) and macOS compressed 0.5-1.1 GiB of its own
+  memory during the passes (section 14's build: 0-0.4); slow passes go with that in part, not throughout. The other
+  suspect is patch 0009 (the top-k's tie rule). Next, the owner's call: the final build with `STRATA_KV_HOLD=0`
+  against itself (A B B A, ~2.3 hours).
+
 **2026-10-15, evening — the full-context prompt on the final build: right answers, no swap-out, slower on a fuller
 desktop.** Section 18 of the
 [report](bench/results/2026-10-12-m4-air-128k-resume/README.md#18-evening-of-2026-10-15-the-full-context-prompt-on-the-final-build).
@@ -28,8 +50,7 @@ Section 14's 130,944-token prompt and command, the installed configuration, `bui
   (113 against 108 ms); the SSD's doubled (106 against 50: 125 experts missed a token instead of 58).
 - **macOS compressed 6.70 GiB** of other programs' memory (1.10 in section 14): 2.29 in the engine's first 7 s, 1.70
   in 17 s while another program allocated 1.80 GiB, 2.71 over the rest of the prompt, none during the answer.
-- Open, the owner's call: a comparison that separates the code from the desktop (this run with ~10 GiB more free,
-  or section 14's build beside this one, A B B A of ~30-minute runs).
+- A comparison that separates the code from the desktop: done the same night (section 19, the block above).
 
 **2026-10-15, after midnight — the start without the profile's fill: measured, not made the default.** Section 17
 of the [report](bench/results/2026-10-12-m4-air-128k-resume/README.md#17-night-of-2026-10-14-the-engines-start-without-the-profiles-fill)
