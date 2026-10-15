@@ -13,6 +13,24 @@ afternoon's), [the morning after](bench/results/2026-10-12-m4-air-128k-resume/RE
 
 ## Read this first
 
+**2026-10-15, evening — the full-context prompt on the final build: right answers, no swap-out, slower on a fuller
+desktop.** Section 18 of the
+[report](bench/results/2026-10-12-m4-air-128k-resume/README.md#18-evening-of-2026-10-15-the-full-context-prompt-on-the-final-build).
+Section 14's 130,944-token prompt and command, the installed configuration, `build-metal/bin/strata` `4fae187e...`
+(engine of `a7b30bed`), under the swap watch with a per-second `vm_stat`.
+
+- **Five records of five**, the same answer as on 2026-10-13 word for word, the prompt again in 0.45 s with the
+  same output (130,943 tokens reused). **No swap-out** (counter 1,586,587 and 1,589.88 MiB in swap before and after).
+- **Read 65.3 tok/s (33 min 25 s; 79.6 and 27 min 26 s in section 14), written 4.31 tok/s at full depth (5.95).**
+  Not like for like: other programs held 19.8 GiB at the start (9.0 then), so the cache was 6.57 GiB for answers
+  and 3.29 at full depth (10.28 and 7.00), and the prompt was read in 64 passes of 2,048 (16 of 8,192): 2,952 GB
+  from the SSD instead of 809, 238 s waiting for it instead of 19. The GPU's time per written token is within 4%
+  (113 against 108 ms); the SSD's doubled (106 against 50: 125 experts missed a token instead of 58).
+- **macOS compressed 6.70 GiB** of other programs' memory (1.10 in section 14): 2.29 in the engine's first 7 s, 1.70
+  in 17 s while another program allocated 1.80 GiB, 2.71 over the rest of the prompt, none during the answer.
+- Open, the owner's call: a comparison that separates the code from the desktop (this run with ~10 GiB more free,
+  or section 14's build beside this one, A B B A of ~30-minute runs).
+
 **2026-10-15, after midnight — the start without the profile's fill: measured, not made the default.** Section 17
 of the [report](bench/results/2026-10-12-m4-air-128k-resume/README.md#17-night-of-2026-10-14-the-engines-start-without-the-profiles-fill)
 (point 2 of section 12's list). The start reads the profile's most used experts into the cache before READY (2.1 s

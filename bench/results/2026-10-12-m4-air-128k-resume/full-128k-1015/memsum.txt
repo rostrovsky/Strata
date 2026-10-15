@@ -1,0 +1,24 @@
+full-128k-final: 1584 s loaded; free min 0.05, median 0.49 GiB; file cache median 4.05; free + file cache min 4.00; page-ins 23.2 GiB, compressions 1.10 GiB, decompressions 1.27; other programs in RAM median 6.53, stored compressed max 11.6; swap-outs 0 pages
+full-128k-1015: 1933 s loaded; free min 0.05, median 0.49 GiB; file cache median 4.87; free + file cache min 4.81; page-ins 26.6 GiB, compressions 5.92 GiB, decompressions 3.49; other programs in RAM median 8.05, stored compressed max 11.8; swap-outs 0 pages
+
+== full-128k-final
+loaded 08:01:37 - 08:29:31 (1584 rows)
+08:01:37-08:02:07: compressions 0.01 GiB, free min 0.05; biggest seconds 08:01:45 0.00, 08:01:46 0.00, 08:01:58 0.00
+08:02:08-08:07:24: compressions 0.19 GiB, free min 0.05; biggest seconds 08:05:39 0.11, 08:05:38 0.04, 08:06:07 0.01
+08:07:25-08:12:41: compressions 0.05 GiB, free min 0.06; biggest seconds 08:07:41 0.04, 08:07:42 0.01, 08:07:40 0.00
+08:12:42-08:17:59: compressions 0.86 GiB, free min 0.06; biggest seconds 08:13:40 0.25, 08:13:41 0.20, 08:17:43 0.14
+08:18:00-08:23:16: compressions 0.00 GiB, free min 0.06; biggest seconds 08:18:17 0.00, 08:23:16 0.00, 08:23:15 0.00
+08:23:17-08:28:33: compressions 0.00 GiB, free min 0.06; biggest seconds 08:28:33 0.00, 08:28:32 0.00, 08:28:31 0.00
+08:28:34-08:29:31: compressions 0.00 GiB, free min 0.58; biggest seconds 08:29:31 0.00, 08:29:30 0.00, 08:29:29 0.00
+60 s before load: 0.00 GiB; 60 s after: 0.00 GiB
+== full-128k-1015
+loaded 18:38:10 - 19:12:12 (1933 rows)
+18:38:10-18:38:40: compressions 1.72 GiB, free min 0.05; biggest seconds 18:38:10 0.73, 18:38:11 0.63, 18:38:13 0.11
+18:38:41-18:43:57: compressions 2.39 GiB, free min 0.05; biggest seconds 18:42:44 0.39, 18:42:32 0.33, 18:42:37 0.32
+18:43:58-18:49:14: compressions 0.16 GiB, free min 0.06; biggest seconds 18:44:18 0.06, 18:48:23 0.05, 18:48:22 0.04
+18:49:15-18:54:31: compressions 0.21 GiB, free min 0.05; biggest seconds 18:54:25 0.10, 18:50:24 0.04, 18:54:24 0.03
+18:54:32-18:59:49: compressions 0.50 GiB, free min 0.05; biggest seconds 18:56:26 0.17, 18:56:22 0.10, 18:56:23 0.08
+18:59:50-19:05:06: compressions 0.17 GiB, free min 0.06; biggest seconds 19:02:28 0.08, 19:04:30 0.05, 19:04:31 0.02
+19:05:07-19:10:23: compressions 0.66 GiB, free min 0.05; biggest seconds 19:06:18 0.20, 19:06:19 0.09, 19:07:01 0.09
+19:10:24-19:12:12: compressions 0.11 GiB, free min 0.06; biggest seconds 19:10:32 0.05, 19:10:34 0.03, 19:10:30 0.03
+60 s before load: 0.78 GiB; 60 s after: 0.00 GiB

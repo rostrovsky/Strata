@@ -1419,3 +1419,75 @@ it with the fill as before. Files in [preload/](preload/): the two series ([befo
 the scripts ([starts.py](preload/starts.py), [summ.py](preload/summ.py), [trace.sh](preload/trace.sh)).
 
 No run wrote to swap: the system's counter is at 1,586,587, where it was this morning.
+
+## 18. Evening of 2026-10-15: the full-context prompt on the final build
+
+The same 130,944-token prompt as in sections 8, 9 and 14, the installed configuration (it has `--vision` now,
+which only a request with a picture uses), `build-metal/bin/strata` SHA-256 `4fae187e...` (the engine of
+`a7b30bed`, newer than every file in `metal/src` at HEAD `85876740`, so not rebuilt), section 14's command
+(`--prefill 130944 --prefill-new 120 --needle --prefill-repeat --cool 42 -- --verbose`) under the swap watch with a
+per-second `vm_stat` beside it, the Mac kept awake ([full-128k-1015/](full-128k-1015/), [run.sh](full-128k-1015/run.sh)).
+Since section 14 the engine got the long pass sized per prompt and the top-k's tie rule (section 15), pictures,
+the clean exit, the rule that a stretch borrows only free pages with the KV hold and the wait after a shape change
+(section 16), and `--preload` with the empty start's read-ahead fix (section 17).
+
+**The desktop was not section 14's.** When the engine started, other programs held 19.8 GiB (9.0 GiB then) and
+0.2 GiB were free (16.8 GiB then; bench.py's counts). The engine sized itself from that: an expert cache of 6.57 GiB
+for answers (10.28), 3.29 GiB once the KV cache holds its memory for 131,072 tokens (7.00), and at the start it
+said "with the context full there is no room for passes of 8192 tokens (5.62 GiB with the read-ahead buffer, of
+4.10): long prompts are then read in passes of 2048". The KV cache takes its memory for the whole conversation
+before the first pass, so this prompt was read in passes of 2,048 from its first token.
+
+| | Section 14 (2026-10-13, 08:02) | Now (2026-10-15, 18:38) |
+| --- | ---: | ---: |
+| Other programs / free at the start | 9.0 / 16.8 GiB | 19.8 / 0.2 GiB |
+| Expert cache for answers; at full depth | 10.28 GiB (5,383 experts); 7.00 GiB | 6.57 GiB (3,437 experts); 3.29 GiB |
+| Long passes | 16 of 8,192 | 64 of 2,048 |
+| Read | 79.6 tok/s (27 min 26 s) | **65.3 tok/s (33 min 25 s)** |
+| First token after | 1,645.89 s | 2,005.08 s |
+| ... waiting for the GPU / SSD / CPU | 1,572 / 19 / 55 s | 1,735 / 238 / 33 s |
+| Read from the SSD | 809.3 GB | 2,952.4 GB |
+| Written at full depth (76 tokens) | 5.95 tok/s | **4.31 tok/s** |
+| ... per token | 169 ms = GPU 108 + SSD 50 + CPU 10; 58 experts missed, 274 MB | 233 ms = GPU 113 + SSD 106 + CPU 15; 125 missed, 574 MB |
+| Records found | 5/5 | **5/5**, the same answer word for word |
+| The prompt again | 130,943 reused, 0.27 s, same output | 130,943 reused, 0.45 s, same output |
+| Compressed, from the launch to the exit | 1.10 GiB | 6.70 GiB |
+| Free pages, minimum / median while loaded | 0.05 / 0.49 GiB | 0.05 / 0.49 GiB |
+| Swap-outs | 0 | **0** |
+
+Read speed by depth ([compare.txt](full-128k-1015/compare.txt) and the JSONs' progress lines), section 14 → now:
+90.5 → 80.6 tok/s for the first 32,768 tokens, 78.7 → 67.2 for the next, 74.7 → 58.8, then 76.7 → 58.2 from
+98,304 to 122,880. SoC 37.6 C at the start (42.0), 86.4 C after two minutes (77.9), 64-69 C after that (66-71); 18.7 W (16.2).
+
+- **Reading and answering at full context work on the final build**: five records of five, the same answer as on
+  2026-10-13 word for word (76 tokens both times), the repeat reuses 130,943 tokens and gives the same output.
+- **No swap-out**: the system counter was 1,586,587 before, in every reading every two minutes, and 60 s after the
+  exit; 1,589.88 MiB in swap before and after; pressure level 1 throughout. The 2.1 TB more than section 14 are
+  reads from the SSD.
+- **The rates do not show what the code changes did**: they follow from the memory the engine had. The GPU's time per
+  written token is within 4% (113 against 108 ms); the SSD's doubled (106 against 50 ms: with half the cache at
+  full depth, 125 experts missed per token instead of 58). Of the 359 s the first token came later, 219 s are
+  waiting for the SSD (each long pass reads about all the routed experts, 46.1 GB a pass of 2,048 against 50.6 a
+  pass of 8,192, and there were four times as many), 162 s waiting for the GPU (64 smaller passes), 22 s less CPU.
+- **Compressed** ([memsum.txt](full-128k-1015/memsum.txt), [phases.py](full-128k-1015/phases.py)): 6.70 GiB from the
+  launch to the exit (1.10 in section 14, 0.45 of it in two seconds), in three parts:
+  - 2.29 GiB in the engine's first 7 s (18:38:07-13: the weights, the context's and the cache's memory, the cache
+    filled with 6.55 GiB from the profile in 2.1 s); the file cache went from 8.87 to 4.92 GiB at the same time.
+  - 1.70 GiB in 17 s at 18:42:30-46, while another program allocated: 1.80 GiB of new zero-filled pages in those
+    seconds, against 0.035 GiB a second on average over the rest of the prompt. The engine's footprint stayed at
+    12,532 MiB; 0.35 GiB of its own memory was compressed then (its pass lines: 79 → 437 MiB "of it compressed").
+  - 2.71 GiB over the rest of the prompt (33 minutes in all), nothing during the answer and the repeat, nothing in
+    the 60 s after the exit.
+
+### Not done
+
+1. **A comparison that separates the code from the desktop.** Either this run with about 10 GiB more free than
+   tonight (programs closed: the owner's call), or section 14's build (`b646b475...`, not kept; its engine sources
+   are those of `74017b84`) beside this one on the same desktop, A B B A: four runs of about 30 minutes.
+2. **The passes were 2,048 from the first token** because the KV cache takes its memory for 131,072 tokens before
+   the first pass. At that moment the cache's place held 6.57 GiB, where a pass of 8,192 needs 4.10 (5.62 with the
+   read-ahead buffer). Taking the KV cache's memory in steps while a long prompt is read was not built or measured.
+
+Files in [full-128k-1015/](full-128k-1015/): the JSON, the console ([full-128k-1015.out](full-128k-1015/full-128k-1015.out)),
+the engine's lines, the watch, the gzipped `vm_stat` trace, [memsum.txt](full-128k-1015/memsum.txt) (both runs),
+[compare.txt](full-128k-1015/compare.txt) with [compare.py](full-128k-1015/compare.py), and [run.sh](full-128k-1015/run.sh).

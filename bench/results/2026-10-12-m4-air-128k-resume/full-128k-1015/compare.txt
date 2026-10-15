@@ -1,0 +1,19 @@
+cache MiB (start)      | 10519 | 6721
+experts                | 5383 | 3437
+read tok/s             | 79.56 | 65.31
+first token s          | 1645.89 | 2005.08
+passes                 | 18.0 | 66.0
+SSD GB                 | 809.3 | 2952.4
+wait GPU/SSD/CPU s     | (1572, 19.0, 54.5) | (1734, 237.7, 32.9)
+GPU busy s             | 2060.6 | 2134.3
+read ahead / used GB   | (737.3, 720.8) | (2726.7, 2586.8)
+W                      | 16.21 | 18.69
+written tok/s          | 5.95 | 4.31
+tokens                 | 76 | 76
+token 2/10/50 s        | (1646.145, 1647.788, 1654.413) | (2005.336, 2007.102, 2016.64)
+per token ms           | {'total_ms': 168.6, 'gpu_wait_ms': 108.3, 'ssd_ms': 50.4, 'cpu_ms': 9.9, 'misses': 58.1, 'ssd_mb': 274.1} | {'total_ms': 233.2, 'gpu_wait_ms': 112.7, 'ssd_ms': 105.8, 'cpu_ms': 14.7, 'misses': 125.2, 'ssd_mb': 574.3}
+records                | 5 | 5
+repeat                 | {'read': 1, 'resume': 130943, 'ttft_s': 0.270050048828125, 'decode_tps': 6.279355989249743, 'same_ids': True, 'swapouts': 0} | {'read': 1, 'resume': 130943, 'ttft_s': 0.4520118236541748, 'decode_tps': 4.426397856443065, 'same_ids': True, 'swapouts': 0}
+swapouts               | 0 | 0
+mem before             | {'free_gib': 16.84, 'file_cache_gib': 3.22, 'apps_gib': 8.99, 'wired_gib': 2.16, 'swap_used_gib': 1.87, 'pressure_level': 1} | {'free_gib': 0.23, 'file_cache_gib': 8.88, 'apps_gib': 19.78, 'wired_gib': 2.31, 'swap_used_gib': 1.55, 'pressure_level': 1}
+mem after              | {'free_gib': 17.81, 'file_cache_gib': 2.83, 'apps_gib': 8.7, 'wired_gib': 1.87, 'swap_used_gib': 1.87, 'pressure_level': 1} | {'free_gib': 12.93, 'file_cache_gib': 4.58, 'apps_gib': 11.59, 'wired_gib': 2.1, 'swap_used_gib': 1.55, 'pressure_level': 1}
