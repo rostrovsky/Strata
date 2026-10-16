@@ -10,12 +10,12 @@ def vm_rows(name):
     for line in open(f"{name}-vmstat.txt"):
         t, rest = line.split(" ", 1); f = rest.split()
         if not f or f[0] == "Mach": continue
-        if f[0] == "free": hdr = f; continue
+        if f[0] == "free": hdr = f; first = True; continue
         if hdr is None or len(f) != len(hdr): continue
         def num(x):
             m = re.match(r"([\d.]+)([KMG]?)", x); return float(m.group(1)) * {"": 1, "K": 1e3, "M": 1e6, "G": 1e9}[m.group(2)]
         r = dict(zip(hdr, map(num, f))); r["t"] = t
-        if r["swapouts"] > 1e6: continue          # vm_stat's first row: totals since boot
+        if first: first = False; continue    # vm_stat's first row after a header: totals since boot
         rows.append(r)
     return rows
 

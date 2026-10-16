@@ -1,0 +1,17 @@
+20:40:17 BASELINE swapouts 0, swap used 0.0 MiB, pressure 1, free 0.77 + file cache 14.85 GiB, compressor 0.0 in 0.0 GiB, SoC 32.6 C, battery 25.3 C
+20:40:17 STARTED pid 7370: .venv/bin/python -u metal/tools/bench.py --config strata-iq3_s.json --json build-metal/resume-128k/kvh1-on.json --log build-metal/resume-128k/kvh1-on.log --prefill 130944 --prefill-new 120 --needle --
+20:40:22 ok +5 s: swap-outs new 0, pressure 1, free 0.09 + file 14.63 GiB, compressor 0.0 in 0.0 GiB, SoC 43.3 C | temperature before the run: SoC 33.7 C, battery 25.3 C
+20:42:23 ok +126 s: swap-outs new 0, pressure 1, free 0.24 + file 6.91 GiB, compressor 3.67 in 1.52 GiB, SoC 86.6 C | read 10410/130944 tokens in 96.0 s; swap-outs 0
+20:44:24 ok +246 s: swap-outs new 0, pressure 1, free 1.48 + file 5.91 GiB, compressor 4.06 in 1.59 GiB, SoC 72.3 C | read 21845/130944 tokens in 200.3 s; swap-outs 0
+20:46:24 ok +367 s: swap-outs new 0, pressure 1, free 0.88 + file 6.84 GiB, compressor 4.2 in 1.55 GiB, SoC 74.6 C | read 33962/130944 tokens in 332.5 s; swap-outs 0
+20:48:25 ok +488 s: swap-outs new 0, pressure 1, free 0.63 + file 6.86 GiB, compressor 4.12 in 1.53 GiB, SoC 70.4 C | read 43520/130944 tokens in 438.3 s; swap-outs 0
+20:50:26 ok +609 s: swap-outs new 0, pressure 1, free 0.53 + file 6.91 GiB, compressor 4.09 in 1.52 GiB, SoC 69.7 C | read 54442/130944 tokens in 565.5 s; swap-outs 0
+20:52:27 ok +730 s: swap-outs new 0, pressure 1, free 0.47 + file 6.89 GiB, compressor 4.06 in 1.52 GiB, SoC 69.8 C | read 65536/130944 tokens in 697.6 s; swap-outs 0
+20:54:27 ok +850 s: swap-outs new 0, pressure 1, free 0.37 + file 7.02 GiB, compressor 4.05 in 1.53 GiB, SoC 69.3 C | read 73728/130944 tokens in 801.1 s; swap-outs 0
+20:56:28 ok +971 s: swap-outs new 0, pressure 1, free 0.57 + file 6.87 GiB, compressor 4.07 in 1.53 GiB, SoC 68.0 C | read 84309/130944 tokens in 939.3 s; swap-outs 0
+20:58:29 ok +1092 s: swap-outs new 0, pressure 1, free 0.23 + file 6.66 GiB, compressor 4.03 in 1.53 GiB, SoC 66.9 C | read 91989/130944 tokens in 1040.2 s; swap-outs 0
+21:00:30 ok +1213 s: swap-outs new 0, pressure 1, free 0.19 + file 6.63 GiB, compressor 3.95 in 1.51 GiB, SoC 67.0 C | read 102400/130944 tokens in 1178.4 s; swap-outs 0
+21:02:31 ok +1333 s: swap-outs new 0, pressure 1, free 0.38 + file 6.61 GiB, compressor 4.09 in 1.47 GiB, SoC 67.4 C | read 111616/130944 tokens in 1309.9 s; swap-outs 0
+21:04:31 ok +1454 s: swap-outs new 0, pressure 1, free 0.44 + file 6.68 GiB, compressor 4.11 in 1.49 GiB, SoC 67.3 C | read 118442/130944 tokens in 1409.6 s; swap-outs 0
+21:06:32 ok +1575 s: swap-outs new 0, pressure 1, free 0.48 + file 6.61 GiB, compressor 4.1 in 1.5 GiB, SoC 67.3 C | read 127412/130944 tokens in 1544.5 s; swap-outs 0
+21:08:46 DONE exit code 0, new swap-outs over the whole run 0 pages, swap used 0.0 MiB (was 0.0), peak pressure level 1, engine still running: [], stopped: False

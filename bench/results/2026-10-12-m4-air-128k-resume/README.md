@@ -1573,13 +1573,75 @@ From the second on, the final build's passes took 111-133 s; section 14's build 
 
 ### Not done
 
-1. **Which change it is.** The final build against itself with `STRATA_KV_HOLD=0` (A B B A, about 2.3 hours) would
-   show whether the hold accounts for it; if not, a build of the final engine without patch 0009 against the final
-   build. Both are the owner's call (the Mac for hours each).
+1. **Which change it is.** (The hold: measured the next evening, section 20: not it.) The final build against itself
+   with `STRATA_KV_HOLD=0` (A B B A, about 2.3 hours) would show whether the hold accounts for it; if not, a build of
+   the final engine without patch 0009 against the final build. Both are the owner's call (the Mac for hours each).
 2. The hold could be given back when the KV cache has taken its memory for the whole context (nothing left to pay
-   for). Not built: it is a guess until item 1 is measured.
+   for). Not built; section 20 found the hold costs 0-2% here.
 
 Files in [ab-section14/](ab-section14/): per run the JSON, console, the engine's lines, the watch and the gzipped
 `vm_stat` trace; [abba-series.txt](ab-section14/abba-series.txt) (the series' own log), [table.md](ab-section14/table.md)
 ([abba_table.py](ab-section14/abba_table.py)), [passes.md](ab-section14/passes.md) ([passes.py](ab-section14/passes.py)),
 [memsum.txt](ab-section14/memsum.txt), [builds.txt](ab-section14/builds.txt), [abba.sh](ab-section14/abba.sh).
+
+## 20. Evening of 2026-10-16: the KV hold is not what costs the final build its 7-10%
+
+Section 19's first suspect, tested: the final build (`build-metal/bin/strata`, `4fae187e...`) against itself, A with
+the KV hold (`STRATA_KV_HOLD=1`, the default), B without it (`STRATA_KV_HOLD=0`), A B B A, the same prompt, command
+and guards as section 19 ([abba.sh](kv-hold/abba.sh)). The Mac had been restarted since the night before (swap
+counter 0, nothing compressed); Brave, Finder and Claude were open.
+
+([table.md](kv-hold/table.md), [passes.md](kv-hold/passes.md), [memsum.txt](kv-hold/memsum.txt))
+
+| | A: hold | B: no hold | B: no hold | A: hold |
+| --- | ---: | ---: | ---: | ---: |
+| Started | 20:40 | 21:09 | 21:40 | 22:10 |
+| SoC / battery before, C | 33.7 / 25.3 | 44.9 / 34.2 | 44.9 / 35.1 | 44.8 / 35.3 |
+| Other programs / free, GiB | 13.7 / 0.6 | 6.3 / 17.8 | 4.6 / 21.9 | 4.4 / 23.1 |
+| Cache for answers; at full depth, GiB | 10.13; 6.84 | 15.05; 11.77 | 16.28; 13.00 | 15.81; 12.53 |
+| **Read, tok/s** | 82.1 | **77.5** | **76.7** | **75.8** |
+| First token after, s | 1,594.9 | 1,690.2 | 1,707.7 | 1,727.0 |
+| ... waiting for the GPU / SSD / CPU, s | 1,519 / 19 / 57 | 1,608 / 19 / 63 | 1,626 / 19 / 62 | 1,649 / 19 / 58 |
+| **Written at full depth, tok/s** | 5.44 | **6.21** | **6.13** | **6.12** |
+| ... per token GPU / SSD / CPU, ms; experts missed | 121 / 51 / 13; 61 | 113 / 38 / 11; 44 | 115 / 38 / 11; 44 | 115 / 38 / 11; 44 |
+| The engine's own memory compressed in passes 2-16, mean | 0.54 GiB | 1.07 GiB | 1.05 GiB | 1.00 GiB |
+| The engine during the passes: on the GPU / in all, MiB | 12,982 / 16,666 | 18,027 / 21,233 | 19,287 / 22,493 | 18,807 / 22,491 |
+| Compressed, launch to exit, GiB | 6.02 | 5.78 | 5.30 | 3.28 |
+| Swap-outs | 0 | 0 | 0 | 0 |
+
+Every run: passes of 8,192, five records of five, section 14's answer word for word, the same output on the repeat,
+805-810 GB from the SSD. The swap counter stayed at 0 throughout.
+
+- **The first run does not compare**: it started from a cold Mac (SoC 33.7 C, battery 25.3 C; its first three passes
+  took 73-78 s; the others' second and third took 99-114 s) on a desktop just after the restart (other programs 13.7
+  GiB, the file cache 14.9 GiB), with a 4.9-6.2 GiB smaller cache.
+- **The other three started alike** (SoC 44.8-44.9 C, battery 34.2-35.3 C, other programs 4.4-6.3 GiB): without the
+  hold 77.5 and 76.7 tok/s, with it 75.8. The rate fell by 0.8 tok/s between the two runs without the hold and by 0.9
+  from the second of them to the run with it, so the hold costs between nothing and 2%, not 7-10%. Writing is the
+  same (6.21 and 6.13 against 6.12 tok/s).
+- **The engine's own memory was compressed as much without the hold** (1.05-1.07 GiB on average over the passes,
+  against 1.00 with it), and the engine was as large (22,493 against 22,491 MiB in all): without the hold the cache
+  takes those 480 MiB (16.28 against 15.81 GiB). Section 19's reading, that the hold made the engine larger and so
+  more of it compressed, does not hold: the final engine is larger than section 14's either way.
+- **On tonight's desktop the final build read at 75.8-77.5 tok/s**, as fast as section 14's build did the night
+  before in the same start state (75.4), and 8-12% faster than the final build that night (69.3-70.3). Tonight other
+  programs held 4.4-6.3 GiB (7.7-8.2) and the caches were 15.1-16.3 GiB (11.4); during the passes the engine had
+  18,027-19,287 MiB on the GPU (14,293-14,303). Section 14's build was not run tonight, so whether the gap of section
+  19 is there on a desktop with this much free memory is not known.
+
+Also fixed on the way: `memsum.py` (and the copies of `abba_table.py` and `phases.py`) took `vm_stat`'s first row
+after each header, its totals since boot, for a second's figures whenever the swap-out counter was below a million,
+which it is after a restart (it showed 427-1,659 GiB "compressed"). They now skip that row by its place. The
+results of sections 18 and 19 come out the same.
+
+### Not done
+
+1. **Section 19's A B B A again, on a desktop like tonight's.** If section 14's build is as fast as the final one
+   there, the 7-10% is not a fixed cost of the code but something that shows when less memory is free; if it is still
+   ahead, patch 0009 (the top-k's tie rule) is the suspect left, and a build of the final engine without it the next
+   test. The owner's call (about 2.3 hours each).
+
+Files in [kv-hold/](kv-hold/): per run the JSON, console, the engine's lines, the watch and the gzipped `vm_stat`
+trace; [abba-series.txt](kv-hold/abba-series.txt), [table.md](kv-hold/table.md), [passes.md](kv-hold/passes.md),
+[memsum.txt](kv-hold/memsum.txt) with the fixed [memsum.py](kv-hold/memsum.py), [builds.txt](kv-hold/builds.txt),
+[abba.sh](kv-hold/abba.sh).

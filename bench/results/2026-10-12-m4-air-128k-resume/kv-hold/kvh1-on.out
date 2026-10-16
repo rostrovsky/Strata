@@ -1,0 +1,55 @@
+memory: {'free_gib': 0.56, 'file_cache_gib': 14.87, 'apps_gib': 13.7, 'wired_gib': 2.07, 'swap_used_gib': 0.0, 'pressure_level': 1}
+temperature before the run: SoC 33.7 C, battery 25.3 C
+bin/strata: ready in 20.2 s; context 131072, expert cache 5303 experts (10362 MiB), direct reads
+  read 2901/130944 tokens in 32.3 s; swap-outs 0
+  read 6997/130944 tokens in 64.6 s; swap-outs 0
+  read 10410/130944 tokens in 96.0 s; swap-outs 0
+  read 14506/130944 tokens in 131.3 s; swap-outs 0
+  read 17920/130944 tokens in 164.6 s; swap-outs 0
+  read 21845/130944 tokens in 200.3 s; swap-outs 0
+  read 24746/130944 tokens in 230.7 s; swap-outs 0
+  read 27818/130944 tokens in 265.6 s; swap-outs 0
+  read 31232/130944 tokens in 301.6 s; swap-outs 0
+  read 33962/130944 tokens in 332.5 s; swap-outs 0
+  read 37376/130944 tokens in 368.8 s; swap-outs 0
+  read 40960/130944 tokens in 405.7 s; swap-outs 0
+  read 43520/130944 tokens in 438.3 s; swap-outs 0
+  read 46250/130944 tokens in 468.9 s; swap-outs 0
+  read 49152/130944 tokens in 499.8 s; swap-outs 0
+  read 51712/130944 tokens in 533.3 s; swap-outs 0
+  read 54442/130944 tokens in 565.5 s; swap-outs 0
+  read 57344/130944 tokens in 597.6 s; swap-outs 0
+  read 59733/130944 tokens in 629.2 s; swap-outs 0
+  read 62464/130944 tokens in 662.1 s; swap-outs 0
+  read 65536/130944 tokens in 697.6 s; swap-outs 0
+  read 68096/130944 tokens in 733.8 s; swap-outs 0
+  read 70826/130944 tokens in 767.9 s; swap-outs 0
+  read 73728/130944 tokens in 801.1 s; swap-outs 0
+  read 76117/130944 tokens in 834.3 s; swap-outs 0
+  read 78848/130944 tokens in 869.0 s; swap-outs 0
+  read 81920/130944 tokens in 905.6 s; swap-outs 0
+  read 84309/130944 tokens in 939.3 s; swap-outs 0
+  read 87040/130944 tokens in 974.3 s; swap-outs 0
+  read 89429/130944 tokens in 1005.2 s; swap-outs 0
+  read 91989/130944 tokens in 1040.2 s; swap-outs 0
+  read 94720/130944 tokens in 1075.4 s; swap-outs 0
+  read 97621/130944 tokens in 1111.6 s; swap-outs 0
+  read 100181/130944 tokens in 1146.7 s; swap-outs 0
+  read 102400/130944 tokens in 1178.4 s; swap-outs 0
+  read 104789/130944 tokens in 1211.8 s; swap-outs 0
+  read 107008/130944 tokens in 1246.5 s; swap-outs 0
+  read 109226/130944 tokens in 1277.1 s; swap-outs 0
+  read 111616/130944 tokens in 1309.9 s; swap-outs 0
+  read 113834/130944 tokens in 1342.6 s; swap-outs 0
+  read 116053/130944 tokens in 1375.9 s; swap-outs 0
+  read 118442/130944 tokens in 1409.6 s; swap-outs 0
+  read 120661/130944 tokens in 1443.8 s; swap-outs 0
+  read 123047/130944 tokens in 1479.7 s; swap-outs 0
+  read 125229/130944 tokens in 1510.8 s; swap-outs 0
+  read 127412/130944 tokens in 1544.5 s; swap-outs 0
+  read 129594/130944 tokens in 1575.5 s; swap-outs 0
+prefill 130944 tokens:    82.1 tok/s, first token after 1594.86 s, 810.2 GB from the SSD, 18 passes; 1594.9 s = SSD 19.0 + GPU wait 1519.3 + CPU 56.5 (GPU busy 1539.1; 737.3 GB read ahead, 720.8 used); swap-outs 0, 20.8 W
+  decode at 130944 tokens: 5.44 tok/s, 76 tokens, token 2 after 1595.12 s, token 10 after 1596.78 s, token 50 after 1604.18 s; 'STRATA_TEST_RECORD ALPHA = cedar-58317\nSTRATA_TEST_RECORD BRAVO = quartz-92406\nSTRATA_TEST_RECORD CHARLIE = lilac-76183\nSTRATA_TEST_RECORD DELTA = maple-40952\nSTRATA_TEST_RECORD ECHO = coral-63821<|im_end|>'
+  retrieval: 5/5 exact values
+  repeat: 130943 tokens reused, first token after 0.25 s, same output: True
+swap-outs over the whole run: 0

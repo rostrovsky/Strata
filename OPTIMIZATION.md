@@ -13,6 +13,23 @@ afternoon's), [the morning after](bench/results/2026-10-12-m4-air-128k-resume/RE
 
 ## Read this first
 
+**2026-10-16, evening — the KV hold is not what costs the final build its 7-10%.** Section 20 of the
+[report](bench/results/2026-10-12-m4-air-128k-resume/README.md#20-evening-of-2026-10-16-the-kv-hold-is-not-what-costs-the-final-build-its-7-10).
+The final build (`4fae187e...`) against itself, with the KV hold (default) and with `STRATA_KV_HOLD=0`, A B B A,
+the 130,944-token prompt, each run under the swap watch. No swap-out (the counter was 0 after a restart and still 0 at the end).
+
+- Three runs from the same start (SoC 44.8-44.9 C; other programs 4.4-6.3 GiB, caches 15.1-16.3 GiB): **read 77.5
+  and 76.7 tok/s without the hold, 75.8 with it; written 6.21 and 6.13 against 6.12.** The rate fell by 0.8-0.9
+  tok/s per run either way: the hold costs 0-2%. The first run started cold on a fuller desktop and does not compare.
+- Without the hold the engine is as large (the cache takes the 480 MiB) and as much of it is compressed (1.05-1.07
+  against 1.00 GiB): the link section 19 drew between the hold and that compression does not hold.
+- **On this desktop the final build read as fast as section 14's build did the night before** (75.8-77.5 against
+  75.4 tok/s; the final build that night: 69.3-70.3, with other programs at 7.7-8.2 GiB and 11.4 GiB caches).
+- Next, the owner's call: section 19's A B B A again on a desktop like this one. If section 14's build is no faster
+  there, the gap is not a fixed cost of the code; if it is, patch 0009 is the suspect left.
+- `memsum.py` read `vm_stat`'s since-boot totals as one second whenever the swap counter was below a million (after
+  a restart); fixed, earlier results unchanged.
+
 **2026-10-15, night — section 14's build against the final build, A B B A: the final build reads 7-10% slower.**
 Section 19 of the
 [report](bench/results/2026-10-12-m4-air-128k-resume/README.md#19-night-of-2026-10-15-section-14s-build-against-the-final-build-a-b-b-a).
@@ -32,8 +49,7 @@ held 7.7-10.8 GiB, section 14's 9.0): A = section 14's engine rebuilt from `7401
 - Not settled which change costs the 7-10%. The final engine holds 480 MiB more during a long prompt (section 16's
   KV hold, kept wired although a full context has no KV step left) and macOS compressed 0.5-1.1 GiB of its own
   memory during the passes (section 14's build: 0-0.4); slow passes go with that in part, not throughout. The other
-  suspect is patch 0009 (the top-k's tie rule). Next, the owner's call: the final build with `STRATA_KV_HOLD=0`
-  against itself (A B B A, ~2.3 hours).
+  suspect is patch 0009 (the top-k's tie rule). The hold was measured the next evening: not it (the block above).
 
 **2026-10-15, evening — the full-context prompt on the final build: right answers, no swap-out, slower on a fuller
 desktop.** Section 18 of the

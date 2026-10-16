@@ -1,0 +1,1 @@
+build-metal/bin/strata SHA-256 4fae187ecf7340b4d279990097ced1af98c51aabe7b3273d7b49c526303fa114; A: STRATA_KV_HOLD=1 (the default), B: STRATA_KV_HOLD=0
