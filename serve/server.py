@@ -57,6 +57,7 @@ sys.path.insert(0, str(ROOT))   # run as a script (run-<model>.bat) as well as a
 from serve.frontend import (THINK_END, ChatTemplate, Event, OutputParser, anthropic_to_messages,  # noqa: E402
                             forced_call, images_of, literal_tags, mark_think_literals, openai_to_messages,
                             tool_choice_of, unmark_think_literals)
+from serve.console import CONSOLE  # noqa: E402
 from serve.mcp import McpCancelled, hub_from_config  # noqa: E402
 from serve import runconfig  # noqa: E402
 from serve import logit_bias as bias_api  # noqa: E402
@@ -2797,6 +2798,7 @@ class Service:
         # "parallel" (the engine's batch slots): every running request's own status and rate window; self.status
         # then says busy while any runs and shows the newest one
         self.live_reqs: dict[int, tuple[dict, collections.deque]] = {}
+        self.phases: dict = {}          # id(status) -> its request's lines in the server window (serve/console.py)
         # #332: the API request monitor (/api-monitor) keeps the last 100 requests' prompts and answers in memory,
         # so it is off unless the config's "api_monitor" (or --api-monitor) turns it on
         self.api_monitor = False
@@ -3599,6 +3601,9 @@ class Service:
             if s.get("first_token") is None:
                 s["first_token"] = time.time()
             (self.rate if rate is None else rate).append((time.time(), n))   # the live rate's window (RATE_WINDOW_S)
+            ph = self.phases.get(id(s))
+            if ph is not None:
+                ph.first_token(n)
             for ev in evs:
                 if ev.kind == "reasoning":
                     s["phase"] = "thinking"
@@ -3609,27 +3614,29 @@ class Service:
                 elif ev.kind == "tool_call":
                     s["phase"] = "tool call complete"
                 s["tail"] = ((s.get("tail") or "") + (ev.text or ""))[-600:]
+                if ph is not None and ev.kind in ("reasoning", "content", "tool_start"):
+                    ph.phase({"reasoning": "thinking", "content": "answering"}.get(ev.kind, "tool"), n,
+                             ev.call.name if ev.kind == "tool_start" else None)
+            if ph is not None:
+                ph.tokens(n)
 
-    def _progress(self, last_print, every=1.0, st=None):
-        """A progress line in the server window every `every` seconds while a request runs."""
+    def _progress(self, last_print, every=0.25, st=None):
+        """The prompt read so far, for the request's line in the server window (serve/console.py; the tokens written
+        come from _note)."""
         now = time.time()
         if now - last_print < every:
             return last_print
         with self.status_lock:
-            s = dict(self.status if st is None else st)
-        el = now - s.get("started", now)
-        if s.get("first_token") is None:
+            s = self.status if st is None else st
+            ph = self.phases.get(id(s))
+            reading = s.get("first_token") is None
+        if ph is not None and reading:
             pr = getattr(self.engine, "progress", None)   # (position reached, prompt tokens): a reused prefix counts
-            done = (f"{pr[0]:,} of {pr[1]:,} tokens ({100 * pr[0] // pr[1]}%)" if pr and pr[1]   # as read (#29)
-                    else f"{s.get('prompt_tokens', 0):,} tokens")
-            print(f"[strata] reading the prompt: {done}, {el:.0f} s so far", flush=True)
-        else:
-            rate = s["generated"] / max(1e-6, now - s["first_token"])
-            # #984: while a thinking budget applies, the thinking line shows it, not the request's max_tokens
-            limit = (f"budget {s['thinking_budget']} (max {s.get('max_tokens')})"
-                     if s["phase"] == "thinking" and s.get("thinking_budget") else f"max {s.get('max_tokens')}")
-            print(f"[strata] {s['phase']}: {s['generated']} of {limit} tokens, {rate:.1f} tok/s, "
-                  f"{el:.0f} s", flush=True)
+            reused = getattr(self.engine, "reused", 0) or 0   # as read (#29); RESUME says how much of it was reused
+            if pr and pr[1]:
+                ph.prompt(pr[0], pr[1], reused)
+            elif reused:
+                ph.prompt(reused, 0, reused)
         return now
 
     def run(self, ids, thinking, tools, max_new, sampling, cancel, force=None) -> Iterator[tuple[str, object]]:
@@ -3767,6 +3774,10 @@ class Service:
                         st.update(busy=True, phase="reading the prompt", prompt_tokens=len(ids),
                                   generated=0, started=time.time(), first_token=None, tool=None, tail="",
                                   max_tokens=max_new, reasoning_recoveries=0, thinking_budget=budget)
+                        old = self.phases.pop(id(st), None)
+                        if old is not None:
+                            old.close()
+                        self.phases[id(st)] = CONSOLE.request(len(ids), max_new, budget)
                         if par:
                             self.live_reqs[id(st)] = (st, rate)
                             self.status.update(st)
@@ -4021,21 +4032,18 @@ class Service:
                                 timings = request_timings(seen, n, last)
                                 self.last_timings = dict(timings, at=int(time.time())) if timings else None
                             self.last_request_at = time.time()
-                            now = time.time()
-                            el = now - st.get("started", now)
-                            ft = st.get("first_token")
-                            rate = n / max(1e-6, now - ft) if ft else 0.0
-                            hit_msg = f", expert cache {hit_rate*100:.1f}% hit" if hit_rate is not None else ""
-                            if hit_msg and pcie_share:
-                                hit_msg += f" (+{pcie_share*100:.1f}% of the routed experts over PCIe)"
-                            print(f"[strata] done: {n} tokens in {el:.0f} s ({rate:.1f} tok/s) "
-                                  f"({finish}, cancel={cancel.is_set()}){hit_msg}", flush=True)
+                            ph = self.phases.pop(id(st), None)
+                            if ph is not None:
+                                ph.done(n, finish, cancel.is_set(), hit_rate, pcie_share)
                             if finish == "length" and parser.state in ("reasoning", "rcall"):   # #530
                                 print("[strata] the reply reached max tokens while still thinking, so it has no "
                                       "answer: a thinking budget (reasoning_budget_tokens, in the request or in "
                                       "strata-<model>.json for every request) leaves room to answer", flush=True)
                             if os.environ.get("STRATA_DEBUG") and raw_ids:
                                 print(f"[strata] raw: {self.tok.decode(raw_ids)!r}", flush=True)
+                        ph = self.phases.pop(id(st), None)
+                        if ph is not None:
+                            ph.close()
                         st["busy"] = False
                         st.pop("tail", None)                     # #212: the answer's end is not kept once it is done
                         st.pop("tool", None)
@@ -6100,6 +6108,7 @@ def main() -> int:
                          "each, requests spread over them (also \"replicas\" in the config: a number, or "
                          "[{\"gpus\": [0, 1]}, {\"gpus\": [2, 3]}])")
     a = ap.parse_args()
+    CONSOLE.install()
     cfg = json.loads(Path(a.config).read_text(encoding="utf-8-sig")) if a.config else {}   # Notepad adds a BOM
     lift_reasoning_effort_arg(cfg)
     if a.replicas is not None:

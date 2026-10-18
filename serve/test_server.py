@@ -3481,17 +3481,19 @@ class ThinkingBudget(unittest.TestCase):
 
     def test_the_thinking_progress_line_shows_the_budget_not_max_tokens(self):
         """#984: 'thinking: x of max 6400' read as if the budget was ignored; while a budget applies the line shows it."""
-        st = {"phase": "thinking", "generated": 10, "first_token": time.time() - 1, "started": time.time() - 2,
-              "max_tokens": 6400, "thinking_budget": 2048}
+        from serve.console import Console
         out = io.StringIO()
         with contextlib.redirect_stdout(out):
-            self.svc._progress(0, st=st)
-            self.svc._progress(0, st={**st, "phase": "answering"})
-            self.svc._progress(0, st={**st, "thinking_budget": None})
+            for budget in (2048, None):
+                ph = Console().request(2, 6400, budget)
+                ph.phase("thinking", 10)
+                ph.phase("answering", 11)
+                ph.done(11, "stop", False, None, None)
         lines = out.getvalue().splitlines()
-        self.assertIn("thinking: 10 of budget 2048 (max 6400) tokens", lines[0])
-        self.assertIn("answering: 10 of max 6400 tokens", lines[1])
-        self.assertIn("thinking: 10 of max 6400 tokens", lines[2])
+        self.assertIn("10 of 2,048 tok budget", lines[1])
+        self.assertIn("11 of 6,400 tok", lines[2])
+        self.assertIn("10 of 6,400 tok", lines[5])
+        self.assertNotIn("budget", lines[5])
 
     def test_a_budget_above_max_tokens_is_capped_to_leave_room_for_the_answer(self):
         """#984: max_tokens 300 and a budget of 5000 never fired: the reply ended while still thinking.  The thinking
